@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "jxf",
+  "description": "Personal tools for agentic development.",
+  "owner": {
+    "name": "John Feminella"
+  },
+  "plugins": [
+    {
+      "name": "jxf",
+      "source": "./jxf",
+      "description": "Personal coding workflow."
+    }
+  ]
+}
