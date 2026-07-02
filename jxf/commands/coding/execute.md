@@ -29,8 +29,16 @@ $ARGUMENTS
 
 1. Launch parallel subagents in a single batch so they run concurrently. Give each a self-contained prompt: the task, relevant file paths or context discovered during planning, and clear completion criteria.
 2. Instruct each mutating subagent to report exactly what it changed (files, tests run, results). Worktree-isolated agents should commit their work in the worktree so it can be merged back.
-3. As results come in, verify them: check that claimed changes exist, run tests or builds where applicable.
-4. Integrate worktree results back into the main working tree, resolving conflicts if any arose. Surface conflicts to the user rather than silently picking a side.
+3. Include the following commit rules verbatim in every worktree-isolated subagent's prompt, filling in the placeholders:
+
+   > You are working in your own git worktree at `<path>`. Rules for committing:
+   > 1. First create and switch to your own branch: `git switch -c agent/<task-name>`. Never commit while on `main` or any shared branch.
+   > 2. Commit only with plain `git add` / `git commit` in your own worktree.
+   > 3. Do **not** push, merge, rebase, cherry-pick onto shared branches, or run `git branch -f` / `git update-ref` / `git gc`.
+   > 4. When done, report your branch name. Do not integrate your work yourself.
+
+4. As results come in, verify them: check that claimed changes exist, run tests or builds where applicable.
+5. Integrate worktree results back into the main working tree by merging each reported `agent/*` branch one at a time, resolving conflicts if any arose. Surface conflicts to the user rather than silently picking a side. Delete merged `agent/*` branches after their worktrees are removed.
 
 ## Report
 
