@@ -1,8 +1,8 @@
 ---
-description: Organize outstanding work into logical commits on topic/* branches, then merge each into main
+description: Organize outstanding work into logical commits on topic/* branches
 ---
 
-Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:execute` — into logical, complete commits on `topic/*` branches, then merge each into `main`.
+Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:execute` — into logical, complete commits on `topic/*` branches. Leave the branches unmerged; merging into `main` is a separate, deliberate step for the user.
 
 ## Process
 
@@ -17,10 +17,10 @@ Organize all outstanding work — uncommitted changes in the working tree and an
 5. For each approved branch, in sequence:
    a. Create the branch from the current `main`.
    b. Populate it with the relevant work: stage and commit files from the working tree, and/or cherry-pick or merge the relevant commits from an `agent/*` branch. Use multiple commits when it makes the history clearer.
-   c. Merge the branch into `main` with `--no-ff`.
-   d. Rebase the next branch onto the updated `main` to ensure no merge conflicts.
-6. After all approved work has landed on `main`, delete the consumed `agent/*` branches (and remove any leftover worktrees) so they don't get double-committed on a later run.
-7. Report what was merged and what (if anything) remains outstanding.
+   c. Do **not** merge the branch into `main` — leave it for the user to review and land.
+   d. If a later branch depends on an earlier one's changes, base it on that branch (a stack) and note the dependency; otherwise create it from `main` as usual.
+6. After all approved work has been committed onto `topic/*` branches, delete the consumed `agent/*` branches (and remove any leftover worktrees) so they don't get double-committed on a later run — their work now lives on the topic branches.
+7. Report the `topic/*` branches created (with any stacking order), and what (if anything) remains outstanding.
 
 ## Grouping principles
 
@@ -32,6 +32,7 @@ Organize all outstanding work — uncommitted changes in the working tree and an
 ## Constraints
 
 - Do not push to any remote.
+- Do not merge anything into `main` or commit directly on it.
 - Do not modify or rebase existing commits on `main`.
 - Do not touch files that aren't part of the outstanding changes.
 - Always end on `main` with a clean working tree (or report what remains).

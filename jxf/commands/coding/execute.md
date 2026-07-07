@@ -4,7 +4,7 @@ description: Execute directions or a list of tasks by fanning out subagents, the
 
 Execute the following directions or task list by decomposing the work and fanning out subagents as appropriate, then make PRs for the results and review them.
 
-**This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; landing them on `main` is `/jxf:coding:commit`'s job alone. Only override this if the user explicitly asks.
+**This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; organizing them into `topic/*` branches is `/jxf:coding:commit`'s job, and landing them on `main` is the user's. Only override this if the user explicitly asks.
 
 **Never push an `agent/*` branch to a remote.** `agent/*` branches are local, throwaway scratch created by the fan-out below; anything that needs to reach a remote (a PR) goes on a `topic/*` branch instead. A global `pre-push` hook enforces this, but don't rely on it — don't try to push `agent/*` in the first place.
 
@@ -59,4 +59,4 @@ Skip this section entirely (and say so) if the preflight found no remote or no `
 - Summarize per task: what was done, by which agent, and verification status.
 - List each PR made, with its URL, the tasks it covers, and its review outcome (confirmed findings and what was fixed).
 - List any tasks that failed, were skipped, or need user decisions, with enough detail to act on.
-- State where each task's output lives (PR URL, `agent/*` branch names, and/or working-tree changes), and remind the user that `/jxf:coding:commit` lands work on `main`.
+- State where each task's output lives (PR URL, `agent/*` branch names, and/or working-tree changes), and remind the user that `/jxf:coding:commit` organizes any work not already PR'd (leftover `agent/*` branches and uncommitted changes) into `topic/*` branches ready to merge.
