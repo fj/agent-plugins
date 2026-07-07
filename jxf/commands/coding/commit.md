@@ -2,12 +2,12 @@
 description: Organize outstanding work into logical commits on topic/* branches, then merge each into main
 ---
 
-Organize all outstanding unstaged and untracked work into logical, complete commits on topic/* branches, then merge each into main.
+Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:execute` — into logical, complete commits on `topic/*` branches, then merge each into `main`.
 
 ## Process
 
-1. Run `git status` and `git diff` to inventory all modified, staged, and untracked files.
-2. Read file contents and diffs to understand what each change does.
+1. Run `git status` and `git diff` to inventory all modified, staged, and untracked files. Also run `git branch --list 'agent/*'` to find any branches left behind by `/jxf:coding:execute`; include their commits in the inventory (`git log --oneline main..agent/<name>` and `git diff main...agent/<name>`).
+2. Read file contents and diffs to understand what each change does, across both the working tree and any `agent/*` branches.
 3. Propose a set of topic branches, each with:
    - A branch name (`topic/<slug>`)
    - The files it includes
@@ -16,10 +16,11 @@ Organize all outstanding unstaged and untracked work into logical, complete comm
 4. Wait for the user to approve, adjust, or select a subset.
 5. For each approved branch, in sequence:
    a. Create the branch from the current `main`.
-   b. Stage and commit the relevant files (use multiple commits when it makes the history clearer).
+   b. Populate it with the relevant work: stage and commit files from the working tree, and/or cherry-pick or merge the relevant commits from an `agent/*` branch. Use multiple commits when it makes the history clearer.
    c. Merge the branch into `main` with `--no-ff`.
    d. Rebase the next branch onto the updated `main` to ensure no merge conflicts.
-6. Report what was merged and what (if anything) remains outstanding.
+6. After all approved work has landed on `main`, delete the consumed `agent/*` branches (and remove any leftover worktrees) so they don't get double-committed on a later run.
+7. Report what was merged and what (if anything) remains outstanding.
 
 ## Grouping principles
 
