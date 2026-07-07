@@ -1,8 +1,10 @@
 ---
-description: Execute directions or a list of tasks by fanning out subagents, isolating parallel work in git worktrees
+description: Execute directions or a list of tasks by fanning out subagents, then make and review PRs for the results
 ---
 
-Execute the following directions or task list by decomposing the work and fanning out subagents as appropriate:
+Execute the following directions or task list by decomposing the work and fanning out subagents as appropriate, then make PRs for the results and review them.
+
+**This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; landing them on `main` is `/jxf:coding:commit`'s job alone. Only override this if the user explicitly asks.
 
 $ARGUMENTS
 
@@ -11,6 +13,7 @@ $ARGUMENTS
 1. Verify you are inside a git repository: run `git rev-parse --is-inside-work-tree`. If this fails, **refuse to proceed** — tell the user this command requires a git repository and stop.
 2. Note the current branch and whether the working tree is clean (`git status`). Report any pre-existing uncommitted changes so they aren't attributed to this run.
 3. If no directions or tasks were provided above, ask the user what to execute and stop.
+4. Check whether a remote exists and `gh` is authenticated (`git remote -v`, `gh auth status`). If not, warn the user up front that the PR step will be skipped, and continue with execution only.
 
 ## Plan the fan-out
 
@@ -38,10 +41,19 @@ $ARGUMENTS
    > 4. When done, report your branch name. Do not integrate your work yourself.
 
 4. As results come in, verify them: check that claimed changes exist, run tests or builds where applicable.
-5. Integrate worktree results back into the main working tree by merging each reported `agent/*` branch one at a time, resolving conflicts if any arose. Surface conflicts to the user rather than silently picking a side. Delete merged `agent/*` branches after their worktrees are removed.
+5. Leave results where `/jxf:coding:commit` can pick them up: worktree agents keep their committed `agent/*` branches; non-isolated agents leave plain uncommitted changes in the working tree (no `git add`/`git commit`). If the current branch is not `main`/shared you may merge `agent/*` branches onto it for convenience, but never onto `main`, never delete `agent/*` branches, and surface any conflicts to the user instead of picking a side.
+
+## Make and review PRs
+
+Skip this section entirely (and say so) if the preflight found no remote or no `gh` authentication.
+
+1. Make a PR for each logical unit of completed work by following `/jxf:coding:pr:make` — typically one PR per `agent/*` branch, or one PR when the tasks form a single coherent change. When there are several, apply the per-PR logic to each in turn as `/jxf:coding:pr:make:all` does. Committing a unit's working-tree changes onto its own PR branch is fine here; `main` stays untouched either way. Do not PR work that failed verification — report it instead.
+2. Review the resulting PRs by following `/jxf:coding:pr:review:all`, which covers every PR made this session.
+3. Fix any high-severity confirmed findings, push the fixes to the affected PR branches, and re-review the amended PRs. Carry lower-severity findings into the report rather than churning on them.
 
 ## Report
 
 - Summarize per task: what was done, by which agent, and verification status.
+- List each PR made, with its URL, the tasks it covers, and its review outcome (confirmed findings and what was fixed).
 - List any tasks that failed, were skipped, or need user decisions, with enough detail to act on.
-- Do not push to any remote and do not commit to the main working tree unless the user asked for that.
+- State where each task's output lives (PR URL, `agent/*` branch names, and/or working-tree changes), and remind the user that `/jxf:coding:commit` lands work on `main`.
