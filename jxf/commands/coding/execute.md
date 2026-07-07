@@ -6,6 +6,8 @@ Execute the following directions or task list by decomposing the work and fannin
 
 **This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; landing them on `main` is `/jxf:coding:commit`'s job alone. Only override this if the user explicitly asks.
 
+**Never push an `agent/*` branch to a remote.** `agent/*` branches are local, throwaway scratch created by the fan-out below; anything that needs to reach a remote (a PR) goes on a `topic/*` branch instead. A global `pre-push` hook enforces this, but don't rely on it — don't try to push `agent/*` in the first place.
+
 $ARGUMENTS
 
 ## Preflight
@@ -37,17 +39,17 @@ $ARGUMENTS
    > You are working in your own git worktree at `<path>`. Rules for committing:
    > 1. First create and switch to your own branch: `git switch -c agent/<task-name>`. Never commit while on `main` or any shared branch.
    > 2. Commit only with plain `git add` / `git commit` in your own worktree.
-   > 3. Do **not** push, merge, rebase, cherry-pick onto shared branches, or run `git branch -f` / `git update-ref` / `git gc`.
+   > 3. Do **not** push (your `agent/*` branch is local-only and a global `pre-push` hook rejects it), merge, rebase, cherry-pick onto shared branches, or run `git branch -f` / `git update-ref` / `git gc`.
    > 4. When done, report your branch name. Do not integrate your work yourself.
 
 4. As results come in, verify them: check that claimed changes exist, run tests or builds where applicable.
-5. Leave results where `/jxf:coding:commit` can pick them up: worktree agents keep their committed `agent/*` branches; non-isolated agents leave plain uncommitted changes in the working tree (no `git add`/`git commit`). If the current branch is not `main`/shared you may merge `agent/*` branches onto it for convenience, but never onto `main`, never delete `agent/*` branches, and surface any conflicts to the user instead of picking a side.
+5. Leave results where `/jxf:coding:commit` can pick them up: worktree agents keep their committed `agent/*` branches; non-isolated agents leave plain uncommitted changes in the working tree (no `git add`/`git commit`). If the current branch is not `main`/shared you may merge `agent/*` branches onto it for convenience, but never onto `main`, never delete `agent/*` branches at this stage (the PR step consumes them later), and surface any conflicts to the user instead of picking a side.
 
 ## Make and review PRs
 
 Skip this section entirely (and say so) if the preflight found no remote or no `gh` authentication.
 
-1. Make a PR for each logical unit of completed work by following `/jxf:coding:pr:make` — typically one PR per `agent/*` branch, or one PR when the tasks form a single coherent change. When there are several, apply the per-PR logic to each in turn as `/jxf:coding:pr:make:all` does. Committing a unit's working-tree changes onto its own PR branch is fine here; `main` stays untouched either way. Do not PR work that failed verification — report it instead.
+1. Make a PR for each logical unit of completed work by following `/jxf:coding:pr:make` — typically one PR per unit, or one PR when the tasks form a single coherent change. **Never push an `agent/*` branch.** For a unit whose work lives on an `agent/*` branch, first move it onto a `topic/*` branch (`git switch -c topic/<slug> agent/<name>`) and PR that; for a unit still uncommitted in the working tree, commit it onto its own `topic/*` PR branch. Once a unit is PR'd on its `topic/*` branch, its `agent/*` branch is consumed — delete it so `/jxf:coding:commit` doesn't re-process the same work onto a second branch; leave only un-PR'd `agent/*` branches and uncommitted changes for `commit`. When there are several, apply the per-PR logic to each in turn as `/jxf:coding:pr:make:all` does. `main` stays untouched either way. Do not PR work that failed verification — report it instead.
 2. Review the resulting PRs by following `/jxf:coding:pr:review:all`, which covers every PR made this session.
 3. Fix any high-severity confirmed findings, push the fixes to the affected PR branches, and re-review the amended PRs. Carry lower-severity findings into the report rather than churning on them.
 

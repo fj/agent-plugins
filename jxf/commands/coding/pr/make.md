@@ -18,14 +18,16 @@ Work down this list and use the first that applies:
 
 1. **Specific instructions above** — if the user named a branch, commits, or a body of work, PR exactly that.
 2. **Work performed this session** — if this conversation produced commits or a branch, PR that work. Identify it from the session's own history (branches created, commits made), not by guessing from `git log`.
-3. **Oldest unmerged branch** — otherwise, find local branches not merged into the default branch (`git branch --no-merged <default>`), excluding the default branch itself. Pick the one whose first unmerged commit is oldest (`git log --reverse <default>..<branch>`). If there are none, report that there's nothing to PR and stop.
+3. **Oldest unmerged branch** — otherwise, find local branches not merged into the default branch (`git branch --no-merged <default>`), excluding the default branch itself and any `agent/*` scratch branches (never a direct PR candidate — see below). Pick the one whose first unmerged commit is oldest (`git log --reverse <default>..<branch>`). If there are none, report that there's nothing to PR and stop.
 
 If the chosen work sits only on the default branch (e.g., merged topic branches or direct commits) and the remote default branch is behind, create a branch from the local default branch containing those commits and PR that — never PR by pushing the default branch itself.
+
+**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:execute`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
 
 ## Make the PR
 
 1. Ensure the branch is rebased on (or at least cleanly mergeable into) the latest remote default branch; rebase if needed and safe (never rewrite commits that are already on the remote).
-2. Push the branch to the remote with an upstream (`git push -u origin <branch>`).
+2. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above) — never push `agent/*`.
 3. Review **all** commits the PR will contain (`git log` and `git diff <default>...<branch>`), not just the latest commit.
 4. Create the PR with `gh pr create`:
    - Title: concise summary of the change (imperative mood).
