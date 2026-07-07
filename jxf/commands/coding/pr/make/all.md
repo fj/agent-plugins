@@ -8,7 +8,7 @@ $ARGUMENTS
 
 ## Preflight
 
-Run `/jxf:coding:pr:make`'s Preflight once for the repository as a whole: confirm you are in a git repo, a remote exists, and `gh` is authenticated. Stop with a clear message if any fails.
+Run `/jxf:coding:pr:make`'s Preflight once for the repository as a whole: confirm you are in a git repo, a remote exists, and `gh` is authenticated, and `git fetch` the latest so every PR is built against the current default-branch tip. Stop with a clear message if any fails.
 
 ## Enumerate outstanding branches
 

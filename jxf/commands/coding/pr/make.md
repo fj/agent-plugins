@@ -11,6 +11,7 @@ $ARGUMENTS
 1. Verify you are inside a git repository (`git rev-parse --is-inside-work-tree`); refuse to proceed otherwise.
 2. Verify a remote exists and `gh` is authenticated (`git remote -v`, `gh auth status`). If either is missing, tell the user what's needed and stop.
 3. Run `git status` — if there is uncommitted work that belongs in this PR, surface it and ask whether to commit it first rather than silently leaving it behind.
+4. Start from the latest: `git fetch` the remote so the branch is reviewed and rebased against the current default-branch tip rather than a stale one.
 
 ## Choose what to PR
 

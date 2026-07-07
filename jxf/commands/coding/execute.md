@@ -16,6 +16,7 @@ $ARGUMENTS
 2. Note the current branch and whether the working tree is clean (`git status`). Report any pre-existing uncommitted changes so they aren't attributed to this run.
 3. If no directions or tasks were provided above, ask the user what to execute and stop.
 4. Check whether a remote exists and `gh` is authenticated (`git remote -v`, `gh auth status`). If not, warn the user up front that the PR step will be skipped, and continue with execution only.
+5. Start from the latest: `git fetch` the remote, then fast-forward the default branch to its remote counterpart (`git pull --ff-only`, or `git merge --ff-only <remote>/<default>`) and base new worktrees and branches on that updated tip. Skip if there's no remote; if the working tree is dirty or the default branch can't fast-forward, don't force it — surface the situation and ask how to proceed.
 
 ## Plan the fan-out
 
