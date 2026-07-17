@@ -23,7 +23,7 @@ Work down this list and use the first that applies:
 
 If the chosen work sits only on the default branch (e.g., merged topic branches or direct commits) and the remote default branch is behind, create a branch from the local default branch containing those commits and PR that — never PR by pushing the default branch itself.
 
-**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:execute`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
+**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:develop`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
 
 ## Make the PR
 

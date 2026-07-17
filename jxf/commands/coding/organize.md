@@ -2,7 +2,7 @@
 description: Organize work into logical commits topic/* branches
 ---
 
-Organize all outstanding work. Uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:execute` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
+Organize all outstanding work. Uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:develop` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
 
 ## Process
 
@@ -10,7 +10,7 @@ Organize all outstanding work. Uncommitted changes in the working tree and any `
    - if there is a remote:
       - `git fetch` the remote
       - fast-forward `main` to its remote counterpart (`git pull --ff-only`) so topic branches are created from the current tip
-   - if worktree changes block a fast-forward or `main` has diverged, don't force it — surface the situation and ask how to proceed. Then run `git status` and `git diff` to inventory all modified, staged, and untracked files. Also run `git branch --list 'agent/*'` to find any branches left behind by `/jxf:coding:execute`; include their commits in the inventory (`git log --oneline main..agent/<name>` and `git diff main...agent/<name>`).
+   - if worktree changes block a fast-forward or `main` has diverged, don't force it — surface the situation and ask how to proceed. Then run `git status` and `git diff` to inventory all modified, staged, and untracked files. Also run `git branch --list 'agent/*'` to find any branches left behind by `/jxf:coding:develop`; include their commits in the inventory (`git log --oneline main..agent/<name>` and `git diff main...agent/<name>`).
 2. Read file contents and diffs to understand what each change does, across both the working tree and any `agent/*` branches.
 3. Propose a set of topic branches, each with:
    - A branch name (`topic/<slug>`)
