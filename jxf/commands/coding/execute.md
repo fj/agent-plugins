@@ -1,14 +1,16 @@
 ---
-description: Execute directions or a list of tasks by fanning out subagents, then make and review PRs for the results
+description: Execute directions by fanning out subagents in git worktrees
 ---
 
 Execute the following directions or task list by decomposing the work and fanning out subagents as appropriate, then make PRs for the results and review them.
 
-**This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; organizing them into `topic/*` branches is `/jxf:coding:commit`'s job, and landing them on `main` is the user's. Only override this if the user explicitly asks.
+* **This command never commits or merges to `main`.** It produces changes, PRs them, and leaves them ready for review; organizing them into `topic/*` branches is `/jxf:coding:commit`'s job, and landing them on `main` is the user's. Only override this if the user explicitly asks.
 
-**Never push an `agent/*` branch to a remote.** `agent/*` branches are local, throwaway scratch created by the fan-out below; anything that needs to reach a remote (a PR) goes on a `topic/*` branch instead. A global `pre-push` hook enforces this, but don't rely on it — don't try to push `agent/*` in the first place.
+* **Never push an `agent/*` branch to a remote.** `agent/*` branches are local, throwaway scratch created by the fan-out below; anything that needs to reach a remote (a PR) goes on a `topic/*` branch instead. A global `pre-push` hook enforces this, but don't rely on it — don't try to push `agent/*` in the first place.
 
+```
 $ARGUMENTS
+```
 
 ## Preflight
 
