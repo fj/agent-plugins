@@ -11,7 +11,7 @@ $ARGUMENTS
 1. Verify you are inside a git repository (`git rev-parse --is-inside-work-tree`); refuse to proceed otherwise.
 2. Verify a remote exists and `gh` is authenticated (`git remote -v`, `gh auth status`). If either is missing, tell the user what's needed and stop.
 3. Run `git status` — if there is uncommitted work that belongs in this PR, surface it and ask whether to commit it first rather than silently leaving it behind.
-4. Start from the latest: `git fetch` the remote so the branch is reviewed and rebased against the current default-branch tip rather than a stale one.
+4. Start from the latest: `git fetch` the remote so the branch is reviewed and rebased against the current default-branch tip.
 
 ## Choose what to PR
 
@@ -23,12 +23,12 @@ Work down this list and use the first that applies:
 
 If the chosen work sits only on the default branch (e.g., merged topic branches or direct commits) and the remote default branch is behind, create a branch from the local default branch containing those commits and PR that — never PR by pushing the default branch itself.
 
-**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:execute`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
+**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:develop`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
 
 ## Make the PR
 
 1. Ensure the branch is rebased on (or at least cleanly mergeable into) the latest remote default branch; rebase if needed and safe (never rewrite commits that are already on the remote).
-2. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above) — never push `agent/*`.
+2. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above).
 3. Review **all** commits the PR will contain (`git log` and `git diff <default>...<branch>`), not just the latest commit.
 4. Create the PR with `gh pr create`:
    - Title: concise summary of the change (imperative mood).

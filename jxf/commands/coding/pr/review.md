@@ -34,5 +34,6 @@ Work down this list and use the first that applies:
 
 - State which PR was reviewed and which selection rule applied.
 - Rank confirmed findings by severity, each with `file:line`, what goes wrong, and a suggested fix.
+- Write comments concisely — complete sentences, no filler; a sentence or two per finding.
 - If nothing survives verification, say plainly that the PR looks good.
 - Report findings in the conversation only — do not post comments or reviews on the PR itself unless the user asked for that.

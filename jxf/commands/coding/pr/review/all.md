@@ -2,7 +2,7 @@
 description: Review every PR worked on this session by applying /jxf:coding:pr:review to each
 ---
 
-Review **all** pull requests worked on in this session, applying the exact same per-PR logic as `/jxf:coding:pr:review` to each:
+Review **all** pull requests worked on in this session, applying the same per-PR logic as `/jxf:coding:pr:review` to each:
 
 $ARGUMENTS
 
@@ -28,4 +28,5 @@ If one PR's review fails (e.g. `gh` errors), record the failure and continue wit
 
 - List every PR reviewed with a per-PR verdict (looks good, or the count of confirmed findings by severity).
 - Then list all confirmed findings ranked by severity across PRs, each with the PR, `file:line`, what goes wrong, and a suggested fix.
+- Write comments concisely — complete sentences, no filler; a sentence or two per finding.
 - Report findings in the conversation only — do not post comments or reviews on the PRs unless the user asked for that.
