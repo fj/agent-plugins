@@ -29,7 +29,7 @@ $ARGUMENTS
    - **Read-only tasks** (research, analysis, review) never need isolation and can always run in parallel.
 4. Choose isolation per subagent:
    - Use a separate git worktree (`isolation: "worktree"`) for any subagent that mutates files while other mutating subagents run concurrently.
-   - Skip worktree isolation when only one subagent writes at a time, or the task is read-only — the overhead isn't justified.
+   - Skip worktree isolation when only one subagent writes at a time, or the task is read-only.
 5. Briefly state the plan (tasks, grouping, isolation choices) before launching. For a single trivial task, skip the ceremony and just do it inline.
 
 ## Execute

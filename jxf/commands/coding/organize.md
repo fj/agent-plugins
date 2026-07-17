@@ -1,17 +1,15 @@
 ---
-description: Organize work into logical commits topic/* branches
+description: Organize work into logical commits on topic/* branches
 ---
 
-Organize all outstanding work. Uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:develop` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
+Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:develop` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
 
 ## Process
 
 1. Start from the latest:
-   - if there is a remote:
-      - `git fetch` the remote
-      - fast-forward `main` to its remote counterpart (`git pull --ff-only`) so topic branches are created from the current tip
-   - if worktree changes block a fast-forward or `main` has diverged, don't force it — surface the situation and ask how to proceed. Then run `git status` and `git diff` to inventory all modified, staged, and untracked files. Also run `git branch --list 'agent/*'` to find any branches left behind by `/jxf:coding:develop`; include their commits in the inventory (`git log --oneline main..agent/<name>` and `git diff main...agent/<name>`).
-2. Read file contents and diffs to understand what each change does, across both the working tree and any `agent/*` branches.
+   - If there is a remote, `git fetch` it, then fast-forward `main` to its remote counterpart (`git pull --ff-only`) so topic branches are created from the current tip.
+   - If worktree changes block the fast-forward or `main` has diverged, don't force it — surface the situation and ask how to proceed.
+2. Inventory the outstanding work: `git status` and `git diff` for modified, staged, and untracked files, plus `git branch --list 'agent/*'` for branches left behind by `/jxf:coding:develop` (with `git log --oneline main..agent/<name>` and `git diff main...agent/<name>` for their commits). Read the file contents and diffs to understand what each change does.
 3. Propose a set of topic branches, each with:
    - A branch name (`topic/<slug>`)
    - The files it includes
@@ -28,8 +26,7 @@ Organize all outstanding work. Uncommitted changes in the working tree and any `
 
 ## Grouping principles
 
-- Each commit should be:
-  - **Logical and complete**. It makes sense on its own and doesn't leave broken intermediate state.
+- Each commit should be **logical and complete**: it makes sense on its own and doesn't leave broken intermediate state.
 - Group files by *purpose*, not by proximity.
 - Use multiple commits on a branch when the changes tell a multi-step story (e.g. a feature developed over several iterations, each of which is complete).
 - Don't mix unrelated concerns in one commit.

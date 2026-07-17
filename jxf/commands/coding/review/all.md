@@ -2,7 +2,7 @@
 description: Review every outstanding branch by applying /jxf:coding:review to each in parallel
 ---
 
-Review **all** outstanding branches, applying the exact same per-branch logic as `/jxf:coding:review` to each:
+Review **all** outstanding branches, applying the same per-branch logic as `/jxf:coding:review` to each:
 
 $ARGUMENTS
 

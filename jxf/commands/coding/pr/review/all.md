@@ -2,7 +2,7 @@
 description: Review every PR worked on this session by applying /jxf:coding:pr:review to each
 ---
 
-Review **all** pull requests worked on in this session, applying the exact same per-PR logic as `/jxf:coding:pr:review` to each:
+Review **all** pull requests worked on in this session, applying the same per-PR logic as `/jxf:coding:pr:review` to each:
 
 $ARGUMENTS
 
