@@ -27,17 +27,19 @@ If the chosen work sits only on the default branch (e.g., merged topic branches 
 
 ## Make the PR
 
-1. Ensure the branch is rebased on (or at least cleanly mergeable into) the latest remote default branch; rebase if needed and safe (never rewrite commits that are already on the remote).
-2. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above).
-3. Review **all** commits the PR will contain (`git log` and `git diff <default>...<branch>`), not just the latest commit.
-4. Create the PR with `gh pr create`:
+1. **Gate on unresolved findings.** Establish that the chosen branch's high-severity review findings were fixed and re-verified. If any are outstanding, or you cannot establish the branch's resolution state at all — no review covered it in this session, or its review failed — do not open the PR. Show the user what is unresolved or unknown and stop, so they can resolve it (`/jxf:coding:review`) or tell you explicitly to accept it and proceed. Never treat "no findings recorded" as "no findings". A branch stacked on a blocked branch is blocked too, since its PR would carry the base branch's unresolved commits.
+2. Ensure the branch is rebased on (or at least cleanly mergeable into) the latest remote default branch; rebase if needed and safe (never rewrite commits that are already on the remote).
+3. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above).
+4. Review **all** commits the PR will contain (`git log` and `git diff <default>...<branch>`), not just the latest commit.
+5. Create the PR with `gh pr create`:
    - Title: concise summary of the change (imperative mood).
    - Body: a short "## Summary" (what and why, 1-3 bullets) and a "## Test plan" describing how the change was or should be verified.
    - Target the repository's default branch unless instructed otherwise.
-5. Do not enable auto-merge, request reviewers, or merge the PR unless asked.
+6. Do not enable auto-merge, request reviewers, or merge the PR unless asked.
 
 ## Report
 
 - State which selection rule applied (instructions / session work / oldest unmerged branch) and why.
+- If the unresolved-findings gate blocked the PR, report it as blocked: name the branch, list what is unresolved or unknown, state that no PR was created, and skip the PR-specific items below.
 - Include the PR URL, the branch name, and the commits it contains.
 - Note anything left out (uncommitted files, other unmerged branches still awaiting PRs).
