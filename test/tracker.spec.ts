@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { localDayKey, type DailyStore } from '../src/core/daily.ts'
 import type { JournalRecord } from '../src/core/journal.ts'
 import { ZERO_TOTALS, type Totals } from '../src/core/totals.ts'
-import { sessionTracker } from '../src/core/tracker.ts'
+import { persistDay, sessionTracker } from '../src/core/tracker.ts'
 import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
 
 const T0 = new Date(2026, 9, 3, 23, 59, 0).getTime()
@@ -106,4 +106,15 @@ test('a failed write does not throw or reject unhandled', async () => {
   assert.doesNotThrow(() => RUN.forEach(record => tracker.record(record)))
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(writes.length, 2)
+})
+
+test('persisting a day swallows a write that throws before it returns a promise', async () => {
+  const store: DailyStore = {
+    write: () => {
+      throw new Error('no disk')
+    },
+    readAll: async () => [],
+  }
+
+  await persistDay(store, 'pi-a', { [localDayKey(T0)]: ZERO_TOTALS }, T0)
 })

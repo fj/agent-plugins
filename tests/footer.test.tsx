@@ -182,3 +182,21 @@ test('a measurement that leaves rate limits alone keeps the meters', async ($, o
 
   expect(await footerText($)).toContain('5h ▕')
 })
+
+async function completeTurn($: Engine): Promise<void> {
+  await $.turn.complete({ turnId: 'turn-1', answer: 'done', durationMs: TURN_MS, isAborted: false, reason: 'answer' })
+}
+
+test('a failed day-file write leaves the turn and the footer intact', async ($, on) => {
+  const w = world(on, { files: FILES, isWriteFailing: true })
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+  await w.clock.advance(TURN_MS)
+  await completeTurn($)
+
+  expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
+  const text = await footerText($)
+  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
+  expect(text).toContain('today $1.26 ↑7.2k ↓1.3k 1m 04s')
+})
