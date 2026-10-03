@@ -8,6 +8,7 @@ import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { footerLine } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
 import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
+import { topHatRobot } from '../src/render/robot.ts'
 import { timerView } from '../src/render/timer.ts'
 import type { Config } from './config.ts'
 import { lineNodes } from './draw.tsx'
@@ -173,4 +174,22 @@ export function drawSites(on: On, config: Config): void {
     )
   })
 
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const ledger = await read($, ledgerAtom)
+    const isNewSession = ledger.turn === 0 && (await $.session.turns()) === 0
+
+    if (e.props.hasSurvey || !isNewSession) {
+      return next(e)
+    }
+
+    const { Box, Text } = $.ui.resolve(e)
+
+    return (
+      <Box key="top-hat" flexDirection="column">
+        {topHatRobot().map(line => (
+          <Text>{lineNodes(Text, line)}</Text>
+        ))}
+      </Box>
+    )
+  })
 }
