@@ -1,0 +1,14 @@
+import type { ElementConstructor, RenderNode, TextProps } from 'claude-code'
+
+import { PALETTE } from '../src/render/palette.ts'
+import type { Line } from '../src/render/segment.ts'
+
+export type TextTag = ElementConstructor<TextProps>
+
+export function lineNodes(Text: TextTag, line: Line): RenderNode[] {
+  return line.map(part => {
+    const color = PALETTE[part.role]
+
+    return color === undefined ? <Text>{part.text}</Text> : <Text color={color}>{part.text}</Text>
+  })
+}
