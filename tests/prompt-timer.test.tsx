@@ -142,3 +142,21 @@ test('debug logs a prompt row that matched nothing', { options: { debug: true } 
 
   expect(w.logs).toEqual(['mod-jxf-fancy: UserMessage row lost-row matched nothing'])
 })
+
+test('a prompt that is not from the user starts no turn', async ($, on) => {
+  const w = world(on)
+  await submit($, TEXT)
+  await $.prompt.submit({ text: 'task finished', wait: false, origin: { kind: 'task-notification' } })
+  w.scripts.push(textReply('On it.'))
+  await step($, 'turn-1', 0)
+
+  const ui = await $.ui.mount({
+    plugin: PLUGIN,
+    surface: 'terminal',
+    component: 'AssistantMessage',
+    props: { text: 'On it.', isFirstOfReply: true },
+  })
+  expect(shownText(await ui.drawn())).toContain('{turn 1.1: ')
+  const prompt = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'UserMessage', props: ROW })
+  expect(await prompt.find({ type: 'Text', text: '{2026-10-03 04:20:37 Δ 0.0s}' })).toBeDefined()
+})
