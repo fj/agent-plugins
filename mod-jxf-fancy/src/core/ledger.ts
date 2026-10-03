@@ -64,7 +64,7 @@ export function startStep(state: LedgerState, id: string, at: number, model: str
   return { ...state, currentStepId: id, steps: { ...state.steps, [id]: step } }
 }
 
-export function markReply(state: LedgerState, at: number): LedgerState {
+function markReply(state: LedgerState, at: number): LedgerState {
   const prompt = state.currentPromptId === undefined ? undefined : state.prompts[state.currentPromptId]
 
   if (prompt === undefined || prompt.firstReplyAt !== undefined) {

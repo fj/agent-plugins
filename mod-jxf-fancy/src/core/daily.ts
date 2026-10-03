@@ -1,4 +1,4 @@
-import { addTotals, sumTotals, ZERO_TOTALS, type Totals } from './totals.ts'
+import { addTotals, ZERO_TOTALS, type Totals } from './totals.ts'
 
 export type DayKey = string
 
@@ -54,5 +54,3 @@ export function parseTotals(text: string): Totals | null {
     return null
   }
 }
-
-export { sumTotals }
