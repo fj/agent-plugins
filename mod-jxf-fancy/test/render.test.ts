@@ -1,0 +1,124 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+
+import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
+import { ZERO_TOTALS } from '../src/core/totals.ts'
+import { footerLine } from '../src/render/footer.ts'
+import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
+import { meterBar } from '../src/render/meter.ts'
+import { messagePrefix } from '../src/render/prefix.ts'
+import { BANNER_TEXT, topHatRobot } from '../src/render/robot.ts'
+import { lineText } from '../src/render/segment.ts'
+import { rainbow } from '../src/render/shimmer.ts'
+import { timerView } from '../src/render/timer.ts'
+import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
+
+const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
+
+test('durations count tenths under a minute, then minutes and hours', () => {
+  assert.equal(formatDuration(4149), '4.1s')
+  assert.equal(formatDuration(72_000), '1m 12s')
+  assert.equal(formatDuration(3_725_000), '1h 02m')
+  assert.equal(formatDuration(-5), '0.0s')
+})
+
+test('tokens and dollars use compact units', () => {
+  assert.equal(formatTokens(999), '999')
+  assert.equal(formatTokens(15_400), '15.4k')
+  assert.equal(formatTokens(1_250_000), '1.3M')
+  assert.equal(formatUsd({ usd: 12.345, isLowerBound: false }), '$12.35')
+})
+
+test('long paths keep the head and tail around an ellipsis', () => {
+  assert.equal(shortenPath('/home/j/src/a', '/home/j', 40), '~/src/a')
+  assert.equal(shortenPath('/home/j/src/projects/jxf/mod-jxf-fancy', '/home/j', 24), '~/src/…/mod-jxf-fancy')
+})
+
+test('a live timer counts from the start; a stopped one shows its duration', () => {
+  assert.deepEqual(timerView(T0, T0 + 4100), { text: '{2026-10-03 04:20:37 Δ 4.1s}', isLive: true })
+  assert.deepEqual(timerView(T0, T0 + 99_000, T0 + 3500), { text: '{2026-10-03 04:20:37 Δ 3.5s}', isLive: false })
+})
+
+test('the rainbow moves with time and along the text', () => {
+  assert.match(rainbow(0, 0), /^#[0-9a-f]{6}$/)
+  assert.notEqual(rainbow(0, 0), rainbow(0, 1))
+  assert.notEqual(rainbow(0, 0), rainbow(250, 0))
+})
+
+test('meters stay at a fixed width and clamp', () => {
+  assert.equal(meterBar(0, 4), '▕    ▏')
+  assert.equal(meterBar(100, 4), '▕████▏')
+  assert.equal(meterBar(250, 4), '▕████▏')
+  assert.equal(meterBar(50, 3), '▕█▌ ▏')
+})
+
+test('the message prefix shows timing, turn, tokens and cost', () => {
+  const step = {
+    id: 's',
+    turn: 3,
+    startedAt: T0,
+    endedAt: T0 + 4100,
+    model: 'claude-opus-5-5',
+    usage: { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 },
+    cost: { usd: 0.06, isLowerBound: false },
+    totals: {
+      usage: { input: 1000, cacheWrite: 30_000, cacheRead: 60_800, output: 12_000 },
+      cost: { usd: 12.34, isLowerBound: false },
+      activeMs: 0,
+    },
+  }
+  const mark = { id: 'm', kind: 'message' as const, turn: 3, seq: 2, startedAt: T0, stepId: 's' }
+
+  assert.equal(
+    lineText(messagePrefix({ mark, step, now: T0, usage: defaultUsageStrategy })),
+    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / 91.8k Σ ↓ Δ 3.2k / 12.0k Σ} {Δ $0.06 / $12.34 Σ}',
+  )
+})
+
+test('a prefix without a finished step shows live timing and the turn only', () => {
+  const mark = { id: 'm', kind: 'message' as const, turn: 1, seq: 1, startedAt: T0 }
+
+  assert.equal(
+    lineText(messagePrefix({ mark, now: T0 + 1500, usage: defaultUsageStrategy })),
+    '{2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}',
+  )
+})
+
+test('the footer joins model, path, session and today', () => {
+  const session = { ...ZERO_TOTALS, cost: { usd: 12.34, isLowerBound: false }, activeMs: 65_000 }
+  const line = footerLine({
+    model: 'claude-opus-5-5',
+    cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
+    home: '/home/j',
+    session,
+    today: { ...session, cost: { usd: 48.1, isLowerBound: true } },
+    quota: [{ text: '5h 42%', role: 'meter' }],
+    usage: defaultUsageStrategy,
+    maxPathWidth: 24,
+  })
+
+  assert.equal(
+    lineText(line),
+    'claude-opus-5-5 · ~/src/…/mod-jxf-fancy · session $12.34 ↑0 ↓0 1m 05s 5h 42% · today $48.10+ ↑0 ↓0 1m 05s',
+  )
+})
+
+test('daily totals accumulate per local day and round-trip through JSON', () => {
+  const day = localDayKey(T0)
+  const delta = { ...ZERO_TOTALS, activeMs: 5 }
+  const days = addToDay(addToDay({}, day, delta), day, delta)
+
+  assert.equal(day, '2026-10-03')
+  assert.equal(days[day]?.activeMs, 10)
+  assert.deepEqual(parseTotals(JSON.stringify(days[day])), days[day])
+  assert.equal(parseTotals('{"nope":1}'), null)
+  assert.equal(parseTotals('not json'), null)
+  assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy/days/2026-10-03/claude_a_b.json')
+})
+
+test('the robot wears a hat and announces the mod', () => {
+  const lines = topHatRobot()
+
+  assert.ok(lines.some(line => line.some(part => part.role === 'hatBand')))
+  assert.ok(lines.some(line => lineText(line).endsWith(BANNER_TEXT)))
+})
