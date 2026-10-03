@@ -34,9 +34,14 @@ export const TOOL_MS = 2000
 
 const NO_ROW_STORE = 'no implementation for session.append'
 
-export type WorldOptions = { files?: Record<string, string>; turns?: number; isToolFailing?: boolean }
+export type WorldOptions = {
+  files?: Record<string, string>
+  turns?: number
+  isToolFailing?: boolean
+  isWriteFailing?: boolean
+}
 
-export function world(on: On, { files = {}, turns = 0, isToolFailing = false }: WorldOptions = {}): World {
+export function world(on: On, { files = {}, turns = 0, isToolFailing = false, isWriteFailing = false }: WorldOptions = {}): World {
   const w: World = {
     clock: mock.clock(on, { now: T0 }),
     files: new Map(Object.entries(files)),
@@ -62,6 +67,10 @@ export function world(on: On, { files = {}, turns = 0, isToolFailing = false }: 
     return { value: undefined }
   })
   on('fs.write', (_$, e) => {
+    if (isWriteFailing) {
+      return { deny: `EACCES: ${e.path}` }
+    }
+
     w.files.set(e.path, e.text)
 
     return { value: undefined }
