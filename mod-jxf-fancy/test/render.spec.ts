@@ -10,7 +10,7 @@ import { messagePrefix } from '../src/render/prefix.ts'
 import { BANNER_TEXT, topHatRobot } from '../src/render/robot.ts'
 import { lineText } from '../src/render/segment.ts'
 import { rainbow } from '../src/render/shimmer.ts'
-import { timerView } from '../src/render/timer.ts'
+import { promptTimerView, timerView } from '../src/render/timer.ts'
 import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
@@ -37,6 +37,17 @@ test('long paths keep the head and tail around an ellipsis', () => {
 test('a live timer counts from the start; a stopped one shows its duration', () => {
   assert.deepEqual(timerView(T0, T0 + 4100), { text: '{2026-10-03 04:20:37 Δ 4.1s}', isLive: true })
   assert.deepEqual(timerView(T0, T0 + 99_000, T0 + 3500), { text: '{2026-10-03 04:20:37 Δ 3.5s}', isLive: false })
+})
+
+test('a prompt timer runs until the first reply, and stops without one once the turn is over', () => {
+  const prompt = { id: 'p', turn: 1, submittedAt: T0 }
+
+  assert.deepEqual(promptTimerView(prompt, true, T0 + 2300), { text: '{2026-10-03 04:20:37 Δ 2.3s}', isLive: true })
+  assert.deepEqual(promptTimerView({ ...prompt, firstReplyAt: T0 + 900 }, false, T0 + 5000), {
+    text: '{2026-10-03 04:20:37 Δ 0.9s}',
+    isLive: false,
+  })
+  assert.deepEqual(promptTimerView(prompt, false, T0 + 5000), { text: '{2026-10-03 04:20:37}', isLive: false })
 })
 
 test('the rainbow moves with time and along the text', () => {
