@@ -11,6 +11,7 @@ import {
   step,
   submit,
   textReply,
+  toolReply,
   USAGE,
   world,
 } from './world.tsx'
@@ -102,7 +103,7 @@ test('a reply row with no known id is matched by its streamed text', async ($, o
 test('tool calls take a Y number between reply segments', async ($, on) => {
   const w = world(on)
   await submit($, 'plan it')
-  w.scripts.push({ chunks: [{ kind: 'tool', index: 0, id: 'toolu_1', name: 'Bash' }], usage: null })
+  w.scripts.push(toolReply('toolu_1'))
   for await (const _chunk of $.turn.step({ turnId: 'turn-1', index: 0, model: MODEL, messageCount: 1 })) {
     void _chunk
   }

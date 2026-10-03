@@ -1,31 +1,21 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, On, TurnStepChunk, TurnUsage } from 'claude-code'
+import type { EngineInterface, On, TurnUsage } from 'claude-code'
 
-import { addToDay, localDayKey, type DailyStore } from '../src/core/daily.ts'
-import {
-  addMark,
-  completeStep,
-  completeTurn,
-  EMPTY_LEDGER,
-  endMark,
-  markReply,
-  startStep,
-  submitPrompt,
-} from '../src/core/ledger.ts'
+import type { DailyStore } from '../src/core/daily.ts'
+import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../src/core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../src/core/rows.ts'
-import { ZERO_TOTALS, type Totals } from '../src/core/totals.ts'
+import { isPersistedRecord, NO_OTHER_SESSIONS, persistDay, readOtherSessions } from '../src/core/tracker.ts'
 import type { TokenUsage } from '../src/core/usage.ts'
 import type { Config } from './config.ts'
-import { fileDailyStore, readToday, sessionKeyFor, type Files } from './daily.ts'
+import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
 import { isUserOrigin } from './origin.ts'
 
-const ledgerAtom = atom({ plugin: 'mod-jxf-fancy', key: 'ledger' } as const, EMPTY_LEDGER)
+const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, EMPTY_JOURNAL)
+const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
-const daysAtom = atom({ plugin: 'mod-jxf-fancy', key: 'days' } as const, {})
-const todayAtom = atom({ plugin: 'mod-jxf-fancy', key: 'today' } as const, { day: '', totals: ZERO_TOTALS })
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
 
-const TODAY_POLL_MS = 30_000
+const OTHERS_POLL_MS = 30_000
 
 type ContentBlock = { type: string; [field: string]: unknown }
 
@@ -56,18 +46,21 @@ async function dailyStore($: EngineInterface): Promise<DailyStore> {
   return fileDailyStore(files, home)
 }
 
-async function refreshToday($: EngineInterface): Promise<void> {
-  const day = localDayKey(await $.clock.now())
-  const totals = await readToday(await dailyStore($), day)
-  await update($, todayAtom, () => ({ day, totals }))
+async function sessionKey($: EngineInterface): Promise<string> {
+  return sessionKeyFor(await $.session.id())
 }
 
-async function addToToday($: EngineInterface, delta: Totals): Promise<void> {
-  const day = localDayKey(await $.clock.now())
-  const days = await update($, daysAtom, all => addToDay(all, day, delta))
-  const store = await dailyStore($)
-  await store.write(day, sessionKeyFor(await $.session.id()), days[day] ?? ZERO_TOTALS)
-  await refreshToday($)
+async function record($: EngineInterface, config: Config, entry: JournalRecord): Promise<void> {
+  const journal = await update($, journalAtom, all => applyRecord(all, entry, config.usage.price))
+
+  if (isPersistedRecord(entry)) {
+    await persistDay(await dailyStore($), await sessionKey($), journal.days, entry.at)
+  }
+}
+
+async function refreshOthers($: EngineInterface): Promise<void> {
+  const others = await readOtherSessions(await dailyStore($), await sessionKey($), await $.clock.now())
+  await update($, othersAtom, () => others)
 }
 
 function debugLog($: EngineInterface, isDebug: boolean, text: string): void {
@@ -85,8 +78,8 @@ export function trackEvents(on: On, config: Config): void {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     await refreshRateLimits($)
-    await refreshToday($)
-    $.clock.every(TODAY_POLL_MS, () => void refreshToday($))
+    await refreshOthers($)
+    $.clock.every(OTHERS_POLL_MS, () => void refreshOthers($))
 
     return started
   })
@@ -106,10 +99,10 @@ export function trackEvents(on: On, config: Config): void {
 
     const at = await $.clock.now()
     let id = ''
-    await update($, ledgerAtom, ledger => {
-      id = `prompt-${ledger.turn + 1}`
+    await update($, journalAtom, journal => {
+      id = `prompt-${journal.ledger.turn + 1}`
 
-      return submitPrompt(ledger, id, at)
+      return applyRecord(journal, { kind: 'prompt', id, at }, config.usage.price)
     })
     await update($, rowsAtom, rows => noteText(rows, id, e.text))
 
@@ -122,7 +115,7 @@ export function trackEvents(on: On, config: Config): void {
     const isReply = e.door === 'response' && text !== ''
 
     if (e.agentId === undefined && (isPrompt || isReply)) {
-      const ledger = await read($, ledgerAtom)
+      const { ledger } = await read($, journalAtom)
       const rows = await read($, rowsAtom)
       const id = isPrompt ? pendingPrompt(ledger, rows, text) : pendingMessageMark(ledger, rows, text)
 
@@ -142,32 +135,22 @@ export function trackEvents(on: On, config: Config): void {
     }
 
     const stepId = `${e.turnId}:${e.index}`
-    const startedAt = await $.clock.now()
-    await update($, ledgerAtom, ledger => startStep(ledger, stepId, startedAt, e.model))
+    await record($, config, { kind: 'step', id: stepId, at: await $.clock.now(), model: e.model })
 
     const texts = new Map<number, string>()
-    const observe = async (chunk: TurnStepChunk) => {
+    const stream = next(e)
+
+    for await (const chunk of stream) {
       if (chunk.kind === 'text' && chunk.text !== '') {
         const seen = texts.get(chunk.index)
 
         if (seen === undefined) {
-          const at = await $.clock.now()
-          await update($, ledgerAtom, ledger => addMark(ledger, `${stepId}:${chunk.index}`, 'message', at))
+          await record($, config, { kind: 'message', id: `${stepId}:${chunk.index}`, at: await $.clock.now() })
         }
 
         texts.set(chunk.index, appendKeyText(seen ?? '', chunk.text))
       }
 
-      if (chunk.kind === 'tool') {
-        const at = await $.clock.now()
-        await update($, ledgerAtom, ledger => markReply(ledger, at))
-      }
-    }
-
-    const stream = next(e)
-
-    for await (const chunk of stream) {
-      await observe(chunk)
       yield chunk
     }
 
@@ -177,14 +160,7 @@ export function trackEvents(on: On, config: Config): void {
     )
 
     if (result.usage !== null) {
-      const usage = toTokenUsage(result.usage)
-      const endedAt = await $.clock.now()
-      const ledger = await update($, ledgerAtom, all => completeStep(all, stepId, usage, endedAt, config.usage.price))
-      const cost = ledger.steps[stepId]?.cost
-
-      if (cost !== undefined) {
-        await addToToday($, { usage, cost, activeMs: 0 })
-      }
+      await record($, config, { kind: 'stepEnd', id: stepId, at: await $.clock.now(), usage: toTokenUsage(result.usage) })
     }
 
     return result
@@ -196,28 +172,24 @@ export function trackEvents(on: On, config: Config): void {
     }
 
     const id = e.tool_use_id
-    const startedAt = await $.clock.now()
-    await update($, ledgerAtom, ledger => addMark(ledger, id, 'tool', startedAt))
+    await record($, config, { kind: 'tool', id, at: await $.clock.now() })
 
     try {
       return await next(e)
     } finally {
-      const endedAt = await $.clock.now()
-      await update($, ledgerAtom, ledger => endMark(ledger, id, endedAt))
+      await record($, config, { kind: 'toolEnd', id, at: await $.clock.now() })
     }
   })
 
   on('turn.complete', async ($, e, next) => {
     if (e.agentId === undefined) {
-      const at = await $.clock.now()
-      let delta: Totals = ZERO_TOTALS
-      await update($, ledgerAtom, ledger => {
-        const done = completeTurn(ledger, at)
-        delta = done.delta
+      const { ledger } = await read($, journalAtom)
 
-        return done.state
-      })
-      await addToToday($, delta)
+      if (ledger.currentPromptId !== undefined) {
+        await record($, config, { kind: 'turnEnd', at: await $.clock.now() })
+      }
+
+      await refreshOthers($)
     }
 
     return next(e)

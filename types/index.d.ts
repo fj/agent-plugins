@@ -45,17 +45,18 @@ export type FancyRows = {
 
 export type FancyDays = Readonly<Record<string, FancyTotals>>
 
-export type FancyToday = { day: string; totals: FancyTotals }
+export type FancyJournal = { ledger: FancyLedger; days: FancyDays }
+
+export type FancyOtherSessions = { day: string; totals: FancyTotals }
 
 export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: string }
 
 declare module 'claude-code' {
   interface PluginState {
     'mod-jxf-fancy': {
-      ledger: FancyLedger
+      journal: FancyJournal
+      others: FancyOtherSessions
       rows: FancyRows
-      days: FancyDays
-      today: FancyToday
       rateLimits: readonly FancyQuotaWindow[]
     }
   }
