@@ -8,6 +8,7 @@ import {
   MODEL,
   PLUGIN,
   SESSION_ID,
+  shownRows,
   shownText,
   step,
   submit,
@@ -34,17 +35,19 @@ async function measure($: Engine, rateLimits: { kind: string; percentUsed: numbe
   await $.session.measure({ context: { window: 200_000 }, rateLimits, changed: ['rateLimits'] })
 }
 
-test('the footer shows model, path, session and today totals beside the engine modes', async ($, on) => {
+test('the footer shows model and path, session, and today on separate lines beside the engine modes', async ($, on) => {
   const w = world(on, { files: FILES })
   await start($)
 
   for (const surface of LIVE_SURFACES) {
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: ['focus'] } })
-    const text = shownText(await ui.drawn())
-    expect(text).toStartWith('focus  ')
-    expect(text).toContain(
-      `${MODEL} · ~/src/projects/fancy · session $0.00 ↑0 ↓0 0.0s · today $1.25 ↑1.0k ↓1.0k 1m 00s`,
-    )
+    const drawn = await ui.drawn()
+    expect(shownText(drawn)).toStartWith('focus  ')
+    expect(shownRows(drawn)).toEqual([
+      `${MODEL} · ~/src/projects/fancy`,
+      'session 0.0s · $0.00 ↑0 ↓0',
+      'today 1m 00s · $1.25 ↑1.0k ↓1.0k',
+    ])
     await ui.unmount()
   }
 
@@ -61,8 +64,8 @@ test('the footer shows model, path, session and today totals beside the engine m
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const text = shownText(await ui.drawn())
   expect(text).toStartWith(MODEL)
-  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
-  expect(text).toContain('today $1.26 ↑7.2k ↓1.3k 1m 04s')
+  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
+  expect(text).toContain('today 1m 04s · $1.26 ↑7.2k ↓1.3k')
 })
 
 test('the footer shows subscription meters from the rate limits', async ($, on) => {
@@ -72,8 +75,10 @@ test('the footer shows subscription meters from the rate limits', async ($, on) 
 
   for (const surface of LIVE_SURFACES) {
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
-    expect(shownText(await ui.drawn())).toContain('5h ▕')
-    expect(shownText(await ui.drawn())).toContain('42%')
+    const rows = shownRows(await ui.drawn())
+    expect(rows).toHaveLength(4)
+    expect(rows.at(-1)).toStartWith('5h ▕')
+    expect(rows.at(-1)).toEndWith('42%')
     await ui.unmount()
   }
 })
@@ -110,12 +115,12 @@ async function footerText($: Engine): Promise<string> {
 test('today picks up other sessions on the next poll', async ($, on) => {
   const w = world(on)
   await start($)
-  expect(await footerText($)).toContain('today $0.00')
+  expect(await footerText($)).toContain('today 0.0s · $0.00')
 
   w.files.set(`${TODAY_DIR}/pi-late.json`, JSON.stringify(PI_SESSION))
   await w.clock.advance(POLL_MS)
 
-  expect(await footerText($)).toContain('today $1.25')
+  expect(await footerText($)).toContain('today 1m 00s · $1.25')
 })
 
 test("today shows nothing once yesterday's totals are stale", async ($, on) => {
@@ -123,11 +128,11 @@ test("today shows nothing once yesterday's totals are stale", async ($, on) => {
   await submit($, 'go')
   await w.clock.advance(TURN_MS)
   await $.turn.complete({ turnId: 'turn-1', answer: 'done', durationMs: TURN_MS, isAborted: false, reason: 'answer' })
-  expect(await footerText($)).toContain('today $1.25')
+  expect(await footerText($)).toContain('today 1m 04s · $1.25')
 
   await w.clock.advance(DAY_MS)
 
-  expect(await footerText($)).toContain('today $0.00')
+  expect(await footerText($)).toContain('today 0.0s · $0.00')
 })
 
 test('today skips files that are not session totals', async ($, on) => {
@@ -141,14 +146,14 @@ test('today skips files that are not session totals', async ($, on) => {
   })
   await start($)
 
-  expect(await footerText($)).toContain('today $1.25')
+  expect(await footerText($)).toContain('today 1m 00s · $1.25')
 })
 
 test('a missing day folder starts today at zero', async ($, on) => {
   world(on)
   await start($)
 
-  expect(await footerText($)).toContain('today $0.00')
+  expect(await footerText($)).toContain('today 0.0s · $0.00')
 })
 
 test('subagent turns add nothing to the session', async ($, on) => {
@@ -164,7 +169,7 @@ test('subagent turns add nothing to the session', async ($, on) => {
     agentId: 'agent-1',
   })
 
-  expect(await footerText($)).toContain('session $0.00 ↑0 ↓0 0.0s')
+  expect(await footerText($)).toContain('session 0.0s · $0.00 ↑0 ↓0')
   expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
 })
 
@@ -199,8 +204,8 @@ test('a failed day-file write leaves the turn and the footer intact', async ($, 
 
   expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
   const text = await footerText($)
-  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
-  expect(text).toContain('today $1.26 ↑7.2k ↓1.3k 1m 04s')
+  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
+  expect(text).toContain('today 1m 04s · $1.26 ↑7.2k ↓1.3k')
 })
 
 const BEFORE_MIDNIGHT = new Date(2026, 9, 3, 23, 59, 58).getTime()
@@ -222,6 +227,6 @@ test('a turn across midnight splits its totals between the two day files', async
   expect([today.usage.output, today.activeMs]).toEqual([0, TURN_MS])
 
   const text = await footerText($)
-  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
-  expect(text).toContain('today $0.00 ↑0 ↓0 4.0s')
+  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
+  expect(text).toContain('today 4.0s · $0.00 ↑0 ↓0')
 })

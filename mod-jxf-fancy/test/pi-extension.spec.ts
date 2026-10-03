@@ -168,13 +168,15 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
 
-  const lines = s.footerLines(footerData({ lens: 'lens ok' }))!
-  const main = lines.at(-1)!
+  const [status, head, session, today, quota, ...rest] = s.footerLines(footerData({ lens: 'lens ok' }))!
 
-  assert.equal(lines[0], 'lens ok')
-  assert.equal([...main].length, WIDTH)
-  assert.ok(main.startsWith('(main)'))
-  assert.match(main, /claude-opus-5-5 · ~\/src\/projects\/demo · session \$0\.00 ↑0 ↓0 0\.0s 5h ▕.*▏ 42% · today \$10\.00 ↑0 ↓0 0\.0s$/)
+  assert.equal(status, 'lens ok')
+  assert.deepEqual(rest, [])
+  assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
+  assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+  assert.match(session!, /^ +session 0\.0s · \$0\.00 ↑0 ↓0$/)
+  assert.match(today!, /^ +today 0\.0s · \$10\.00 ↑0 ↓0$/)
+  assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
 
 test('a provider without a subscription shows no meter', async () => {
@@ -183,7 +185,7 @@ test('a provider without a subscription shows no meter', async () => {
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
 
-  assert.doesNotMatch(s.footerLines()!.at(-1)!, /5h/)
+  assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
 })
 
 test('the top hat shows in a new session until the first input', async () => {
@@ -219,7 +221,7 @@ test('a resumed session gets no hat and rebuilds prefixes from its records', asy
   assert.match(s.shown(branch[2]!), /^ \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)
   assert.equal(s.pi.renders(branch[4]!), false)
-  assert.match(s.footerLines()!.at(-1)!, /session \$0\.\d\d .* 5\.0s/)
+  assert.match(s.footerLines()![1]!, /session 5\.0s · \$0\.\d\d /)
 })
 
 test('print mode records usage but draws nothing and leaves tool rows alone', async () => {
@@ -292,12 +294,12 @@ test('switching to a model without a subscription drops the meter', async () => 
 
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
-  assert.match(s.footerLines()!.at(-1)!, /5h/)
+  assert.match(s.footerLines()!.at(-1)!, /^ +5h/)
 
   await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
-  assert.doesNotMatch(s.footerLines()!.at(-1)!, /5h/)
-  assert.match(s.footerLines()!.at(-1)!, /gpt-5 ·/)
+  assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
+  assert.match(s.footerLines()![0]!, /gpt-5 · /)
 })
 
 test('tool calls made by another tool are not timed', async () => {
