@@ -12,3 +12,7 @@ export function lineNodes(Text: TextTag, line: Line): RenderNode[] {
     return color === undefined ? <Text>{part.text}</Text> : <Text color={color}>{part.text}</Text>
   })
 }
+
+export function blankLine(Text: TextTag): RenderNode {
+  return <Text> </Text>
+}
