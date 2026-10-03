@@ -1,6 +1,6 @@
 import type { Totals } from '../core/totals.ts'
 import { formatDuration, formatUsd, shortenPath } from './format.ts'
-import { join, seg, type Line } from './segment.ts'
+import { seg, type Line } from './segment.ts'
 import type { UsageLines } from './usage-lines.ts'
 
 export type FooterInput = {
@@ -14,25 +14,27 @@ export type FooterInput = {
   maxPathWidth: number
 }
 
-function block(label: string, totals: Totals, usage: UsageLines, extra: Line = []): Line {
+function totalsLine(label: string, totals: Totals, usage: UsageLines): Line {
   return [
     seg(`${label} `, 'muted'),
+    seg(formatDuration(totals.activeMs), 'time'),
+    seg(' · ', 'muted'),
     seg(formatUsd(totals.cost), 'cost'),
     seg(' '),
     ...usage.totalTokens(totals.usage),
-    seg(` ${formatDuration(totals.activeMs)}`, 'time'),
-    ...(extra.length > 0 ? [seg(' '), ...extra] : []),
   ]
 }
 
-export function footerLine(input: FooterInput): Line {
-  return join(
+export function footer(input: FooterInput): Line[] {
+  const lines = [
     [
-      [seg(input.model, 'model')],
-      [seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path')],
-      block('session', input.session, input.usage, input.quota),
-      block('today', input.today, input.usage),
+      seg(input.model, 'model'),
+      seg(' · ', 'muted'),
+      seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
     ],
-    seg(' · ', 'muted'),
-  )
+    totalsLine('session', input.session, input.usage),
+    totalsLine('today', input.today, input.usage),
+  ]
+
+  return input.quota.length > 0 ? [...lines, input.quota] : lines
 }

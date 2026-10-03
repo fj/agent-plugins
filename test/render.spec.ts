@@ -3,7 +3,7 @@ import { test } from 'node:test'
 
 import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
-import { footerLine } from '../src/render/footer.ts'
+import { footer } from '../src/render/footer.ts'
 import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
@@ -95,23 +95,30 @@ test('a prefix without a finished step shows live timing and the turn only', () 
   )
 })
 
-test('the footer joins model, path, session and today', () => {
-  const session = { ...ZERO_TOTALS, cost: { usd: 12.34, isLowerBound: false }, activeMs: 65_000 }
-  const line = footerLine({
-    model: 'claude-opus-5-5',
-    cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
-    home: '/home/j',
-    session,
-    today: { ...session, cost: { usd: 48.1, isLowerBound: true } },
-    quota: [{ text: '5h 42%', role: 'meter' }],
-    usage: defaultUsageStrategy,
-    maxPathWidth: 24,
-  })
+const FOOTER_INPUT = {
+  model: 'claude-opus-5-5',
+  cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
+  home: '/home/j',
+  session: { ...ZERO_TOTALS, cost: { usd: 12.34, isLowerBound: false }, activeMs: 65_000 },
+  today: { ...ZERO_TOTALS, cost: { usd: 48.1, isLowerBound: true }, activeMs: 3_725_000 },
+  quota: [],
+  usage: defaultUsageStrategy,
+  maxPathWidth: 24,
+}
 
-  assert.equal(
-    lineText(line),
-    'claude-opus-5-5 · ~/src/…/mod-jxf-fancy · session $12.34 ↑0 ↓0 1m 05s 5h 42% · today $48.10+ ↑0 ↓0 1m 05s',
-  )
+test('the footer puts model and path, session, and today on their own lines', () => {
+  assert.deepEqual(footer(FOOTER_INPUT).map(lineText), [
+    'claude-opus-5-5 · ~/src/…/mod-jxf-fancy',
+    'session 1m 05s · $12.34 ↑0 ↓0',
+    'today 1h 02m · $48.10+ ↑0 ↓0',
+  ])
+})
+
+test('the footer adds subscription usage as a last line', () => {
+  const lines = footer({ ...FOOTER_INPUT, quota: [{ text: '5h 42%', role: 'meter' }] })
+
+  assert.equal(lines.length, 4)
+  assert.equal(lineText(lines[3]!), '5h 42%')
 })
 
 test('daily totals accumulate per local day and round-trip through JSON', () => {

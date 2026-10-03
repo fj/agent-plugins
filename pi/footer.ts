@@ -1,5 +1,5 @@
 import type { Totals } from '../src/core/totals.ts'
-import { footerLine } from '../src/render/footer.ts'
+import { footer } from '../src/render/footer.ts'
 import { PALETTE } from '../src/render/palette.ts'
 import type { Line } from '../src/render/segment.ts'
 import { alignRight, paint, paintLine } from './paint.ts'
@@ -30,7 +30,7 @@ function statusLine(data: FooterData): string | undefined {
 }
 
 export function footerLines(scene: FooterScene, data: FooterData, width: number): string[] {
-  const line = footerLine({
+  const lines = footer({
     model: scene.model(),
     cwd: scene.cwd(),
     home: scene.home,
@@ -43,7 +43,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
   const branch = data.getGitBranch()
   const left = branch === null ? '' : paint(`(${branch})`, PALETTE.muted)
   const statuses = statusLine(data)
-  const main = alignRight(paintLine(line), width, scene.measure, left)
+  const main = lines.map((line, i) => alignRight(paintLine(line), width, scene.measure, i === 0 ? left : ''))
 
-  return statuses === undefined ? [main] : [scene.measure.truncateToWidth(statuses, width), main]
+  return statuses === undefined ? main : [scene.measure.truncateToWidth(statuses, width), ...main]
 }
