@@ -250,7 +250,10 @@ export function modJxfFancy(deps: FancyDeps): (pi: ExtensionAPI) => void {
 
       if (message.role === 'assistant') {
         openStepId = newId()
-        record({ kind: 'step', id: openStepId, at: now(), model: message.model ?? '' })
+        const at = now()
+
+        record({ kind: 'step', id: openStepId, at, model: message.model ?? '' })
+        record({ kind: 'message', id: openStepId, at })
       }
     })
 
