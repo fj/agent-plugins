@@ -201,3 +201,14 @@ test('debug logs a reply row that matched nothing', { options: { debug: true } }
 
   expect(w.logs).toEqual(['mod-jxf-fancy: AssistantMessage row lost-reply matched nothing'])
 })
+
+test('a subagent reply row leaves the main reply its mark', { options: { debug: true } }, async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY))
+  await step($, 'turn-1', 0)
+  await appendReply($, 'subagent-reply', REPLY, 'agent-1')
+  await appendReply($, 'reply-1', REPLY)
+
+  expect(w.logs).toEqual(['mod-jxf-fancy: response row reply-1 -> turn-1:0:0'])
+})

@@ -141,3 +141,16 @@ test('a failed tool call stops its timer', async ($, on) => {
   const done = await ui.find({ type: 'Text', text: '{2026-10-03 04:20:37 Δ 2.0s}' })
   expect(done?.props.color).toBe(DONE_TIMER_COLOR)
 })
+
+test('subagent tool calls stay out of the ledger', async ($, on) => {
+  const w = world(on)
+  await submit($, 'list files')
+  const subagentCall = { tool: 'Bash', command: 'ls', agentId: 'agent-1' } as Parameters<typeof $.tool.call>[0]
+  const call = $.tool.call(subagentCall)
+  await w.clock.advance(TOOL_MS)
+  await call
+  const id = w.toolIds[0] ?? ''
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'ToolUse', props: toolRow(id), requestId: id })
+  expect(shownText(await ui.drawn())).toBe(`ToolUse ${ENGINE_TEXT}`)
+})

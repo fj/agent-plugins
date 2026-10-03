@@ -158,10 +158,11 @@ export async function appendPrompt($: Engine, uuid: string, text: string): Promi
   )
 }
 
-export async function appendReply($: Engine, uuid: string, text: string): Promise<void> {
+export async function appendReply($: Engine, uuid: string, text: string, agentId?: string): Promise<void> {
   await keep(
     $.session.append({
       uuid,
+      agentId,
       door: 'response',
       origin: { kind: 'model', model: MODEL },
       message: { type: 'assistant', role: 'assistant', content: [{ type: 'text', text }] },
