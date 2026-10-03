@@ -1,8 +1,7 @@
-import { dayDir, parseTotals, sessionFile, sumTotals, type DailyStore, type DayKey } from '../src/core/daily.ts'
+import { dayDir, isCountedSessionFile, parseTotals, sessionFile, sumTotals, type DailyStore, type DayKey } from '../src/core/daily.ts'
 import type { Totals } from '../src/core/totals.ts'
 
 const SESSION_KEY_PREFIX = 'claude-code-'
-const TOTALS_SUFFIX = '.json'
 
 export type FileEntry = { name: string; kind: string }
 
@@ -21,10 +20,10 @@ export function fileDailyStore(files: Files, home: string): DailyStore {
     async write(day: DayKey, key: string, totals: Totals) {
       await files.write(sessionFile(home, day, key), JSON.stringify(totals))
     },
-    async readAll(day: DayKey) {
+    async readAll(day: DayKey, exceptSessionKey?: string) {
       const dir = dayDir(home, day)
       const entries = await files.list(dir).catch(() => [])
-      const names = entries.filter(entry => entry.kind === 'file' && entry.name.endsWith(TOTALS_SUFFIX))
+      const names = entries.filter(entry => entry.kind === 'file' && isCountedSessionFile(entry.name, exceptSessionKey))
       const texts = await Promise.all(names.map(entry => files.read(`${dir}/${entry.name}`).catch(() => '')))
 
       return texts.map(parseTotals).filter((totals): totals is Totals => totals !== null)
