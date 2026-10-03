@@ -1,12 +1,13 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
-import { EMPTY_LEDGER } from '../src/core/ledger.ts'
-import { EMPTY_ROWS, promptIds, resolveRow } from '../src/core/rows.ts'
+import { EMPTY_LEDGER, markStep } from '../src/core/ledger.ts'
+import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../src/core/rows.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
-import { turnLabel } from '../src/render/prefix.ts'
+import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
 import { timerView } from '../src/render/timer.ts'
 import type { Config } from './config.ts'
+import { lineNodes } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { TimerProps } from './timer.tsx'
 
@@ -71,6 +72,38 @@ export function drawSites(on: On, config: Config): void {
       <Box flexDirection="column">
         {drawn}
         {timer}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
+    if (!e.props.isFirstOfReply) {
+      return next(e)
+    }
+
+    const ledger = await read($, ledgerAtom)
+    const rows = await read($, rowsAtom)
+    const id = resolveRow(rows, e.requestId, e.props.text, markIds(ledger, 'message'))
+    const mark = id === undefined ? undefined : ledger.marks[id]
+
+    if (mark === undefined) {
+      reportMiss($, e, config.isDebug)
+
+      return next(e)
+    }
+
+    const { Box, Text } = $.ui.resolve(e)
+    const prefix = messagePrefix({
+      mark,
+      step: markStep(ledger, mark.id),
+      now: await $.clock.now(),
+      usage: config.usage,
+    })
+
+    return (
+      <Box flexDirection="column">
+        <Text>{lineNodes(Text, prefix)}</Text>
+        {await next(e)}
       </Box>
     )
   })
