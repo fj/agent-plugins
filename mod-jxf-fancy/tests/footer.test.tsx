@@ -3,6 +3,7 @@ import type { Engine } from 'claude-code/testing'
 
 import {
   CWD,
+  dayDirOf,
   LIVE_SURFACES,
   MODEL,
   PLUGIN,
@@ -10,6 +11,7 @@ import {
   shownText,
   step,
   submit,
+  T0,
   textReply,
   TODAY_DIR,
   world,
@@ -199,4 +201,27 @@ test('a failed day-file write leaves the turn and the footer intact', async ($, 
   const text = await footerText($)
   expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
   expect(text).toContain('today $1.26 ↑7.2k ↓1.3k 1m 04s')
+})
+
+const BEFORE_MIDNIGHT = new Date(2026, 9, 3, 23, 59, 58).getTime()
+const NEXT_DAY_DIR = dayDirOf('2026-10-04')
+
+test('a turn across midnight splits its totals between the two day files', async ($, on) => {
+  const w = world(on)
+  await w.clock.advance(BEFORE_MIDNIGHT - T0)
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+  await w.clock.advance(TURN_MS)
+  await completeTurn($)
+
+  const ownFile = `claude-code-${SESSION_ID}.json`
+  const yesterday = JSON.parse(w.files.get(`${TODAY_DIR}/${ownFile}`) ?? '{}')
+  const today = JSON.parse(w.files.get(`${NEXT_DAY_DIR}/${ownFile}`) ?? '{}')
+  expect([yesterday.usage.output, yesterday.activeMs]).toEqual([300, 0])
+  expect([today.usage.output, today.activeMs]).toEqual([0, TURN_MS])
+
+  const text = await footerText($)
+  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
+  expect(text).toContain('today $0.00 ↑0 ↓0 4.0s')
 })
