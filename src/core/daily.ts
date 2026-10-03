@@ -6,7 +6,7 @@ export type SessionDays = Readonly<Record<DayKey, Totals>>
 
 export type DailyStore = {
   write(day: DayKey, sessionKey: string, totals: Totals): Promise<void>
-  readAll(day: DayKey): Promise<Totals[]>
+  readAll(day: DayKey, exceptSessionKey?: string): Promise<Totals[]>
 }
 
 const STATE_DIR = '.local/state/mod-jxf-fancy/days'
