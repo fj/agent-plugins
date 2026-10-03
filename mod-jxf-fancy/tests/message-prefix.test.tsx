@@ -7,6 +7,7 @@ import {
   MODEL,
   PLUGIN,
   runTool,
+  shownRows,
   shownText,
   step,
   submit,
@@ -44,7 +45,7 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
 
   for (const ui of drawings) {
     const tree = await ui.drawn()
-    expect(shownText(tree)).toContain('{2026-10-03 04:20:37 Δ 0.0s} {turn 1.1}')
+    expect(shownRows(tree).slice(0, 2)).toEqual([' ', '{2026-10-03 04:20:37 Δ 0.0s} {turn 1.1}'])
     expect(shownText(tree)).not.toContain('$')
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
   }

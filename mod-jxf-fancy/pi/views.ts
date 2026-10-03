@@ -29,7 +29,7 @@ export function promptLines(scene: Scene, id: string, width: number): string[] {
   const now = scene.now()
   const timer = promptTimerView(prompt, ledger.currentPromptId === id, now)
 
-  return [chatLine(paintTimer(timer, now), width, scene.measure)]
+  return ['', chatLine(paintTimer(timer, now), width, scene.measure)]
 }
 
 export function stepLines(scene: Scene, id: string, width: number): string[] {
@@ -42,7 +42,7 @@ export function stepLines(scene: Scene, id: string, width: number): string[] {
 
   const prefix = messagePrefix({ mark, step: markStep(ledger, id), now: scene.now(), usage: scene.usage() })
 
-  return [chatLine(paintLine(prefix), width, scene.measure)]
+  return ['', chatLine(paintLine(prefix), width, scene.measure)]
 }
 
 export function toolTimerLine(scene: Scene, id: string, width: number): string | undefined {

@@ -7,6 +7,7 @@ import {
   LIVE_SURFACES,
   PLUGIN,
   shownColors,
+  shownRows,
   shownText,
   step,
   submit,
@@ -35,6 +36,7 @@ test('a prompt row shows a live shimmering timer until the first reply', async (
   for (const ui of drawings) {
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
     expect(await ui.find({ type: 'Client', key: PROMPT_TIMER })).toBeDefined()
+    expect(shownRows(await ui.drawn())).toEqual([`UserMessage ${ENGINE_TEXT}`, ' ', ''])
 
     const first = await ui.drawn({ in: PROMPT_TIMER })
     expect(shownText(first)).toBe('{2026-10-03 04:20:37 Δ 0.0s}')

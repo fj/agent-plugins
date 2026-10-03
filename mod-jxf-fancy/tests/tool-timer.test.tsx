@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DONE_TIMER_COLOR } from '../src/render/palette.ts'
-import { ENGINE_TEXT, LIVE_SURFACES, PLUGIN, shownColors, shownText, submit, TOOL_MS, world } from './world.tsx'
+import { ENGINE_TEXT, LIVE_SURFACES, PLUGIN, shownColors, shownRows, shownText, submit, TOOL_MS, world } from './world.tsx'
 
 const FRAME_STEPS_MS = 700
 const toolRow = (id: string) => ({
@@ -28,7 +28,7 @@ test('a tool row shows a live timer while the call runs, then its duration in gr
   )
 
   for (const ui of drawings) {
-    expect(shownText(await ui.drawn())).toContain('turn 1.1')
+    expect(shownRows(await ui.drawn()).slice(0, 2)).toEqual([' ', 'turn 1.1 '])
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
     expect(await ui.find({ type: 'Client', key: timer })).toBeDefined()
     await ui.advance(FRAME_STEPS_MS)
