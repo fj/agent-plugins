@@ -1,14 +1,12 @@
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { join } from 'node:path'
 
-import { dayDir, parseTotals, sessionFile, type DailyStore } from '../src/core/daily.ts'
+import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore } from '../src/core/daily.ts'
 import type { Totals } from '../src/core/totals.ts'
 
-const SESSION_FILE_SUFFIX = '.json'
-
-async function listSessionFiles(dir: string): Promise<string[]> {
+async function listNames(dir: string): Promise<string[]> {
   try {
-    return (await readdir(dir)).filter(name => name.endsWith(SESSION_FILE_SUFFIX))
+    return await readdir(dir)
   } catch {
     return []
   }
@@ -35,8 +33,7 @@ export function fsDailyStore(home: string): DailyStore {
 
     async readAll(day, exceptSessionKey) {
       const dir = dayDir(home, day)
-      const skip = exceptSessionKey === undefined ? undefined : basename(sessionFile(home, day, exceptSessionKey))
-      const names = (await listSessionFiles(dir)).filter(name => name !== skip)
+      const names = (await listNames(dir)).filter(name => isCountedSessionFile(name, exceptSessionKey))
       const totals = await Promise.all(names.map(name => readTotals(join(dir, name))))
 
       return totals.filter(value => value !== null)

@@ -10,6 +10,7 @@ export type DailyStore = {
 }
 
 const STATE_DIR = '.local/state/mod-jxf-fancy/days'
+const SESSION_FILE_SUFFIX = '.json'
 
 export function localDayKey(ms: number): DayKey {
   const date = new Date(ms)
@@ -22,8 +23,18 @@ export function dayDir(home: string, day: DayKey): string {
   return `${home}/${STATE_DIR}/${day}`
 }
 
+export function sessionFileName(sessionKey: string): string {
+  return `${sessionKey.replace(/[^A-Za-z0-9_.-]/g, '_')}${SESSION_FILE_SUFFIX}`
+}
+
 export function sessionFile(home: string, day: DayKey, sessionKey: string): string {
-  return `${dayDir(home, day)}/${sessionKey.replace(/[^A-Za-z0-9_.-]/g, '_')}.json`
+  return `${dayDir(home, day)}/${sessionFileName(sessionKey)}`
+}
+
+export function isCountedSessionFile(name: string, exceptSessionKey?: string): boolean {
+  const isSkipped = exceptSessionKey !== undefined && name === sessionFileName(exceptSessionKey)
+
+  return name.endsWith(SESSION_FILE_SUFFIX) && !isSkipped
 }
 
 export function addToDay(days: SessionDays, day: DayKey, delta: Totals): SessionDays {
