@@ -6,7 +6,7 @@
   "private": true,
   "keywords": ["pi-package"],
   "pi": { "extensions": ["./pi"] },
-  "scripts": { "test": "node --test test/*.test.ts" },
+  "scripts": { "test": "node --test test/*.spec.ts" },
   "engines": { "node": ">=22.18" },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
