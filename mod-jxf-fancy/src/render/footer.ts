@@ -1,7 +1,7 @@
 import type { Totals } from '../core/totals.ts'
-import type { UsageStrategy } from '../strategies/usage/strategy.ts'
 import { formatDuration, formatUsd, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
+import type { UsageLines } from './usage-lines.ts'
 
 export type FooterInput = {
   model: string
@@ -10,11 +10,11 @@ export type FooterInput = {
   session: Totals
   today: Totals
   quota: Line
-  usage: UsageStrategy
+  usage: UsageLines
   maxPathWidth: number
 }
 
-function block(label: string, totals: Totals, usage: UsageStrategy, extra: Line = []): Line {
+function block(label: string, totals: Totals, usage: UsageLines, extra: Line = []): Line {
   return [
     seg(`${label} `, 'muted'),
     seg(formatUsd(totals.cost), 'cost'),

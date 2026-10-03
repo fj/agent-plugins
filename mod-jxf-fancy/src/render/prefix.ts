@@ -1,9 +1,9 @@
 import type { Mark, Step } from '../core/ledger.ts'
-import type { UsageStrategy } from '../strategies/usage/strategy.ts'
 import { formatClock, formatDuration } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
+import type { UsageLines } from './usage-lines.ts'
 
-export type PrefixInput = { mark: Mark; step?: Step; now: number; usage: UsageStrategy }
+export type PrefixInput = { mark: Mark; step?: Step; now: number; usage: UsageLines }
 
 const braced = (inner: Line): Line => (inner.length === 0 ? [] : [seg('{', 'muted'), ...inner, seg('}', 'muted')])
 
