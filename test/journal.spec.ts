@@ -13,10 +13,12 @@ const price = defaultUsageStrategy.price
 const RUN: JournalRecord[] = [
   { kind: 'prompt', id: 'p1', at: T0 },
   { kind: 'step', id: 's1', at: T0 + 1000, model: 'claude-opus-5-5' },
+  { kind: 'message', id: 's1', at: T0 + 1000 },
   { kind: 'tool', id: 't1', at: T0 + 2000 },
   { kind: 'stepEnd', id: 's1', at: T0 + 2500, usage: USAGE },
   { kind: 'toolEnd', id: 't1', at: T0 + 3000 },
   { kind: 'step', id: 's2', at: NEXT_DAY, model: 'claude-opus-5-5' },
+  { kind: 'message', id: 's2', at: NEXT_DAY },
   { kind: 'stepEnd', id: 's2', at: NEXT_DAY + 100, usage: USAGE },
   { kind: 'turnEnd', at: NEXT_DAY + 200 },
 ]
@@ -47,6 +49,44 @@ test('replaying splits usage and active time by the local day of each record', (
   assert.ok((first?.cost.usd ?? 0) > 0)
   assert.equal(ledger.totals.usage.output, 2 * USAGE.output)
   assert.equal(ledger.totals.activeMs, NEXT_DAY + 200 - T0)
+})
+
+test('a step can hold several message blocks, numbered in order and ended with the step', () => {
+  const { ledger } = foldJournal(
+    [
+      { kind: 'prompt', id: 'p', at: T0 },
+      { kind: 'step', id: 's', at: T0, model: 'claude-opus-5-5' },
+      { kind: 'message', id: 's:0', at: T0 + 100 },
+      { kind: 'message', id: 's:1', at: T0 + 200 },
+      { kind: 'stepEnd', id: 's', at: T0 + 300, usage: USAGE },
+      { kind: 'tool', id: 't', at: T0 + 400 },
+    ],
+    price,
+  )
+
+  assert.deepEqual(
+    ['s:0', 's:1', 't'].map(id => [ledger.marks[id]?.seq, ledger.marks[id]?.stepId, ledger.marks[id]?.endedAt]),
+    [
+      [1, 's', T0 + 300],
+      [2, 's', T0 + 300],
+      [3, 's', undefined],
+    ],
+  )
+  assert.equal(ledger.prompts.p?.firstReplyAt, T0 + 100)
+})
+
+test('a step that ends without a message block still counts as the first reply', () => {
+  const { ledger } = foldJournal(
+    [
+      { kind: 'prompt', id: 'p', at: T0 },
+      { kind: 'step', id: 's', at: T0 + 100, model: 'claude-opus-5-5' },
+      { kind: 'stepEnd', id: 's', at: T0 + 900, usage: USAGE },
+    ],
+    price,
+  )
+
+  assert.equal(ledger.prompts.p?.firstReplyAt, T0 + 900)
+  assert.equal(ledger.seq, 0)
 })
 
 test('an unknown model prices as a lower bound', () => {

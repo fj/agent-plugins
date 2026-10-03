@@ -1,10 +1,10 @@
 import { addToDay, localDayKey, type SessionDays } from './daily.ts'
 import {
   addMark,
-  completeStep,
   completeTurn,
   EMPTY_LEDGER,
   endMark,
+  finishStep,
   startStep,
   submitPrompt,
   type LedgerState,
@@ -16,6 +16,7 @@ import type { TokenUsage } from './usage.ts'
 export type JournalRecord =
   | { kind: 'prompt'; id: string; at: number }
   | { kind: 'step'; id: string; at: number; model: string }
+  | { kind: 'message'; id: string; at: number }
   | { kind: 'stepEnd'; id: string; at: number; usage: TokenUsage }
   | { kind: 'tool'; id: string; at: number }
   | { kind: 'toolEnd'; id: string; at: number }
@@ -25,7 +26,7 @@ export type Journal = { ledger: LedgerState; days: SessionDays }
 
 export const EMPTY_JOURNAL: Journal = { ledger: EMPTY_LEDGER, days: {} }
 
-const RECORD_KINDS = new Set(['prompt', 'step', 'stepEnd', 'tool', 'toolEnd', 'turnEnd'])
+const RECORD_KINDS = new Set(['prompt', 'step', 'message', 'stepEnd', 'tool', 'toolEnd', 'turnEnd'])
 
 export function isJournalRecord(value: unknown): value is JournalRecord {
   const record = value as JournalRecord | undefined
@@ -38,9 +39,11 @@ export function applyRecord({ ledger, days }: Journal, record: JournalRecord, pr
     case 'prompt':
       return { ledger: submitPrompt(ledger, record.id, record.at), days }
     case 'step':
-      return { ledger: addMark(startStep(ledger, record.id, record.at, record.model), record.id, 'message', record.at), days }
+      return { ledger: startStep(ledger, record.id, record.at, record.model), days }
+    case 'message':
+      return { ledger: addMark(ledger, record.id, 'message', record.at), days }
     case 'stepEnd': {
-      const next = endMark(completeStep(ledger, record.id, record.usage, record.at, price), record.id, record.at)
+      const next = finishStep(ledger, record.id, record.usage, record.at, price)
       const cost = next.steps[record.id]?.cost ?? ZERO_COST
 
       return { ledger: next, days: addToDay(days, localDayKey(record.at), { usage: record.usage, cost, activeMs: 0 }) }

@@ -104,7 +104,7 @@ test('a prompt record waits for the user message, but never past the next record
   await s.emit('message_start', { message: { role: 'assistant', model: 'm' } })
   assert.deepEqual(
     s.ours().map(entry => (entry.data as { kind: string }).kind),
-    ['prompt', 'step'],
+    ['prompt', 'step', 'message'],
   )
 })
 
@@ -202,6 +202,7 @@ test('a resumed session gets no hat and rebuilds prefixes from its records', asy
   const records = [
     { kind: 'prompt', id: 'p', at: T0 },
     { kind: 'step', id: 's', at: T0 + 1000, model: 'claude-opus-5-5' },
+    { kind: 'message', id: 's', at: T0 + 1000 },
     { kind: 'stepEnd', id: 's', at: T0 + 4000, usage: USAGE },
     { kind: 'turnEnd', at: T0 + 5000 },
   ]
@@ -217,6 +218,7 @@ test('a resumed session gets no hat and rebuilds prefixes from its records', asy
   assert.equal(s.shown(branch[1]!), ' {2026-10-03 04:20:37 Δ 1.0s}')
   assert.match(s.shown(branch[2]!), /^ \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)
+  assert.equal(s.pi.renders(branch[4]!), false)
   assert.match(s.footerLines()!.at(-1)!, /session \$0\.\d\d .* 5\.0s/)
 })
 
@@ -271,6 +273,7 @@ test('moving to another branch replays that branch for the prefixes', async () =
   const step = (output: number) => [
     { kind: 'prompt', id: 'p', at: T0 },
     { kind: 'step', id: 's', at: T0, model: 'claude-opus-5-5' },
+    { kind: 'message', id: 's', at: T0 },
     { kind: 'stepEnd', id: 's', at: T0 + 1000, usage: { ...USAGE, output } },
   ]
   const s = setup({ branch: step(1000).map(data => ({ type: 'custom', customType: CUSTOM_TYPE, data })) })

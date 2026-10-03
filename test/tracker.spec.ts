@@ -36,6 +36,7 @@ function recordingStore(options: { failWrites?: boolean } = {}) {
 const RUN: JournalRecord[] = [
   { kind: 'prompt', id: 'p', at: T0 },
   { kind: 'step', id: 's', at: T0 + 100, model: 'claude-opus-5-5' },
+  { kind: 'message', id: 's', at: T0 + 100 },
   { kind: 'tool', id: 't', at: T0 + 200 },
   { kind: 'toolEnd', id: 't', at: T0 + 300 },
   { kind: 'stepEnd', id: 's', at: T0 + 400, usage: USAGE },

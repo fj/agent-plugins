@@ -111,6 +111,20 @@ export function completeStep(
   return { ...state, totals, steps: { ...state.steps, [id]: done } }
 }
 
+export function finishStep(
+  state: LedgerState,
+  id: string,
+  usage: TokenUsage,
+  at: number,
+  price: Pricer,
+): LedgerState {
+  const isOpenMessage = (mark: Mark) => mark.stepId === id && mark.kind === 'message' && mark.endedAt === undefined
+  const open = Object.values(state.marks).filter(isOpenMessage)
+  const done = open.reduce((next, mark) => endMark(next, mark.id, at), completeStep(state, id, usage, at, price))
+
+  return markReply(done, at)
+}
+
 export function completeTurn(state: LedgerState, at: number): { state: LedgerState; delta: Totals } {
   const prompt = state.currentPromptId === undefined ? undefined : state.prompts[state.currentPromptId]
   const activeMs = prompt === undefined ? 0 : Math.max(0, at - prompt.submittedAt)
