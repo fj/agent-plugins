@@ -1,8 +1,11 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
+import { localDayKey } from '../src/core/daily.ts'
 import { EMPTY_LEDGER, markStep } from '../src/core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../src/core/rows.ts'
+import { ZERO_TOTALS } from '../src/core/totals.ts'
+import { footerLine } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
 import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
 import { timerView } from '../src/render/timer.ts'
@@ -13,6 +16,11 @@ import type { TimerProps } from './timer.tsx'
 
 const ledgerAtom = atom({ plugin: 'mod-jxf-fancy', key: 'ledger' } as const, EMPTY_LEDGER)
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
+const todayAtom = atom({ plugin: 'mod-jxf-fancy', key: 'today' } as const, { day: '', totals: ZERO_TOTALS })
+const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
+
+const MAX_PATH_WIDTH = 32
+const MODE_SEPARATOR = ' & '
 
 type Timing = { key: string; startedAt: number; endedAt?: number }
 
@@ -134,6 +142,33 @@ export function drawSites(on: On, config: Config): void {
           {timer}
         </Box>
         {await next(e)}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const ledger = await read($, ledgerAtom)
+    const today = await read($, todayAtom)
+    const rateLimits = await read($, rateLimitsAtom)
+    const windows = config.subscription.read({ windows: rateLimits })
+    const day = localDayKey(await $.clock.now())
+    const line = footerLine({
+      model: await $.session.model(),
+      cwd: await $.session.cwd(),
+      home: (await $.env.get('HOME')) ?? '',
+      session: ledger.totals,
+      today: today.day === day ? today.totals : ZERO_TOTALS,
+      quota: windows === null ? [] : config.subscription.render(windows),
+      usage: config.usage,
+      maxPathWidth: MAX_PATH_WIDTH,
+    })
+    const { Box, Text } = $.ui.resolve(e)
+    const modes = e.props.modes.length > 0 ? `${e.props.modes.join(MODE_SEPARATOR)}  ` : ''
+
+    return (
+      <Box>
+        {modes !== '' && <Text dimColor>{modes}</Text>}
+        <Text wrap="truncate">{lineNodes(Text, line)}</Text>
       </Box>
     )
   })

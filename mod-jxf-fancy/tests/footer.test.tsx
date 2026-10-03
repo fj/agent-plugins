@@ -1,0 +1,184 @@
+import { expect, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
+
+import {
+  CWD,
+  LIVE_SURFACES,
+  MODEL,
+  PLUGIN,
+  SESSION_ID,
+  shownText,
+  step,
+  submit,
+  textReply,
+  TODAY_DIR,
+  world,
+} from './world.tsx'
+
+const PI_SESSION = {
+  usage: { input: 1000, cacheRead: 0, cacheWrite: 0, output: 1000 },
+  cost: { usd: 1.25, isLowerBound: false },
+  activeMs: 60_000,
+}
+const FILES = { [`${TODAY_DIR}/pi-other.json`]: JSON.stringify(PI_SESSION) }
+const TURN_MS = 4000
+const FIVE_HOUR = { kind: 'five_hour', percentUsed: 42 }
+
+async function start($: Engine): Promise<void> {
+  await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
+}
+
+async function measure($: Engine, rateLimits: { kind: string; percentUsed: number }[]): Promise<void> {
+  await $.session.measure({ context: { window: 200_000 }, rateLimits, changed: ['rateLimits'] })
+}
+
+test('the footer shows model, path, session and today totals beside the engine modes', async ($, on) => {
+  const w = world(on, { files: FILES })
+  await start($)
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: ['focus'] } })
+    const text = shownText(await ui.drawn())
+    expect(text).toStartWith('focus  ')
+    expect(text).toContain(
+      `${MODEL} · ~/src/projects/fancy · session $0.00 ↑0 ↓0 0.0s · today $1.25 ↑1.0k ↓1.0k 1m 00s`,
+    )
+    await ui.unmount()
+  }
+
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+  await w.clock.advance(TURN_MS)
+  await $.turn.complete({ turnId: 'turn-1', answer: 'done', durationMs: TURN_MS, isAborted: false, reason: 'answer' })
+
+  const own = w.files.get(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)
+  expect(own).toBeDefined()
+  expect(JSON.parse(own ?? '{}').activeMs).toBe(TURN_MS)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const text = shownText(await ui.drawn())
+  expect(text).toStartWith(MODEL)
+  expect(text).toContain('session $0.01 ↑6.2k ↓300 4.0s')
+  expect(text).toContain('today $1.26 ↑7.2k ↓1.3k 1m 04s')
+})
+
+test('the footer shows subscription meters from the rate limits', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [FIVE_HOUR])
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    expect(shownText(await ui.drawn())).toContain('5h ▕')
+    expect(shownText(await ui.drawn())).toContain('42%')
+    await ui.unmount()
+  }
+})
+
+test('the footer shows no meters off a subscription', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [])
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(shownText(await ui.drawn())).not.toContain('▕')
+})
+
+test('the null subscription strategy draws no meters', { options: { subscriptionStrategy: 'null' } }, async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [FIVE_HOUR])
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(shownText(await ui.drawn())).not.toContain('5h')
+})
+
+const POLL_MS = 30_000
+const DAY_MS = 24 * 60 * 60 * 1000
+
+async function footerText($: Engine): Promise<string> {
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const text = shownText(await ui.drawn())
+  await ui.unmount()
+
+  return text
+}
+
+test('today picks up other sessions on the next poll', async ($, on) => {
+  const w = world(on)
+  await start($)
+  expect(await footerText($)).toContain('today $0.00')
+
+  w.files.set(`${TODAY_DIR}/pi-late.json`, JSON.stringify(PI_SESSION))
+  await w.clock.advance(POLL_MS)
+
+  expect(await footerText($)).toContain('today $1.25')
+})
+
+test("today shows nothing once yesterday's totals are stale", async ($, on) => {
+  const w = world(on, { files: FILES })
+  await submit($, 'go')
+  await w.clock.advance(TURN_MS)
+  await $.turn.complete({ turnId: 'turn-1', answer: 'done', durationMs: TURN_MS, isAborted: false, reason: 'answer' })
+  expect(await footerText($)).toContain('today $1.25')
+
+  await w.clock.advance(DAY_MS)
+
+  expect(await footerText($)).toContain('today $0.00')
+})
+
+test('today skips files that are not session totals', async ($, on) => {
+  world(on, {
+    files: {
+      ...FILES,
+      [`${TODAY_DIR}/broken.json`]: '{ not json',
+      [`${TODAY_DIR}/other-shape.json`]: '{"cost": 3}',
+      [`${TODAY_DIR}/pi-other.json.tmp`]: JSON.stringify(PI_SESSION),
+    },
+  })
+  await start($)
+
+  expect(await footerText($)).toContain('today $1.25')
+})
+
+test('a missing day folder starts today at zero', async ($, on) => {
+  world(on)
+  await start($)
+
+  expect(await footerText($)).toContain('today $0.00')
+})
+
+test('subagent turns add nothing to the session', async ($, on) => {
+  const w = world(on)
+  await submit($, 'go')
+  await w.clock.advance(TURN_MS)
+  await $.turn.complete({
+    turnId: 'turn-a',
+    answer: 'done',
+    durationMs: TURN_MS,
+    isAborted: false,
+    reason: 'answer',
+    agentId: 'agent-1',
+  })
+
+  expect(await footerText($)).toContain('session $0.00 ↑0 ↓0 0.0s')
+  expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
+})
+
+test('the footer reads the rate limits the session already has at start', async ($, on) => {
+  const w = world(on)
+  w.rateLimits.push(FIVE_HOUR)
+  await start($)
+
+  expect(await footerText($)).toContain('5h ▕')
+})
+
+test('a measurement that leaves rate limits alone keeps the meters', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [FIVE_HOUR])
+  await $.session.measure({ context: { window: 200_000 }, rateLimits: [], changed: ['context'] })
+
+  expect(await footerText($)).toContain('5h ▕')
+})
