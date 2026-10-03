@@ -1,4 +1,4 @@
-import { dayDir, isCountedSessionFile, parseTotals, sessionFile, sumTotals, type DailyStore, type DayKey } from '../src/core/daily.ts'
+import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore, type DayKey } from '../src/core/daily.ts'
 import type { Totals } from '../src/core/totals.ts'
 
 const SESSION_KEY_PREFIX = 'claude-code-'
@@ -29,8 +29,4 @@ export function fileDailyStore(files: Files, home: string): DailyStore {
       return texts.map(parseTotals).filter((totals): totals is Totals => totals !== null)
     },
   }
-}
-
-export async function readToday(store: DailyStore, day: DayKey): Promise<Totals> {
-  return sumTotals(await store.readAll(day))
 }

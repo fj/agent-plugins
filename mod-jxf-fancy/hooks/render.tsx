@@ -1,10 +1,10 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
-import { localDayKey } from '../src/core/daily.ts'
-import { EMPTY_LEDGER, markStep } from '../src/core/ledger.ts'
+import { EMPTY_JOURNAL } from '../src/core/journal.ts'
+import { markStep } from '../src/core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../src/core/rows.ts'
-import { ZERO_TOTALS } from '../src/core/totals.ts'
+import { NO_OTHER_SESSIONS, todayTotals } from '../src/core/tracker.ts'
 import { footerLine } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
 import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
@@ -15,9 +15,9 @@ import { lineNodes } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { TimerProps } from './timer.tsx'
 
-const ledgerAtom = atom({ plugin: 'mod-jxf-fancy', key: 'ledger' } as const, EMPTY_LEDGER)
+const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, EMPTY_JOURNAL)
+const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
-const todayAtom = atom({ plugin: 'mod-jxf-fancy', key: 'today' } as const, { day: '', totals: ZERO_TOTALS })
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
 
 const MAX_PATH_WIDTH = 32
@@ -58,7 +58,7 @@ export function drawSites(on: On, config: Config): void {
       return next(e)
     }
 
-    const ledger = await read($, ledgerAtom)
+    const { ledger } = await read($, journalAtom)
     const rows = await read($, rowsAtom)
     const id = resolveRow(rows, e.requestId, e.props.text, promptIds(ledger))
     const prompt = id === undefined ? undefined : ledger.prompts[id]
@@ -90,7 +90,7 @@ export function drawSites(on: On, config: Config): void {
       return next(e)
     }
 
-    const ledger = await read($, ledgerAtom)
+    const { ledger } = await read($, journalAtom)
     const rows = await read($, rowsAtom)
     const id = resolveRow(rows, e.requestId, e.props.text, markIds(ledger, 'message'))
     const mark = id === undefined ? undefined : ledger.marks[id]
@@ -120,7 +120,7 @@ export function drawSites(on: On, config: Config): void {
   on('ui.render', { component: 'ToolGroup' }, ($, e, next) => next({ ...e, props: { ...e.props, isExpanded: true } }))
 
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
-    const ledger = await read($, ledgerAtom)
+    const { ledger } = await read($, journalAtom)
     const mark = ledger.marks[e.props.tool_use_id]
 
     if (mark === undefined) {
@@ -148,17 +148,16 @@ export function drawSites(on: On, config: Config): void {
   })
 
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const ledger = await read($, ledgerAtom)
-    const today = await read($, todayAtom)
+    const { ledger, days } = await read($, journalAtom)
+    const others = await read($, othersAtom)
     const rateLimits = await read($, rateLimitsAtom)
     const windows = config.subscription.read({ windows: rateLimits })
-    const day = localDayKey(await $.clock.now())
     const line = footerLine({
       model: await $.session.model(),
       cwd: await $.session.cwd(),
       home: (await $.env.get('HOME')) ?? '',
       session: ledger.totals,
-      today: today.day === day ? today.totals : ZERO_TOTALS,
+      today: todayTotals(days, others, await $.clock.now()),
       quota: windows === null ? [] : config.subscription.render(windows),
       usage: config.usage,
       maxPathWidth: MAX_PATH_WIDTH,
@@ -175,7 +174,7 @@ export function drawSites(on: On, config: Config): void {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const ledger = await read($, ledgerAtom)
+    const { ledger } = await read($, journalAtom)
     const isNewSession = ledger.turn === 0 && (await $.session.turns()) === 0
 
     if (e.props.hasSurvey || !isNewSession) {

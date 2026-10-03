@@ -11,6 +11,7 @@ import {
   step,
   submit,
   textReply,
+  toolReply,
   world,
 } from './world.tsx'
 
@@ -59,7 +60,7 @@ test('a tool call counts as the first reply', async ($, on) => {
   const w = world(on)
   await submit($, TEXT)
   await w.clock.advance(FIRST_REPLY_MS)
-  w.scripts.push({ chunks: [{ kind: 'tool', index: 0, id: 'toolu_1', name: 'Bash' }], usage: null })
+  w.scripts.push(toolReply('toolu_1'))
   await step($, 'turn-1', 0)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'UserMessage', props: ROW })
