@@ -5,13 +5,13 @@ import { EMPTY_JOURNAL } from '../src/core/journal.ts'
 import { markStep } from '../src/core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../src/core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../src/core/tracker.ts'
-import { footerLine } from '../src/render/footer.ts'
+import { footer } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
 import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
 import { topHatRobot } from '../src/render/robot.ts'
 import { timerView } from '../src/render/timer.ts'
 import type { Config } from './config.ts'
-import { lineNodes } from './draw.tsx'
+import { blankLine, lineNodes } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { TimerProps } from './timer.tsx'
 
@@ -70,7 +70,7 @@ export function drawSites(on: On, config: Config): void {
       return drawn
     }
 
-    const { Box } = $.ui.resolve(e)
+    const { Box, Text } = $.ui.resolve(e)
     const timer = await timerNode($, e, {
       key: `prompt-timer-${prompt.id}`,
       startedAt: prompt.submittedAt,
@@ -80,6 +80,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box flexDirection="column">
         {drawn}
+        {blankLine(Text)}
         {timer}
       </Box>
     )
@@ -111,6 +112,7 @@ export function drawSites(on: On, config: Config): void {
 
     return (
       <Box flexDirection="column">
+        {blankLine(Text)}
         <Text>{lineNodes(Text, prefix)}</Text>
         {await next(e)}
       </Box>
@@ -138,6 +140,7 @@ export function drawSites(on: On, config: Config): void {
 
     return (
       <Box flexDirection="column">
+        {blankLine(Text)}
         <Box>
           <Text color={PALETTE.label}>{`turn ${turnLabel(mark)} `}</Text>
           {timer}
@@ -152,7 +155,7 @@ export function drawSites(on: On, config: Config): void {
     const others = await read($, othersAtom)
     const rateLimits = await read($, rateLimitsAtom)
     const windows = config.subscription.read({ windows: rateLimits })
-    const line = footerLine({
+    const lines = footer({
       model: await $.session.model(),
       cwd: await $.session.cwd(),
       home: (await $.env.get('HOME')) ?? '',
@@ -168,7 +171,11 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        <Text wrap="truncate">{lineNodes(Text, line)}</Text>
+        <Box flexDirection="column">
+          {lines.map(line => (
+            <Text wrap="truncate">{lineNodes(Text, line)}</Text>
+          ))}
+        </Box>
       </Box>
     )
   })

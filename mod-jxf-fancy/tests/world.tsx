@@ -202,6 +202,18 @@ export function shownText(node: unknown): string {
     .join('')
 }
 
+type Element = { props?: { flexDirection?: string }; children?: readonly unknown[] }
+
+export function shownRows(node: unknown): string[] {
+  const element = node as Element
+
+  if (element.props?.flexDirection === 'column') {
+    return (element.children ?? []).map(shownText)
+  }
+
+  return (element.children ?? []).flatMap(shownRows)
+}
+
 export function shownColors(node: unknown): string[] {
   return leaves(node).flatMap(leaf => (leaf.color === undefined ? [] : [leaf.color]))
 }

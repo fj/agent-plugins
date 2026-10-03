@@ -83,13 +83,13 @@ test('the prompt timer is recorded after the user message persists and runs unti
 
   assert.equal(s.pi.branch.indexOf(prompt!) > s.pi.branch.findIndex(entry => entry.type === 'message'), true)
   s.advance(2300)
-  assert.equal(s.shown(prompt!), ' {2026-10-03 04:20:37 Δ 2.3s}')
-  assert.match(s.pi.render(prompt!, WIDTH)?.[0] ?? '', /\x1b\[38;2;/)
+  assert.equal(s.shown(prompt!), '\n {2026-10-03 04:20:37 Δ 2.3s}')
+  assert.match(s.pi.render(prompt!, WIDTH)?.[1] ?? '', /\x1b\[38;2;/)
 
   await s.emit('message_start', { message: { role: 'assistant', model: 'claude-opus-5-5' } })
   s.advance(5000)
-  assert.equal(s.shown(prompt!), ' {2026-10-03 04:20:37 Δ 2.3s}')
-  assert.equal(s.pi.render(prompt!, WIDTH)?.[0], ' \x1b[38;2;138;138;138m{2026-10-03 04:20:37 Δ 2.3s}\x1b[39m')
+  assert.equal(s.shown(prompt!), '\n {2026-10-03 04:20:37 Δ 2.3s}')
+  assert.deepEqual(s.pi.render(prompt!, WIDTH), ['', ' \x1b[38;2;138;138;138m{2026-10-03 04:20:37 Δ 2.3s}\x1b[39m'])
 })
 
 test('a prompt record waits for the user message, but never past the next record', async () => {
@@ -117,7 +117,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   const step = s.ours().find(entry => (entry.data as { kind: string }).kind === 'step')!
 
   s.advance(1500)
-  assert.equal(s.shown(step), ' {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
+  assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
   assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ 76\.5k Σ ↓ Δ 3\.2k \/ 3\.2k Σ\} \{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}$/)
@@ -168,13 +168,15 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
 
-  const lines = s.footerLines(footerData({ lens: 'lens ok' }))!
-  const main = lines.at(-1)!
+  const [status, head, session, today, quota, ...rest] = s.footerLines(footerData({ lens: 'lens ok' }))!
 
-  assert.equal(lines[0], 'lens ok')
-  assert.equal([...main].length, WIDTH)
-  assert.ok(main.startsWith('(main)'))
-  assert.match(main, /claude-opus-5-5 · ~\/src\/projects\/demo · session \$0\.00 ↑0 ↓0 0\.0s 5h ▕.*▏ 42% · today \$10\.00 ↑0 ↓0 0\.0s$/)
+  assert.equal(status, 'lens ok')
+  assert.deepEqual(rest, [])
+  assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
+  assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+  assert.match(session!, /^ +session 0\.0s · \$0\.00 ↑0 ↓0$/)
+  assert.match(today!, /^ +today 0\.0s · \$10\.00 ↑0 ↓0$/)
+  assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
 
 test('a provider without a subscription shows no meter', async () => {
@@ -183,7 +185,7 @@ test('a provider without a subscription shows no meter', async () => {
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
 
-  assert.doesNotMatch(s.footerLines()!.at(-1)!, /5h/)
+  assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
 })
 
 test('the top hat shows in a new session until the first input', async () => {
@@ -215,11 +217,11 @@ test('a resumed session gets no hat and rebuilds prefixes from its records', asy
   await s.emit('session_start', { reason: 'resume' })
 
   assert.equal(s.widgets.has(HAT_WIDGET), false)
-  assert.equal(s.shown(branch[1]!), ' {2026-10-03 04:20:37 Δ 1.0s}')
-  assert.match(s.shown(branch[2]!), /^ \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
+  assert.equal(s.shown(branch[1]!), '\n {2026-10-03 04:20:37 Δ 1.0s}')
+  assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)
   assert.equal(s.pi.renders(branch[4]!), false)
-  assert.match(s.footerLines()!.at(-1)!, /session \$0\.\d\d .* 5\.0s/)
+  assert.match(s.footerLines()![1]!, /session 5\.0s · \$0\.\d\d /)
 })
 
 test('print mode records usage but draws nothing and leaves tool rows alone', async () => {
@@ -292,12 +294,12 @@ test('switching to a model without a subscription drops the meter', async () => 
 
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
-  assert.match(s.footerLines()!.at(-1)!, /5h/)
+  assert.match(s.footerLines()!.at(-1)!, /^ +5h/)
 
   await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
-  assert.doesNotMatch(s.footerLines()!.at(-1)!, /5h/)
-  assert.match(s.footerLines()!.at(-1)!, /gpt-5 ·/)
+  assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
+  assert.match(s.footerLines()![0]!, /gpt-5 · /)
 })
 
 test('tool calls made by another tool are not timed', async () => {
