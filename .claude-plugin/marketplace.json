@@ -10,6 +10,11 @@
       "name": "jxf",
       "source": "./jxf",
       "description": "Personal coding workflow."
+    },
+    {
+      "name": "mod-jxf-fancy",
+      "source": "./mod-jxf-fancy",
+      "description": "Prompt and tool timers, per-reply usage prefixes, a usage footer and a top hat."
     }
   ]
 }
