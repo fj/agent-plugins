@@ -20,6 +20,7 @@ const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, E
 const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
+const contextAtom = atom({ plugin: 'mod-jxf-fancy', key: 'context' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '
@@ -155,6 +156,7 @@ export function drawSites(on: On, config: Config): void {
     const { ledger, days } = await read($, journalAtom)
     const others = await read($, othersAtom)
     const rateLimits = await read($, rateLimitsAtom)
+    const context = await read($, contextAtom)
     const windows = config.subscription.read({ windows: rateLimits })
     const lines = footer({
       model: await $.session.model(),
@@ -163,8 +165,10 @@ export function drawSites(on: On, config: Config): void {
       session: ledger.totals,
       today: todayTotals(days, others, await $.clock.now()),
       quota: windows === null ? [] : config.subscription.render(windows),
+      context: context ?? undefined,
       usage: config.usage,
       maxPathWidth: MAX_PATH_WIDTH,
+      layout: config.footer,
     })
     const { Box, Text } = $.ui.resolve(e)
     const modes = e.props.modes.length > 0 ? `${e.props.modes.join(MODE_SEPARATOR)}  ` : ''

@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
+import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
 import type { DailyStore } from '../src/core/daily.ts'
 import type { Totals } from '../src/core/totals.ts'
@@ -53,9 +53,10 @@ export function fakePi() {
   }
 }
 
-export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?: string; oauth?: boolean } = {}) {
+export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?: string; oauth?: boolean; context?: ContextUsage } = {}) {
   const widgets = new Map<string, Factory | undefined>()
   let footer: Factory | undefined
+  let context = options.context
   const ui = {
     setFooter: (factory: Factory | undefined) => {
       footer = factory
@@ -69,11 +70,16 @@ export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?
     cwd: '/home/j/src/projects/demo',
     model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic' },
     modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
+    getContextUsage: () => context,
     sessionManager: { getSessionId: () => 'sess-1', getBranch: () => branch, getEntries: () => branch },
     ui,
   }
 
-  return { ctx: ctx as unknown as ExtensionContext, widgets, footer: () => footer }
+  const setContext = (usage: ContextUsage | undefined) => {
+    context = usage
+  }
+
+  return { ctx: ctx as unknown as ExtensionContext, widgets, footer: () => footer, setContext }
 }
 
 export function memoryStore(others: Totals[] = []) {

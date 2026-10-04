@@ -1,11 +1,12 @@
-import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
+import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
-import { subscriptionName, type FancyConfig, type ModelInfo } from '../src/config/config.ts'
+import { footerLayout, subscriptionName, type FancyConfig, type ModelInfo } from '../src/config/config.ts'
 import type { DailyStore } from '../src/core/daily.ts'
 import { isJournalRecord, type JournalRecord } from '../src/core/journal.ts'
 import type { QuotaWindow } from '../src/core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../src/core/tracker.ts'
 import type { TokenUsage } from '../src/core/usage.ts'
+import type { ContextFill } from '../src/render/context.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../src/strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../src/strategies/usage/index.ts'
 import { readConfig } from './config.ts'
@@ -47,6 +48,9 @@ const isNestedCall = (event: { toolCallId: string; parentToolCallId?: string }) 
 const journalRecords = (entries: readonly Entry[]): JournalRecord[] =>
   entries.flatMap(entry => (entry.type === 'custom' && entry.customType === CUSTOM_TYPE && isJournalRecord(entry.data) ? [entry.data] : []))
 
+const contextFill = (usage: ContextUsage | undefined): ContextFill | undefined =>
+  usage === undefined ? undefined : { tokens: usage.tokens ?? undefined, window: usage.contextWindow }
+
 const tokenUsage = (usage: TokenUsage | undefined): TokenUsage => ({
   input: usage?.input ?? 0,
   cacheRead: usage?.cacheRead ?? 0,
@@ -84,6 +88,8 @@ export function modJxfFancy(deps: FancyDeps): (pi: ExtensionAPI) => void {
       home: deps.home,
       today: () => tracker.today(now()),
       quota: () => (windows === null ? [] : subscription.render(windows)),
+      context: () => contextFill(ctx?.getContextUsage()),
+      layout: () => footerLayout(config),
     }
 
     const frames = ticker(FRAME_MS, () => {

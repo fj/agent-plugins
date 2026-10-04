@@ -19,6 +19,12 @@
       "options": ["anthropic", "null"],
       "default": "anthropic"
     },
+    "showContext": {
+      "type": "boolean",
+      "title": "Show context window",
+      "description": "Draw the context window fill and size in the footer.",
+      "default": true
+    },
     "debug": {
       "type": "boolean",
       "title": "Debug",

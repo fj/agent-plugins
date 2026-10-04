@@ -1,5 +1,6 @@
 import type { Totals } from '../src/core/totals.ts'
-import { footer } from '../src/render/footer.ts'
+import type { ContextFill } from '../src/render/context.ts'
+import { footer, type FooterLayout } from '../src/render/footer.ts'
 import { PALETTE } from '../src/render/palette.ts'
 import type { Line } from '../src/render/segment.ts'
 import { alignRight, paint, paintLine } from './paint.ts'
@@ -11,6 +12,8 @@ export type FooterScene = Scene & {
   home: string
   today(): Totals
   quota(): Line
+  context(): ContextFill | undefined
+  layout(): FooterLayout
 }
 
 export type FooterData = {
@@ -37,8 +40,10 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     session: scene.ledger().totals,
     today: scene.today(),
     quota: scene.quota(),
+    context: scene.context(),
     usage: scene.usage(),
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),
+    layout: scene.layout(),
   })
   const branch = data.getGitBranch()
   const left = branch === null ? '' : paint(`(${branch})`, PALETTE.muted)

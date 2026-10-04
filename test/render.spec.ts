@@ -95,6 +95,8 @@ test('a prefix without a finished step shows live timing and the turn only', () 
   )
 })
 
+const QUOTA = [{ text: '5h 42%', role: 'meter' } as const]
+
 const FOOTER_INPUT = {
   model: 'claude-opus-5-5',
   cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
@@ -104,6 +106,7 @@ const FOOTER_INPUT = {
   quota: [],
   usage: defaultUsageStrategy,
   maxPathWidth: 24,
+  layout: { showsContext: true },
 }
 
 test('the footer puts model and path, session, and today on their own lines', () => {
@@ -132,6 +135,24 @@ test('the footer adds subscription usage as a last line', () => {
   assert.equal(lines.length, 4)
   assert.equal(lineText(lines[3]!), '5h 42%')
 })
+test('the footer shows the context fill and window beside the subscription meters', () => {
+  const lines = footer({ ...FOOTER_INPUT, quota: QUOTA, context: { tokens: 50_000, window: 200_000 } })
+
+  assert.equal(lineText(lines[3]!), '5h 42%  ctx ▕██      ▏ 50.0k / 200.0k')
+})
+
+test('the footer shows only the window size before the context fill is known', () => {
+  const lines = footer({ ...FOOTER_INPUT, context: { window: 1_000_000 } })
+
+  assert.equal(lineText(lines[3]!), 'ctx 1.0M')
+})
+
+test('the footer layout can hide the context', () => {
+  const lines = footer({ ...FOOTER_INPUT, quota: QUOTA, context: { window: 200_000 }, layout: { showsContext: false } })
+
+  assert.deepEqual(lines.slice(3).map(lineText), ['5h 42%'])
+})
+
 
 test('daily totals accumulate per local day and round-trip through JSON', () => {
   const day = localDayKey(T0)
