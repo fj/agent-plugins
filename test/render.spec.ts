@@ -113,6 +113,18 @@ test('the footer puts model and path, session, and today on their own lines', ()
     'today 1h 02m · $48.10+ ↑0 ↓0',
   ])
 })
+test('the footer leaves out a time that shows as zero', () => {
+  const lines = footer({ ...FOOTER_INPUT, session: ZERO_TOTALS, today: { ...ZERO_TOTALS, activeMs: 99 } })
+
+  assert.deepEqual(lines.slice(1).map(lineText), ['session $0.00 ↑0 ↓0', 'today $0.00 ↑0 ↓0'])
+})
+
+test('the footer keeps the smallest time that shows as nonzero', () => {
+  const lines = footer({ ...FOOTER_INPUT, session: { ...ZERO_TOTALS, activeMs: 100 } })
+
+  assert.equal(lineText(lines[1]!), 'session 0.1s · $0.00 ↑0 ↓0')
+})
+
 
 test('the footer adds subscription usage as a last line', () => {
   const lines = footer({ ...FOOTER_INPUT, quota: [{ text: '5h 42%', role: 'meter' }] })

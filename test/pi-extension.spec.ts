@@ -174,8 +174,8 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
   assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
-  assert.match(session!, /^ +session 0\.0s · \$0\.00 ↑0 ↓0$/)
-  assert.match(today!, /^ +today 0\.0s · \$10\.00 ↑0 ↓0$/)
+  assert.match(session!, /^ +session \$0\.00 ↑0 ↓0$/)
+  assert.match(today!, /^ +today \$10\.00 ↑0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
 

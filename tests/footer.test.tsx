@@ -46,7 +46,7 @@ test('the footer shows model and path, session, and today on separate lines besi
     expect(shownText(drawn)).toStartWith('focus  ')
     expect(shownRows(drawn)).toEqual([
       `${MODEL} · ~/src/projects/fancy`,
-      'session 0.0s · $0.00 ↑0 ↓0',
+      'session $0.00 ↑0 ↓0',
       'today 1m 00s · $1.25 ↑1.0k ↓1.0k',
     ])
     await ui.unmount()
@@ -127,7 +127,7 @@ async function footerText($: Engine): Promise<string> {
 test('today picks up other sessions on the next poll', async ($, on) => {
   const w = world(on)
   await start($)
-  expect(await footerText($)).toContain('today 0.0s · $0.00')
+  expect(await footerText($)).toContain('today $0.00')
 
   w.files.set(`${TODAY_DIR}/pi-late.json`, JSON.stringify(PI_SESSION))
   await w.clock.advance(POLL_MS)
@@ -144,7 +144,7 @@ test("today shows nothing once yesterday's totals are stale", async ($, on) => {
 
   await w.clock.advance(DAY_MS)
 
-  expect(await footerText($)).toContain('today 0.0s · $0.00')
+  expect(await footerText($)).toContain('today $0.00')
 })
 
 test('today skips files that are not session totals', async ($, on) => {
@@ -165,7 +165,7 @@ test('a missing day folder starts today at zero', async ($, on) => {
   world(on)
   await start($)
 
-  expect(await footerText($)).toContain('today 0.0s · $0.00')
+  expect(await footerText($)).toContain('today $0.00')
 })
 
 test('subagent turns add nothing to the session', async ($, on) => {
@@ -181,7 +181,7 @@ test('subagent turns add nothing to the session', async ($, on) => {
     agentId: 'agent-1',
   })
 
-  expect(await footerText($)).toContain('session 0.0s · $0.00 ↑0 ↓0')
+  expect(await footerText($)).toContain('session $0.00 ↑0 ↓0')
   expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
 })
 
