@@ -1,6 +1,6 @@
 import type { FooterLayout } from '../render/footer.ts'
 
-export type FooterConfig = { showContext?: boolean }
+export type FooterConfig = { combineTotals?: boolean; showSubscription?: boolean; showContext?: boolean }
 
 export type FancyConfig = { usageStrategy?: string; subscriptionStrategy?: string } & FooterConfig
 
@@ -14,12 +14,18 @@ const optionalBoolean = (value: unknown) => (typeof value === 'boolean' ? value 
 
 export function parseFooterConfig(value: Readonly<Record<string, unknown>> | null): FooterConfig {
   return {
+    combineTotals: optionalBoolean(value?.combineTotals),
+    showSubscription: optionalBoolean(value?.showSubscription),
     showContext: optionalBoolean(value?.showContext),
   }
 }
 
 export function footerLayout(config: FooterConfig): FooterLayout {
-  return { showsContext: config.showContext ?? true }
+  return {
+    isTotalsCombined: config.combineTotals ?? false,
+    showsSubscription: config.showSubscription ?? true,
+    showsContext: config.showContext ?? true,
+  }
 }
 
 export function parseConfig(text: string): FancyConfig {

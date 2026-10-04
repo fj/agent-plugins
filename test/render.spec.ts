@@ -106,7 +106,7 @@ const FOOTER_INPUT = {
   quota: [],
   usage: defaultUsageStrategy,
   maxPathWidth: 24,
-  layout: { showsContext: true },
+  layout: { isTotalsCombined: false, showsSubscription: true, showsContext: true },
 }
 
 test('the footer puts model and path, session, and today on their own lines', () => {
@@ -135,6 +135,12 @@ test('the footer adds subscription usage as a last line', () => {
   assert.equal(lines.length, 4)
   assert.equal(lineText(lines[3]!), '5h 42%')
 })
+test('the footer can put session and today on one line', () => {
+  const lines = footer({ ...FOOTER_INPUT, layout: { ...FOOTER_INPUT.layout, isTotalsCombined: true } })
+
+  assert.deepEqual(lines.slice(1).map(lineText), ['session 1m 05s · $12.34 ↑0 ↓0  today 1h 02m · $48.10+ ↑0 ↓0'])
+})
+
 test('the footer shows the context fill and window beside the subscription meters', () => {
   const lines = footer({ ...FOOTER_INPUT, quota: QUOTA, context: { tokens: 50_000, window: 200_000 } })
 
@@ -147,10 +153,14 @@ test('the footer shows only the window size before the context fill is known', (
   assert.equal(lineText(lines[3]!), 'ctx 1.0M')
 })
 
-test('the footer layout can hide the context', () => {
-  const lines = footer({ ...FOOTER_INPUT, quota: QUOTA, context: { window: 200_000 }, layout: { showsContext: false } })
+test('the footer layout can hide the subscription meters, the context, or both', () => {
+  const input = { ...FOOTER_INPUT, quota: QUOTA, context: { window: 200_000 } }
+  const meters = (layout: Partial<typeof FOOTER_INPUT.layout>) =>
+    footer({ ...input, layout: { ...input.layout, ...layout } }).slice(3).map(lineText)
 
-  assert.deepEqual(lines.slice(3).map(lineText), ['5h 42%'])
+  assert.deepEqual(meters({ showsSubscription: false }), ['ctx 200.0k'])
+  assert.deepEqual(meters({ showsContext: false }), ['5h 42%'])
+  assert.deepEqual(meters({ showsSubscription: false, showsContext: false }), [])
 })
 
 

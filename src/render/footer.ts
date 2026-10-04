@@ -4,7 +4,7 @@ import { formatDuration, formatUsd, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
 import type { UsageLines } from './usage-lines.ts'
 
-export type FooterLayout = { showsContext: boolean }
+export type FooterLayout = { isTotalsCombined: boolean; showsSubscription: boolean; showsContext: boolean }
 
 export type FooterInput = {
   model: string
@@ -38,10 +38,17 @@ function totalsLine(label: string, totals: Totals, usage: UsageLines): Line {
   ]
 }
 
+function totalsLines(input: FooterInput): Line[] {
+  const lines = [totalsLine('session', input.session, input.usage), totalsLine('today', input.today, input.usage)]
+
+  return input.layout.isTotalsCombined ? [join(lines, GROUP_GAP)] : lines
+}
+
 function metersLine({ quota, context, layout }: FooterInput): Line {
+  const shownQuota = layout.showsSubscription ? quota : []
   const shownContext = layout.showsContext && context !== undefined ? contextMeter(context) : []
 
-  return join([quota, shownContext], GROUP_GAP)
+  return join([shownQuota, shownContext], GROUP_GAP)
 }
 
 export function footer(input: FooterInput): Line[] {
@@ -52,8 +59,5 @@ export function footer(input: FooterInput): Line[] {
   ]
   const meters = metersLine(input)
 
-  const session = totalsLine('session', input.session, input.usage)
-  const today = totalsLine('today', input.today, input.usage)
-
-  return [head, session, today, ...(meters.length > 0 ? [meters] : [])]
+  return [head, ...totalsLines(input), ...(meters.length > 0 ? [meters] : [])]
 }

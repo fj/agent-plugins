@@ -14,21 +14,29 @@ test('the subscription meter follows the provider and OAuth, unless the config o
 })
 
 test('config keeps only string and boolean settings and ignores junk', () => {
-  assert.deepEqual(parseConfig('{"usageStrategy":"default","subscriptionStrategy":7,"showContext":"no"}'), {
+  assert.deepEqual(parseConfig('{"usageStrategy":"default","subscriptionStrategy":7,"combineTotals":true,"showContext":"no"}'), {
     usageStrategy: 'default',
     subscriptionStrategy: undefined,
+    combineTotals: true,
+    showSubscription: undefined,
     showContext: undefined,
   })
   assert.deepEqual(parseConfig('null'), {
     usageStrategy: undefined,
     subscriptionStrategy: undefined,
+    combineTotals: undefined,
+    showSubscription: undefined,
     showContext: undefined,
   })
   assert.deepEqual(parseConfig('nope'), {})
 })
 
-test('the footer layout shows the context unless the config says otherwise', () => {
-  assert.deepEqual(footerLayout({}), { showsContext: true })
-  assert.deepEqual(footerLayout({ showContext: false }), { showsContext: false })
+test('the footer layout keeps totals apart and shows every meter unless the config says otherwise', () => {
+  assert.deepEqual(footerLayout({}), { isTotalsCombined: false, showsSubscription: true, showsContext: true })
+  assert.deepEqual(footerLayout({ combineTotals: true, showSubscription: false, showContext: false }), {
+    isTotalsCombined: true,
+    showsSubscription: false,
+    showsContext: false,
+  })
 })
 

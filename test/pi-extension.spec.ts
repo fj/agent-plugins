@@ -190,6 +190,19 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.match(today!, /^ +today \$10\.00 ↑0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
+test('the footer follows the config for one totals line and the context window', async () => {
+  const s = setup({ config: { combineTotals: true }, context: { tokens: 50_000, contextWindow: 200_000, percent: 25 } })
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+
+  const [, totals, meters, ...rest] = s.footerLines()!
+
+  assert.deepEqual(rest, [])
+  assert.match(totals!, /^ +session \$0\.00 ↑0 ↓0  today \$0\.00 ↑0 ↓0$/)
+  assert.match(meters!, /^ +5h ▕.*▏ 42%  ctx ▕██ +▏ 50\.0k \/ 200\.0k$/)
+})
+
 
 test('a provider without a subscription shows no meter', async () => {
   const s = setup({ provider: 'azure' })
