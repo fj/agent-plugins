@@ -18,6 +18,9 @@ const FILES: Record<string, string> = {
   'src/adapters/pi/index.ts': 'export default {}\n',
 }
 
+const SOURCE_TIME = '2026-09-15T12:34:56Z'
+const STAMP = '20260915123456'
+
 type Published = { name: string; version: string; dryRun: boolean; plugin?: string }
 
 let scratch: string
@@ -51,7 +54,7 @@ beforeEach(async () => {
     await writeFile(join(root, path), text)
   }
   git(root, ['add', '.'])
-  git(root, ['commit', '--quiet', '-m', 'source'])
+  git(root, ['commit', '--quiet', '-m', 'source'], { ...process.env, GIT_COMMITTER_DATE: SOURCE_TIME })
 })
 
 afterEach(() => rm(scratch, { recursive: true, force: true }))
@@ -60,31 +63,33 @@ const run = (requested: string, dryRun = false, options: Partial<Parameters<type
   release({ root, requested, dryRun, verify, publish, ...options })
 
 test('a release verifies, then dry-runs every package before it publishes any', async () => {
-  assert.equal(await run('minor'), '1.3.0')
+  const version = `1.3.${STAMP}`
+  assert.equal(await run('minor'), version)
 
   assert.equal(verified, 1)
   assert.deepEqual(published, [
-    { name: 'mod-jxf-fancy-claude-code', version: '1.3.0', dryRun: true, plugin: '1.3.0' },
-    { name: 'mod-jxf-fancy-pi', version: '1.3.0', dryRun: true },
-    { name: 'mod-jxf-fancy-claude-code', version: '1.3.0', dryRun: false, plugin: '1.3.0' },
-    { name: 'mod-jxf-fancy-pi', version: '1.3.0', dryRun: false },
+    { name: 'mod-jxf-fancy-claude-code', version, dryRun: true, plugin: version },
+    { name: 'mod-jxf-fancy-pi', version, dryRun: true },
+    { name: 'mod-jxf-fancy-claude-code', version, dryRun: false, plugin: version },
+    { name: 'mod-jxf-fancy-pi', version, dryRun: false },
   ])
 })
 
 test('a release commits the version, tags it and pushes main and the tag', async () => {
-  await run('2.0.0')
+  const version = await run('2.0')
 
-  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version, '2.0.0')
-  assert.equal(git(root, ['log', '-1', '--format=%s', 'main']), 'chore: release 2.0.0')
-  assert.equal(git(root, ['rev-parse', 'v2.0.0^{commit}']), git(root, ['rev-parse', 'main']))
+  assert.equal(version, `2.0.${STAMP}`)
+  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version, version)
+  assert.equal(git(root, ['log', '-1', '--format=%s', 'main']), `chore: release ${version}`)
+  assert.equal(git(root, ['rev-parse', `v${version}^{commit}`]), git(root, ['rev-parse', 'main']))
   assert.equal(git(root, ['ls-remote', 'origin', 'main']).split('\t')[0], git(root, ['rev-parse', 'main']))
-  assert.notEqual(git(root, ['ls-remote', '--tags', 'origin', 'v2.0.0']), '')
+  assert.notEqual(git(root, ['ls-remote', '--tags', 'origin', `v${version}`]), '')
 })
 
 test('a dry run publishes nothing and leaves the repo and remote as they were', async () => {
   const head = git(root, ['rev-parse', 'HEAD'])
 
-  assert.equal(await run('patch', true), '1.2.4')
+  assert.equal(await run('patch', true), `1.2.${STAMP}`)
   assert.ok(published.every(({ dryRun }) => dryRun))
   assert.equal(git(root, ['rev-parse', 'HEAD']), head)
   assert.equal(git(root, ['status', '--porcelain']), '')

@@ -5,7 +5,7 @@ import { publishArgs } from './npm.ts'
 import { release } from './release.ts'
 import { ROOT } from './root-manifest.ts'
 
-const USAGE = 'usage: npm run release -- <major|minor|patch|x.y.z> [--dry-run]'
+const USAGE = 'usage: npm run release -- <major|minor|patch|x.y> [--dry-run]'
 
 const { positionals, values } = parseArgs({ allowPositionals: true, options: { 'dry-run': { type: 'boolean' } } })
 if (positionals.length !== 1) throw new Error(USAGE)

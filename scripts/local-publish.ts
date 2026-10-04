@@ -2,8 +2,10 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
+import { commitTime } from './git.ts'
 import { readRootManifest, ROOT } from './root-manifest.ts'
 import { buildVariant, VARIANTS } from './variants.ts'
+import { stamped } from './version.ts'
 
 export const LOCAL_MARKETPLACE = 'mod-jxf-fancy-local'
 
@@ -17,11 +19,12 @@ export function defaultTarget(env: NodeJS.ProcessEnv = process.env): string {
   return join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'mod-jxf-fancy')
 }
 
-export async function publishLocally(target: string, run: Run, root = ROOT): Promise<void> {
+export async function publishLocally(target: string, run: Run, root = ROOT, time = commitTime(root)): Promise<void> {
   const manifest = await readRootManifest(root)
   const plugin = manifest.name as string
+  const version = stamped(manifest.version as string, time)
 
-  for (const variant of VARIANTS) await buildVariant(variant, join(target, variant.name), root)
+  for (const variant of VARIANTS) await buildVariant(variant, join(target, variant.name), root, version)
   await writeMarketplace(target, manifest)
   installInClaudeCode(target, plugin, run)
   installInPi(join(target, 'pi'), plugin, run)

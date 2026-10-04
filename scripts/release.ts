@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { git } from './git.ts'
+import { commitTime, git } from './git.ts'
 import { readVersion, writeVersion } from './root-version.ts'
 import { buildVariant, VARIANTS } from './variants.ts'
 import { nextVersion } from './version.ts'
@@ -21,7 +21,7 @@ type ReleaseOptions = {
 }
 
 export async function release({ root, requested, dryRun, verify, publish }: ReleaseOptions): Promise<string> {
-  const version = nextVersion(await readVersion(root), requested)
+  const version = nextVersion(await readVersion(root), requested, commitTime(root))
   if (git(root, ['status', '--porcelain'])) throw new Error('commit or stash your changes before a release')
   if (git(root, ['branch', '--show-current']) !== MAIN) throw new Error(`release from ${MAIN}`)
 
