@@ -12,9 +12,6 @@ export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   model: '#d7a8ff',
   path: '#8fc7ff',
   meter: '#f0c674',
-  robot: '#9ec5f8',
-  hat: '#4a4a5a',
-  hatBand: '#d0367a',
 }
 
 export const DONE_TIMER_COLOR = '#8a8a8a'

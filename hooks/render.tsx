@@ -8,7 +8,7 @@ import { NO_OTHER_SESSIONS, todayTotals } from '../src/core/tracker.ts'
 import { footer } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
 import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
-import { topHatRobot } from '../src/render/robot.ts'
+import { topHat } from '../src/render/hat.ts'
 import { timerView } from '../src/render/timer.ts'
 import type { Config } from './config.ts'
 import { blankLine, lineNodes } from './draw.tsx'
@@ -192,7 +192,7 @@ export function drawSites(on: On, config: Config): void {
 
     return (
       <Box key="top-hat" flexDirection="column">
-        {topHatRobot().map(line => (
+        {topHat().map(line => (
           <Text>{lineNodes(Text, line)}</Text>
         ))}
       </Box>

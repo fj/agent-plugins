@@ -18,6 +18,7 @@ test('the top hat shows in a new session and hides after the first prompt', asyn
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
     expect(await ui.find({ key: 'top-hat' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: 'mod-jxf-fancy is on' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: '🎩 ' })).toBeDefined()
     await ui.unmount()
   }
 

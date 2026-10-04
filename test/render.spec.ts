@@ -7,7 +7,7 @@ import { footer } from '../src/render/footer.ts'
 import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
-import { BANNER_TEXT, topHatRobot } from '../src/render/robot.ts'
+import { topHat } from '../src/render/hat.ts'
 import { lineText } from '../src/render/segment.ts'
 import { rainbow } from '../src/render/shimmer.ts'
 import { promptTimerView, timerView } from '../src/render/timer.ts'
@@ -134,9 +134,7 @@ test('daily totals accumulate per local day and round-trip through JSON', () => 
   assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy/days/2026-10-03/claude_a_b.json')
 })
 
-test('the robot wears a hat and announces the mod', () => {
-  const lines = topHatRobot()
-
-  assert.ok(lines.some(line => line.some(part => part.role === 'hatBand')))
-  assert.ok(lines.some(line => lineText(line).endsWith(BANNER_TEXT)))
+test('the top hat is an emoji that announces the mod', () => {
+  assert.deepEqual(topHat().map(lineText), ['🎩 mod-jxf-fancy is on'])
 })
+

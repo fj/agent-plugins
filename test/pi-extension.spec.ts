@@ -4,7 +4,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test'
 import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancy, PERSIST_POLL_MS } from '../pi/extension.ts'
 import type { ToolRow } from '../pi/tool-rows.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
-import { BANNER_TEXT } from '../src/render/robot.ts'
+import { BANNER_TEXT } from '../src/render/hat.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './pi-fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
