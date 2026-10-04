@@ -1,4 +1,0 @@
-{
-  "extends": "./.claude-plugin/types/tsconfig.json",
-  "include": ["src/adapters/claude-code", "test/adapters/claude-code"]
-}
