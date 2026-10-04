@@ -1,15 +1,16 @@
 {
   "name": "mod-jxf-fancy",
   "version": "0.3.0",
-  "description": "Timers, usage prefixes, a usage footer and a top hat for Claude Code and Pi.",
+  "description": "Prompt and tool timers, per-reply usage prefixes, a usage footer and a top hat.",
+  "author": { "name": "John Feminella" },
+  "repository": { "type": "git", "url": "git+https://github.com/fj/mod-jxf-fancy.git" },
   "type": "module",
   "private": true,
-  "keywords": ["pi-package"],
-  "pi": { "extensions": ["./src/adapters/pi"] },
-  "scripts": { "test": "node --test 'test/**/*.spec.ts'" },
-  "engines": { "node": ">=22.18" },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
-  }
+  "scripts": {
+    "test": "node --test 'test/**/*.spec.ts'",
+    "test:claude-code": "node scripts/test-claude-code.ts",
+    "build": "node scripts/build.ts",
+    "release": "node scripts/release-cli.ts"
+  },
+  "engines": { "node": ">=22.18" }
 }
