@@ -49,7 +49,7 @@ const reported = new Set<string>()
 function reportMiss($: EngineInterface, e: RenderInput, isDebug: boolean): void {
   if (isDebug && !reported.has(e.requestId)) {
     reported.add(e.requestId)
-    $.ui.log(`mod-jxf-fancy: ${e.component} row ${e.requestId} matched nothing`)
+    $.ui.log(`${e.component} row ${e.requestId} matched nothing`)
   }
 }
 

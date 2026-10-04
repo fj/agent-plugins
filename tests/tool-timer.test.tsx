@@ -121,7 +121,7 @@ test('debug logs a row that matched nothing once', { options: { debug: true } },
   })
   await ui.redraw()
 
-  expect(w.logs).toEqual(['mod-jxf-fancy: ToolUse row toolu_lost matched nothing'])
+  expect(w.logs).toEqual(['ToolUse row toolu_lost matched nothing'])
 })
 
 test('a failed tool call stops its timer', async ($, on) => {

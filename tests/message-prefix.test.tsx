@@ -200,7 +200,7 @@ test('debug logs a reply row that matched nothing', { options: { debug: true } }
     requestId: 'lost-reply',
   })
 
-  expect(w.logs).toEqual(['mod-jxf-fancy: AssistantMessage row lost-reply matched nothing'])
+  expect(w.logs).toEqual(['AssistantMessage row lost-reply matched nothing'])
 })
 
 test('a subagent reply row leaves the main reply its mark', { options: { debug: true } }, async ($, on) => {
@@ -211,5 +211,5 @@ test('a subagent reply row leaves the main reply its mark', { options: { debug: 
   await appendReply($, 'subagent-reply', REPLY, 'agent-1')
   await appendReply($, 'reply-1', REPLY)
 
-  expect(w.logs).toEqual(['mod-jxf-fancy: response row reply-1 -> turn-1:0:0'])
+  expect(w.logs).toEqual(['response row reply-1 -> turn-1:0:0'])
 })
