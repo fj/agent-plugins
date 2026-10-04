@@ -127,10 +127,10 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.deepEqual(row.render(WIDTH), ['', 'tool box'])
   await s.emit('tool_execution_start', { toolCallId: 'call-1', toolName: 'bash', args: {} })
   s.advance(700)
-  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s}')
+  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s} {turn 1.2}')
   await s.emit('tool_execution_end', { toolCallId: 'call-1', toolName: 'bash', result: {}, isError: false })
   s.advance(9000)
-  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s}')
+  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s} {turn 1.2}')
 
   await s.emit('tool_execution_start', { toolCallId: 'call-1/1', toolName: 'read', args: {} })
   assert.equal(s.ours().filter(entry => (entry.data as { id?: string }).id === 'call-1/1').length, 0)
