@@ -1,6 +1,6 @@
 import { markStep, type LedgerState } from '../src/core/ledger.ts'
-import { messagePrefix } from '../src/render/prefix.ts'
-import { topHatRobot } from '../src/render/robot.ts'
+import { messagePrefix, turnTag } from '../src/render/prefix.ts'
+import { topHat } from '../src/render/hat.ts'
 import { promptTimerView, timerView } from '../src/render/timer.ts'
 import type { UsageStrategy } from '../src/strategies/usage/strategy.ts'
 import { chatLine, paintLine, paintTimer, type TextWidth } from './paint.ts'
@@ -53,10 +53,11 @@ export function toolTimerLine(scene: Scene, id: string, width: number): string |
   }
 
   const now = scene.now()
+  const timer = paintTimer(timerView(mark.startedAt, now, mark.endedAt), now)
 
-  return chatLine(paintTimer(timerView(mark.startedAt, now, mark.endedAt), now), width, scene.measure)
+  return chatLine(`${timer} ${paintLine(turnTag(mark))}`, width, scene.measure)
 }
 
 export function hatLines(width: number, measure: TextWidth): string[] {
-  return topHatRobot().map(line => chatLine(paintLine(line), width, measure))
+  return topHat().map(line => chatLine(paintLine(line), width, measure))
 }

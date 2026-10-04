@@ -7,8 +7,9 @@ import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../src/core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../src/core/tracker.ts'
 import { footer } from '../src/render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
-import { messagePrefix, turnLabel } from '../src/render/prefix.ts'
-import { topHatRobot } from '../src/render/robot.ts'
+import { messagePrefix, turnTag } from '../src/render/prefix.ts'
+import { topHat } from '../src/render/hat.ts'
+import { seg } from '../src/render/segment.ts'
 import { timerView } from '../src/render/timer.ts'
 import type { Config } from './config.ts'
 import { blankLine, lineNodes } from './draw.tsx'
@@ -48,7 +49,7 @@ const reported = new Set<string>()
 function reportMiss($: EngineInterface, e: RenderInput, isDebug: boolean): void {
   if (isDebug && !reported.has(e.requestId)) {
     reported.add(e.requestId)
-    $.ui.log(`mod-jxf-fancy: ${e.component} row ${e.requestId} matched nothing`)
+    $.ui.log(`${e.component} row ${e.requestId} matched nothing`)
   }
 }
 
@@ -142,8 +143,8 @@ export function drawSites(on: On, config: Config): void {
       <Box flexDirection="column">
         {blankLine(Text)}
         <Box>
-          <Text color={PALETTE.label}>{`turn ${turnLabel(mark)} `}</Text>
           {timer}
+          <Text>{lineNodes(Text, [seg(' '), ...turnTag(mark)])}</Text>
         </Box>
         {await next(e)}
       </Box>
@@ -171,7 +172,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        <Box flexDirection="column">
+        <Box flexDirection="column" alignItems="flex-end">
           {lines.map(line => (
             <Text wrap="truncate">{lineNodes(Text, line)}</Text>
           ))}
@@ -192,7 +193,7 @@ export function drawSites(on: On, config: Config): void {
 
     return (
       <Box key="top-hat" flexDirection="column">
-        {topHatRobot().map(line => (
+        {topHat().map(line => (
           <Text>{lineNodes(Text, line)}</Text>
         ))}
       </Box>

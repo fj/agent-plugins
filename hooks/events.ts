@@ -65,7 +65,7 @@ async function refreshOthers($: EngineInterface): Promise<void> {
 
 function debugLog($: EngineInterface, isDebug: boolean, text: string): void {
   if (isDebug) {
-    $.ui.log(`mod-jxf-fancy: ${text}`)
+    $.ui.log(text)
   }
 }
 

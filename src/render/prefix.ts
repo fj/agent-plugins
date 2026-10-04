@@ -7,8 +7,8 @@ export type PrefixInput = { mark: Mark; step?: Step; now: number; usage: UsageLi
 
 const braced = (inner: Line): Line => (inner.length === 0 ? [] : [seg('{', 'muted'), ...inner, seg('}', 'muted')])
 
-export function turnLabel(mark: Pick<Mark, 'turn' | 'seq'>): string {
-  return `${mark.turn}.${mark.seq}`
+export function turnTag(mark: Pick<Mark, 'turn' | 'seq'>, tokens: Line = []): Line {
+  return braced([seg(`turn ${mark.turn}.${mark.seq}`, 'label'), ...tokens])
 }
 
 export function messagePrefix({ mark, step, now, usage }: PrefixInput): Line {
@@ -16,8 +16,7 @@ export function messagePrefix({ mark, step, now, usage }: PrefixInput): Line {
   const elapsed = (step?.endedAt ?? now) - startedAt
   const timing: Line = [seg(formatClock(startedAt), 'time'), seg(` Δ ${formatDuration(elapsed)}`, 'muted')]
   const tokens = step?.usage && step.totals ? [seg(': ', 'muted'), ...usage.stepTokens(step.usage, step.totals.usage)] : []
-  const turn: Line = [seg(`turn ${turnLabel(mark)}`, 'label'), ...tokens]
   const cost = step?.cost && step.totals ? usage.stepCost(step.cost, step.totals.cost) : []
 
-  return join([braced(timing), braced(turn), braced(cost)], seg(' '))
+  return join([braced(timing), turnTag(mark, tokens), braced(cost)], seg(' '))
 }

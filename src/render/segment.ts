@@ -10,9 +10,6 @@ export type Role =
   | 'model'
   | 'path'
   | 'meter'
-  | 'robot'
-  | 'hat'
-  | 'hatBand'
 
 export type Segment = { text: string; role: Role }
 

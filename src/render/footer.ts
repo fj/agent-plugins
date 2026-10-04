@@ -14,11 +14,18 @@ export type FooterInput = {
   maxPathWidth: number
 }
 
+const ZERO_DURATION = formatDuration(0)
+
+function timeSegments(activeMs: number): Line {
+  const duration = formatDuration(activeMs)
+
+  return duration === ZERO_DURATION ? [] : [seg(duration, 'time'), seg(' · ', 'muted')]
+}
+
 function totalsLine(label: string, totals: Totals, usage: UsageLines): Line {
   return [
     seg(`${label} `, 'muted'),
-    seg(formatDuration(totals.activeMs), 'time'),
-    seg(' · ', 'muted'),
+    ...timeSegments(totals.activeMs),
     seg(formatUsd(totals.cost), 'cost'),
     seg(' '),
     ...usage.totalTokens(totals.usage),

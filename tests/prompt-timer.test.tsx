@@ -107,7 +107,7 @@ test('debug logs how a prompt row was matched', { options: { debug: true } }, as
   await submit($, TEXT)
   await appendPrompt($, 'row-1', TEXT)
 
-  expect(w.logs).toContain('mod-jxf-fancy: prompt row row-1 -> prompt-1')
+  expect(w.logs).toContain('prompt row row-1 -> prompt-1')
 })
 
 test('a prompt row keeps its timer when the host draws other text for it', async ($, on) => {
@@ -142,7 +142,7 @@ test('debug logs a prompt row that matched nothing', { options: { debug: true } 
 
   await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'UserMessage', props: ROW, requestId: 'lost-row' })
 
-  expect(w.logs).toEqual(['mod-jxf-fancy: UserMessage row lost-row matched nothing'])
+  expect(w.logs).toEqual(['UserMessage row lost-row matched nothing'])
 })
 
 test('a prompt that is not from the user starts no turn', async ($, on) => {

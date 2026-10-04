@@ -7,7 +7,7 @@ import { footer } from '../src/render/footer.ts'
 import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
-import { BANNER_TEXT, topHatRobot } from '../src/render/robot.ts'
+import { topHat } from '../src/render/hat.ts'
 import { lineText } from '../src/render/segment.ts'
 import { rainbow } from '../src/render/shimmer.ts'
 import { promptTimerView, timerView } from '../src/render/timer.ts'
@@ -113,6 +113,18 @@ test('the footer puts model and path, session, and today on their own lines', ()
     'today 1h 02m · $48.10+ ↑0 ↓0',
   ])
 })
+test('the footer leaves out a time that shows as zero', () => {
+  const lines = footer({ ...FOOTER_INPUT, session: ZERO_TOTALS, today: { ...ZERO_TOTALS, activeMs: 99 } })
+
+  assert.deepEqual(lines.slice(1).map(lineText), ['session $0.00 ↑0 ↓0', 'today $0.00 ↑0 ↓0'])
+})
+
+test('the footer keeps the smallest time that shows as nonzero', () => {
+  const lines = footer({ ...FOOTER_INPUT, session: { ...ZERO_TOTALS, activeMs: 100 } })
+
+  assert.equal(lineText(lines[1]!), 'session 0.1s · $0.00 ↑0 ↓0')
+})
+
 
 test('the footer adds subscription usage as a last line', () => {
   const lines = footer({ ...FOOTER_INPUT, quota: [{ text: '5h 42%', role: 'meter' }] })
@@ -134,9 +146,7 @@ test('daily totals accumulate per local day and round-trip through JSON', () => 
   assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy/days/2026-10-03/claude_a_b.json')
 })
 
-test('the robot wears a hat and announces the mod', () => {
-  const lines = topHatRobot()
-
-  assert.ok(lines.some(line => line.some(part => part.role === 'hatBand')))
-  assert.ok(lines.some(line => lineText(line).endsWith(BANNER_TEXT)))
+test('the top hat is an emoji that announces the mod', () => {
+  assert.deepEqual(topHat().map(lineText), ['🎩 mod-jxf-fancy is on'])
 })
+

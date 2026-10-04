@@ -4,7 +4,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test'
 import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancy, PERSIST_POLL_MS } from '../pi/extension.ts'
 import type { ToolRow } from '../pi/tool-rows.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
-import { BANNER_TEXT } from '../src/render/robot.ts'
+import { BANNER_TEXT } from '../src/render/hat.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './pi-fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
@@ -127,10 +127,10 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.deepEqual(row.render(WIDTH), ['', 'tool box'])
   await s.emit('tool_execution_start', { toolCallId: 'call-1', toolName: 'bash', args: {} })
   s.advance(700)
-  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s}')
+  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s} {turn 1.2}')
   await s.emit('tool_execution_end', { toolCallId: 'call-1', toolName: 'bash', result: {}, isError: false })
   s.advance(9000)
-  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s}')
+  assert.equal(plain(row.render(WIDTH)[1] ?? ''), ' {2026-10-03 04:20:38 Δ 0.7s} {turn 1.2}')
 
   await s.emit('tool_execution_start', { toolCallId: 'call-1/1', toolName: 'read', args: {} })
   assert.equal(s.ours().filter(entry => (entry.data as { id?: string }).id === 'call-1/1').length, 0)
@@ -174,8 +174,8 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
   assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
-  assert.match(session!, /^ +session 0\.0s · \$0\.00 ↑0 ↓0$/)
-  assert.match(today!, /^ +today 0\.0s · \$10\.00 ↑0 ↓0$/)
+  assert.match(session!, /^ +session \$0\.00 ↑0 ↓0$/)
+  assert.match(today!, /^ +today \$10\.00 ↑0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
 
