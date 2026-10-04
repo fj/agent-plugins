@@ -8,6 +8,7 @@ import {
   MODEL,
   PLUGIN,
   SESSION_ID,
+  shownColumn,
   shownRows,
   shownText,
   step,
@@ -66,6 +67,17 @@ test('the footer shows model and path, session, and today on separate lines besi
   expect(text).toStartWith(MODEL)
   expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
   expect(text).toContain('today 1m 04s · $1.26 ↑7.2k ↓1.3k')
+})
+
+test('the footer lines align to the right', async ($, on) => {
+  world(on)
+  await start($)
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    expect(shownColumn(await ui.drawn())?.props?.alignItems).toBe('flex-end')
+    await ui.unmount()
+  }
 })
 
 test('the footer shows subscription meters from the rate limits', async ($, on) => {

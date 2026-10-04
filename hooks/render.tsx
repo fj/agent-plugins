@@ -171,7 +171,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        <Box flexDirection="column">
+        <Box flexDirection="column" alignItems="flex-end">
           {lines.map(line => (
             <Text wrap="truncate">{lineNodes(Text, line)}</Text>
           ))}

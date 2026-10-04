@@ -202,16 +202,20 @@ export function shownText(node: unknown): string {
     .join('')
 }
 
-type Element = { props?: { flexDirection?: string }; children?: readonly unknown[] }
+type Element = { props?: { flexDirection?: string; alignItems?: string }; children?: readonly unknown[] }
 
-export function shownRows(node: unknown): string[] {
+export function shownColumn(node: unknown): Element | undefined {
   const element = node as Element
 
   if (element.props?.flexDirection === 'column') {
-    return (element.children ?? []).map(shownText)
+    return element
   }
 
-  return (element.children ?? []).flatMap(shownRows)
+  return (element.children ?? []).map(shownColumn).find(column => column !== undefined)
+}
+
+export function shownRows(node: unknown): string[] {
+  return (shownColumn(node)?.children ?? []).map(shownText)
 }
 
 export function shownColors(node: unknown): string[] {
