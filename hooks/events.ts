@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, On, TurnUsage } from 'claude-code'
+import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
 import type { DailyStore } from '../src/core/daily.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../src/core/journal.ts'
@@ -14,6 +14,7 @@ const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, E
 const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
+const contextAtom = atom({ plugin: 'mod-jxf-fancy', key: 'context' } as const, null)
 
 const OTHERS_POLL_MS = 30_000
 
@@ -69,15 +70,18 @@ function debugLog($: EngineInterface, isDebug: boolean, text: string): void {
   }
 }
 
-async function refreshRateLimits($: EngineInterface): Promise<void> {
-  const { rateLimits } = await $.session.usage()
+const contextFill = ({ tokens, window }: SessionContextUsage) => ({ tokens, window })
+
+async function refreshUsage($: EngineInterface): Promise<void> {
+  const { rateLimits, context } = await $.session.usage()
   await update($, rateLimitsAtom, () => rateLimits)
+  await update($, contextAtom, () => contextFill(context))
 }
 
 export function trackEvents(on: On, config: Config): void {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    await refreshRateLimits($)
+    await refreshUsage($)
     await refreshOthers($)
     $.clock.every(OTHERS_POLL_MS, () => void refreshOthers($))
 
@@ -87,6 +91,10 @@ export function trackEvents(on: On, config: Config): void {
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('rateLimits')) {
       await update($, rateLimitsAtom, () => e.rateLimits)
+    }
+
+    if (e.changed.includes('context')) {
+      await update($, contextAtom, () => contextFill(e.context))
     }
 
     return next(e)

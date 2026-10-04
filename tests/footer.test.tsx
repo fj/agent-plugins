@@ -48,6 +48,7 @@ test('the footer shows model and path, session, and today on separate lines besi
       `${MODEL} · ~/src/projects/fancy`,
       'session $0.00 ↑0 ↓0',
       'today 1m 00s · $1.25 ↑1.0k ↓1.0k',
+      'ctx 200.0k',
     ])
     await ui.unmount()
   }
@@ -90,7 +91,7 @@ test('the footer shows subscription meters from the rate limits', async ($, on) 
     const rows = shownRows(await ui.drawn())
     expect(rows).toHaveLength(4)
     expect(rows.at(-1)).toStartWith('5h ▕')
-    expect(rows.at(-1)).toEndWith('42%')
+    expect(rows.at(-1)).toEndWith('42%  ctx 200.0k')
     await ui.unmount()
   }
 })
@@ -242,3 +243,24 @@ test('a turn across midnight splits its totals between the two day files', async
   expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
   expect(text).toContain('today 4.0s · $0.00 ↑0 ↓0')
 })
+
+test('the footer fills the context meter once the session measures it', async ($, on) => {
+  world(on)
+  await start($)
+  await $.session.measure({ context: { tokens: 50_000, window: 200_000, percent: 25 }, rateLimits: [], changed: ['context'] })
+
+  expect(await footerText($)).toEndWith('ctx ▕██      ▏ 50.0k / 200.0k')
+})
+
+test(
+  'the footer options put the totals on one line and hide the meters',
+  { options: { combineTotals: true, showSubscription: false, showContext: false } },
+  async ($, on) => {
+    world(on)
+    await start($)
+    await measure($, [FIVE_HOUR])
+
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+    expect(shownRows(await ui.drawn())).toEqual([`${MODEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
+  },
+)

@@ -19,6 +19,24 @@
       "options": ["anthropic", "null"],
       "default": "anthropic"
     },
+    "combineTotals": {
+      "type": "boolean",
+      "title": "Session and today on one line",
+      "description": "Draw the session and today totals side by side in the footer.",
+      "default": false
+    },
+    "showSubscription": {
+      "type": "boolean",
+      "title": "Show subscription usage",
+      "description": "Draw the subscription rate-limit meters in the footer.",
+      "default": true
+    },
+    "showContext": {
+      "type": "boolean",
+      "title": "Show context window",
+      "description": "Draw the context window fill and size in the footer.",
+      "default": true
+    },
     "debug": {
       "type": "boolean",
       "title": "Debug",

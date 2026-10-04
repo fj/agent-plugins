@@ -58,7 +58,7 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
   for (const ui of drawings) {
     const text = shownText(await ui.drawn())
     expect(text).toContain('{2026-10-03 04:20:37 Δ 3.0s}')
-    expect(text).toContain('{turn 1.1: ↑ Δ 1.2k + ⟲ 5.0k / 6.2k Σ ↓ Δ 300 / 300 Σ}')
+    expect(text).toContain('{turn 1.1: ↑ Δ 1.2k + ⟲ 5.0k / 6.2k Σ · ↓ Δ 300 / 300 Σ}')
     expect(text).toMatch(/\{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}/)
   }
 })

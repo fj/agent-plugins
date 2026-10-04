@@ -82,7 +82,7 @@ test('the message prefix shows timing, turn, tokens and cost', () => {
 
   assert.equal(
     lineText(messagePrefix({ mark, step, now: T0, usage: defaultUsageStrategy })),
-    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / 91.8k Σ ↓ Δ 3.2k / 12.0k Σ} {Δ $0.06 / $12.34 Σ}',
+    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / 91.8k Σ · ↓ Δ 3.2k / 12.0k Σ} {Δ $0.06 / $12.34 Σ}',
   )
 })
 
@@ -95,6 +95,8 @@ test('a prefix without a finished step shows live timing and the turn only', () 
   )
 })
 
+const QUOTA = [{ text: '5h 42%', role: 'meter' } as const]
+
 const FOOTER_INPUT = {
   model: 'claude-opus-5-5',
   cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
@@ -104,6 +106,7 @@ const FOOTER_INPUT = {
   quota: [],
   usage: defaultUsageStrategy,
   maxPathWidth: 24,
+  layout: { isTotalsCombined: false, showsSubscription: true, showsContext: true },
 }
 
 test('the footer puts model and path, session, and today on their own lines', () => {
@@ -132,6 +135,34 @@ test('the footer adds subscription usage as a last line', () => {
   assert.equal(lines.length, 4)
   assert.equal(lineText(lines[3]!), '5h 42%')
 })
+test('the footer can put session and today on one line', () => {
+  const lines = footer({ ...FOOTER_INPUT, layout: { ...FOOTER_INPUT.layout, isTotalsCombined: true } })
+
+  assert.deepEqual(lines.slice(1).map(lineText), ['session 1m 05s · $12.34 ↑0 ↓0  today 1h 02m · $48.10+ ↑0 ↓0'])
+})
+
+test('the footer shows the context fill and window beside the subscription meters', () => {
+  const lines = footer({ ...FOOTER_INPUT, quota: QUOTA, context: { tokens: 50_000, window: 200_000 } })
+
+  assert.equal(lineText(lines[3]!), '5h 42%  ctx ▕██      ▏ 50.0k / 200.0k')
+})
+
+test('the footer shows only the window size before the context fill is known', () => {
+  const lines = footer({ ...FOOTER_INPUT, context: { window: 1_000_000 } })
+
+  assert.equal(lineText(lines[3]!), 'ctx 1.0M')
+})
+
+test('the footer layout can hide the subscription meters, the context, or both', () => {
+  const input = { ...FOOTER_INPUT, quota: QUOTA, context: { window: 200_000 } }
+  const meters = (layout: Partial<typeof FOOTER_INPUT.layout>) =>
+    footer({ ...input, layout: { ...input.layout, ...layout } }).slice(3).map(lineText)
+
+  assert.deepEqual(meters({ showsSubscription: false }), ['ctx 200.0k'])
+  assert.deepEqual(meters({ showsContext: false }), ['5h 42%'])
+  assert.deepEqual(meters({ showsSubscription: false, showsContext: false }), [])
+})
+
 
 test('daily totals accumulate per local day and round-trip through JSON', () => {
   const day = localDayKey(T0)

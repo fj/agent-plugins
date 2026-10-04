@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
+import type { ContextUsage } from '@earendil-works/pi-coding-agent'
+
 import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancy, PERSIST_POLL_MS } from '../pi/extension.ts'
 import type { ToolRow } from '../pi/tool-rows.ts'
+import type { FancyConfig } from '../src/config/config.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { BANNER_TEXT } from '../src/render/hat.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './pi-fakes.ts'
@@ -28,11 +31,20 @@ class FakeToolRow {
   }
 }
 
-function setup(options: { branch?: FakeEntry[]; mode?: string; provider?: string; others?: number } = {}) {
+type SetupOptions = {
+  branch?: FakeEntry[]
+  mode?: string
+  provider?: string
+  others?: number
+  config?: FancyConfig
+  context?: ContextUsage
+}
+
+function setup(options: SetupOptions = {}) {
   let clock = T0
   let ids = 0
   const pi = fakePi()
-  const { ctx, widgets, footer } = fakeCtx(pi.branch, options)
+  const { ctx, widgets, footer, setContext } = fakeCtx(pi.branch, options)
   const others = options.others === undefined ? [] : [{ ...ZERO_TOTALS, cost: { usd: options.others, isLowerBound: false } }]
   const { store, writes } = memoryStore(others)
   const tui = fakeTui()
@@ -44,7 +56,7 @@ function setup(options: { branch?: FakeEntry[]; mode?: string; provider?: string
     home: '/home/j',
     configPath: '/nowhere/mod-jxf-fancy.json',
     toolRows: FakeToolRow.prototype,
-    readConfig: () => ({}),
+    readConfig: () => options.config ?? {},
     now: () => clock,
     newId: () => `id${(ids += 1)}`,
   })(pi.api)
@@ -58,7 +70,7 @@ function setup(options: { branch?: FakeEntry[]; mode?: string; provider?: string
   const ours = () => pi.branch.filter(entry => entry.customType === CUSTOM_TYPE)
   const shown = (entry: FakeEntry) => plain(pi.render(entry, WIDTH)?.join('\n') ?? '')
 
-  return { pi, ctx, widgets, footerLines, writes, tui, emit, advance, ours, shown }
+  return { pi, ctx, widgets, footerLines, writes, tui, emit, advance, ours, shown, setContext }
 }
 
 async function submit(s: ReturnType<typeof setup>, text = 'hello') {
@@ -120,7 +132,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
-  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ 76\.5k Σ ↓ Δ 3\.2k \/ 3\.2k Σ\} \{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}$/)
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ 76\.5k Σ · ↓ Δ 3\.2k \/ 3\.2k Σ\} \{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}$/)
 
   const row = new FakeToolRow('call-1') as ToolRow
 
@@ -178,6 +190,19 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.match(today!, /^ +today \$10\.00 ↑0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
+test('the footer follows the config for one totals line and the context window', async () => {
+  const s = setup({ config: { combineTotals: true }, context: { tokens: 50_000, contextWindow: 200_000, percent: 25 } })
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+
+  const [, totals, meters, ...rest] = s.footerLines()!
+
+  assert.deepEqual(rest, [])
+  assert.match(totals!, /^ +session \$0\.00 ↑0 ↓0  today \$0\.00 ↑0 ↓0$/)
+  assert.match(meters!, /^ +5h ▕.*▏ 42%  ctx ▕██ +▏ 50\.0k \/ 200\.0k$/)
+})
+
 
 test('a provider without a subscription shows no meter', async () => {
   const s = setup({ provider: 'azure' })
@@ -332,4 +357,14 @@ test('the footer flattens multi-line statuses, drops blank ones, and omits a mis
   assert.equal(lines[0], 'one two three')
   assert.ok(lines[1]!.startsWith(' '))
   assert.doesNotMatch(lines[1]!, /\(/)
+})
+
+test('the footer shows the context window size until the fill is known, then follows the fill', async () => {
+  const s = setup({ context: { tokens: null, contextWindow: 200_000, percent: null } })
+
+  await s.emit('session_start', { reason: 'startup' })
+  assert.match(s.footerLines()!.at(-1)!, /^ +ctx 200\.0k$/)
+
+  s.setContext({ tokens: 50_000, contextWindow: 200_000, percent: 25 })
+  assert.match(s.footerLines()!.at(-1)!, /^ +ctx ▕██ +▏ 50\.0k \/ 200\.0k$/)
 })

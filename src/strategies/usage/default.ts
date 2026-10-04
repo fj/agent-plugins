@@ -32,7 +32,7 @@ function stepTokens(step: TokenUsage, session: TokenUsage): Line {
     seg(formatTokens(step.cacheRead), 'cache'),
     seg(' / ', 'muted'),
     seg(formatTokens(totalInput(session)), 'input'),
-    seg(' Σ ↓ Δ ', 'muted'),
+    seg(' Σ · ↓ Δ ', 'muted'),
     seg(formatTokens(step.output), 'output'),
     seg(' / ', 'muted'),
     seg(formatTokens(session.output), 'output'),

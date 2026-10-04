@@ -51,6 +51,8 @@ export type FancyOtherSessions = { day: string; totals: FancyTotals }
 
 export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: string }
 
+export type FancyContextFill = { tokens?: number; window: number }
+
 declare module 'claude-code' {
   interface PluginState {
     'mod-jxf-fancy': {
@@ -58,6 +60,7 @@ declare module 'claude-code' {
       others: FancyOtherSessions
       rows: FancyRows
       rateLimits: readonly FancyQuotaWindow[]
+      context: FancyContextFill | null
     }
   }
 }
