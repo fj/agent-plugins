@@ -5,13 +5,26 @@ import type { FooterLayout } from '../../render/footer.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 
-export type Config = { usage: UsageStrategy; subscription: SubscriptionStrategy; footer: FooterLayout; isDebug: boolean }
+export type FooterPlacement = 'belowPrompt' | 'abovePrompt'
+
+export type Config = {
+  usage: UsageStrategy
+  subscription: SubscriptionStrategy
+  footer: FooterLayout
+  footerPlacement: FooterPlacement
+  isDebug: boolean
+}
+
+function footerPlacement(value: unknown): FooterPlacement {
+  return value === 'abovePrompt' ? 'abovePrompt' : 'belowPrompt'
+}
 
 export function configFrom(options: PluginOptions): Config {
   return {
     usage: usageStrategy(String(options.usageStrategy)),
     subscription: subscriptionStrategy(String(options.subscriptionStrategy)),
     footer: footerLayout(parseFooterConfig(options)),
+    footerPlacement: footerPlacement(options.footerPlacement),
     isDebug: options.debug === true,
   }
 }

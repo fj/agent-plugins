@@ -5,14 +5,14 @@ import { EMPTY_JOURNAL } from '../../core/journal.ts'
 import { markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
-import { footer } from '../../render/footer.ts'
+import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, turnTag } from '../../render/prefix.ts'
 import { topHat } from '../../render/hat.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
-import { blankLine, lineNodes } from './draw.tsx'
+import { blankLine, lineNodes, rightColumn } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { TimerProps } from './timer.tsx'
 
@@ -51,6 +51,27 @@ function reportMiss($: EngineInterface, e: RenderInput, isDebug: boolean): void 
   if (isDebug && !reported.has(e.requestId)) {
     reported.add(e.requestId)
     $.ui.log(`${e.component} row ${e.requestId} matched nothing`)
+  }
+}
+
+async function footerInput($: EngineInterface, config: Config): Promise<FooterInput> {
+  const { ledger, days } = await read($, journalAtom)
+  const others = await read($, othersAtom)
+  const rateLimits = await read($, rateLimitsAtom)
+  const context = await read($, contextAtom)
+  const windows = config.subscription.read({ windows: rateLimits })
+
+  return {
+    model: await $.session.model(),
+    cwd: await $.session.cwd(),
+    home: (await $.env.get('HOME')) ?? '',
+    session: ledger.totals,
+    today: todayTotals(days, others, await $.clock.now()),
+    quota: windows === null ? [] : config.subscription.render(windows),
+    context: context ?? undefined,
+    usage: config.usage,
+    maxPathWidth: MAX_PATH_WIDTH,
+    layout: config.footer,
   }
 }
 
@@ -152,35 +173,17 @@ export function drawSites(on: On, config: Config): void {
     )
   })
 
+  const isAbovePrompt = config.footerPlacement === 'abovePrompt'
+
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const { ledger, days } = await read($, journalAtom)
-    const others = await read($, othersAtom)
-    const rateLimits = await read($, rateLimitsAtom)
-    const context = await read($, contextAtom)
-    const windows = config.subscription.read({ windows: rateLimits })
-    const lines = footer({
-      model: await $.session.model(),
-      cwd: await $.session.cwd(),
-      home: (await $.env.get('HOME')) ?? '',
-      session: ledger.totals,
-      today: todayTotals(days, others, await $.clock.now()),
-      quota: windows === null ? [] : config.subscription.render(windows),
-      context: context ?? undefined,
-      usage: config.usage,
-      maxPathWidth: MAX_PATH_WIDTH,
-      layout: config.footer,
-    })
+    const input = await footerInput($, config)
     const { Box, Text } = $.ui.resolve(e)
     const modes = e.props.modes.length > 0 ? `${e.props.modes.join(MODE_SEPARATOR)}  ` : ''
 
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        <Box flexDirection="column" alignItems="flex-end">
-          {lines.map(line => (
-            <Text wrap="truncate">{lineNodes(Text, line)}</Text>
-          ))}
-        </Box>
+        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))])}
       </Box>
     )
   })
@@ -189,17 +192,23 @@ export function drawSites(on: On, config: Config): void {
     const { ledger } = await read($, journalAtom)
     const isNewSession = ledger.turn === 0 && (await $.session.turns()) === 0
 
-    if (e.props.hasSurvey || !isNewSession) {
+    if (e.props.hasSurvey || !(isNewSession || isAbovePrompt)) {
       return next(e)
     }
 
     const { Box, Text } = $.ui.resolve(e)
+    const rows = isAbovePrompt ? footerRows(await footerInput($, config)) : []
 
     return (
-      <Box key="top-hat" flexDirection="column">
-        {topHat().map(line => (
-          <Text>{lineNodes(Text, line)}</Text>
-        ))}
+      <Box flexDirection="column">
+        {isNewSession && (
+          <Box key="top-hat" flexDirection="column">
+            {topHat().map(line => (
+              <Text>{lineNodes(Text, line)}</Text>
+            ))}
+          </Box>
+        )}
+        {isAbovePrompt && rightColumn(Box, Text, rows, { key: 'footer-rows', width: e.props.bodyColumns })}
       </Box>
     )
   })
