@@ -3,6 +3,7 @@
   "version": "0.3.0",
   "description": "Prompt and tool timers, per-reply usage prefixes, a usage footer and a top hat.",
   "author": { "name": "John Feminella" },
+  "hooks": "./src/adapters/claude-code/hooks.json",
   "types": "./src/adapters/claude-code/state.d.ts",
   "userConfig": {
     "usageStrategy": {
