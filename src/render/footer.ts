@@ -51,13 +51,20 @@ function metersLine({ quota, context, layout }: FooterInput): Line {
   return join([shownQuota, shownContext], GROUP_GAP)
 }
 
-export function footer(input: FooterInput): Line[] {
-  const head = [
+export function footerHead(input: FooterInput): Line {
+  return [
     seg(input.model, 'model'),
     seg(' · ', 'muted'),
     seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
   ]
+}
+
+export function footerRows(input: FooterInput): Line[] {
   const meters = metersLine(input)
 
-  return [head, ...totalsLines(input), ...(meters.length > 0 ? [meters] : [])]
+  return [...totalsLines(input), ...(meters.length > 0 ? [meters] : [])]
+}
+
+export function footer(input: FooterInput): Line[] {
+  return [footerHead(input), ...footerRows(input)]
 }

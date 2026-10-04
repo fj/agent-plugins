@@ -34,6 +34,13 @@
       "description": "Draw the context window fill and size in the footer.",
       "default": true
     },
+    "footerPlacement": {
+      "type": "string",
+      "title": "Footer placement",
+      "description": "Where the totals and meter rows are drawn: beside the mode line, or above the prompt so the agent list sits under the mode line.",
+      "options": ["belowPrompt", "abovePrompt"],
+      "default": "belowPrompt"
+    },
     "debug": {
       "type": "boolean",
       "title": "Debug",
