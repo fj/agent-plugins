@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
+import { DONE_TIMER_COLOR, PALETTE } from '../../../src/render/palette.ts'
 import { ENGINE_TEXT, LIVE_SURFACES, PLUGIN, shownColors, shownColumn, shownRows, shownText, submit, TOOL_MS, world } from './world.tsx'
 
 const FRAME_STEPS_MS = 700

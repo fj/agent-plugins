@@ -1,7 +1,7 @@
 import type { ElementConstructor, RenderNode, TextProps } from 'claude-code'
 
-import { PALETTE } from '../src/render/palette.ts'
-import type { Line } from '../src/render/segment.ts'
+import { PALETTE } from '../../render/palette.ts'
+import type { Line } from '../../render/segment.ts'
 
 export type TextTag = ElementConstructor<TextProps>
 

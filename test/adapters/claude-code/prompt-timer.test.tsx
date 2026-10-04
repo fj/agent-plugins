@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DONE_TIMER_COLOR } from '../src/render/palette.ts'
+import { DONE_TIMER_COLOR } from '../../../src/render/palette.ts'
 import {
   appendPrompt,
   ENGINE_TEXT,

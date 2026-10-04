@@ -1,8 +1,8 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
-import type { DailyStore } from '../src/core/daily.ts'
-import type { Totals } from '../src/core/totals.ts'
-import type { TextWidth } from '../pi/paint.ts'
+import type { DailyStore } from '../../../src/core/daily.ts'
+import type { Totals } from '../../../src/core/totals.ts'
+import type { TextWidth } from '../../../src/adapters/pi/paint.ts'
 
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown
 type Component = { render(width: number): string[] }

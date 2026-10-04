@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 
-import { parseConfig, type FancyConfig } from '../src/config/config.ts'
+import { parseConfig, type FancyConfig } from '../../config/config.ts'
 
 export const CONFIG_FILE = 'mod-jxf-fancy.json'
 

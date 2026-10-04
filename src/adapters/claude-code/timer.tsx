@@ -1,7 +1,7 @@
 import type { ClientModule } from 'claude-code'
 
-import { shimmer } from '../src/render/shimmer.ts'
-import { timerView } from '../src/render/timer.ts'
+import { shimmer } from '../../render/shimmer.ts'
+import { timerView } from '../../render/timer.ts'
 
 const FRAME_MS = 100
 

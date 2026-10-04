@@ -1,8 +1,8 @@
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore } from '../src/core/daily.ts'
-import type { Totals } from '../src/core/totals.ts'
+import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore } from '../../core/daily.ts'
+import type { Totals } from '../../core/totals.ts'
 
 async function listNames(dir: string): Promise<string[]> {
   try {

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { alignRight, paint, paintLine, paintTimer } from '../pi/paint.ts'
-import { patchToolRows, type ToolRow } from '../pi/tool-rows.ts'
-import { seg } from '../src/render/segment.ts'
-import { measure, plain } from './pi-fakes.ts'
+import { alignRight, paint, paintLine, paintTimer } from '../../../src/adapters/pi/paint.ts'
+import { patchToolRows, type ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
+import { seg } from '../../../src/render/segment.ts'
+import { measure, plain } from './fakes.ts'
 
 test('painting uses truecolor and leaves plain text alone', () => {
   assert.equal(paint('hi', '#ff8000'), '\x1b[38;2;255;128;0mhi\x1b[39m')

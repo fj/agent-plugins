@@ -6,8 +6,8 @@ import { test } from 'node:test'
 
 import { dayDir, type DailyStore, type DayKey } from '../src/core/daily.ts'
 import { ZERO_TOTALS, type Totals } from '../src/core/totals.ts'
-import { fileDailyStore, type FileEntry, type Files } from '../hooks/daily.ts'
-import { fsDailyStore } from '../pi/fs-daily-store.ts'
+import { fileDailyStore, type FileEntry, type Files } from '../src/adapters/claude-code/daily.ts'
+import { fsDailyStore } from '../src/adapters/pi/fs-daily-store.ts'
 
 const DAY = '2026-10-03'
 const HOME = '/home/tester'
