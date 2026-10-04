@@ -13,7 +13,7 @@
     },
     {
       "name": "mod-jxf-fancy",
-      "source": { "source": "github", "repo": "fj/mod-jxf-fancy" },
+      "source": { "source": "npm", "package": "mod-jxf-fancy-claude-code" },
       "description": "Prompt and tool timers, per-reply usage prefixes, a usage footer and a top hat."
     }
   ]
