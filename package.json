@@ -5,8 +5,8 @@
   "type": "module",
   "private": true,
   "keywords": ["pi-package"],
-  "pi": { "extensions": ["./pi"] },
-  "scripts": { "test": "node --test test/*.spec.ts" },
+  "pi": { "extensions": ["./src/adapters/pi"] },
+  "scripts": { "test": "node --test 'test/**/*.spec.ts'" },
   "engines": { "node": ">=22.18" },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

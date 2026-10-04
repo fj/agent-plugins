@@ -1,8 +1,8 @@
-import type { Totals } from '../src/core/totals.ts'
-import type { ContextFill } from '../src/render/context.ts'
-import { footer, type FooterLayout } from '../src/render/footer.ts'
-import { PALETTE } from '../src/render/palette.ts'
-import type { Line } from '../src/render/segment.ts'
+import type { Totals } from '../../core/totals.ts'
+import type { ContextFill } from '../../render/context.ts'
+import { footer, type FooterLayout } from '../../render/footer.ts'
+import { PALETTE } from '../../render/palette.ts'
+import type { Line } from '../../render/segment.ts'
 import { alignRight, paint, paintLine } from './paint.ts'
 import type { Scene } from './views.ts'
 

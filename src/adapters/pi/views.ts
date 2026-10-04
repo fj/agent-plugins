@@ -1,8 +1,8 @@
-import { markStep, type LedgerState } from '../src/core/ledger.ts'
-import { messagePrefix, turnTag } from '../src/render/prefix.ts'
-import { topHat } from '../src/render/hat.ts'
-import { promptTimerView, timerView } from '../src/render/timer.ts'
-import type { UsageStrategy } from '../src/strategies/usage/strategy.ts'
+import { markStep, type LedgerState } from '../../core/ledger.ts'
+import { messagePrefix, turnTag } from '../../render/prefix.ts'
+import { topHat } from '../../render/hat.ts'
+import { promptTimerView, timerView } from '../../render/timer.ts'
+import type { UsageStrategy } from '../../strategies/usage/strategy.ts'
 import { chatLine, paintLine, paintTimer, type TextWidth } from './paint.ts'
 
 export type Scene = {

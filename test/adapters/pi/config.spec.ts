@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { CONFIG_FILE, readConfig } from '../pi/config.ts'
+import { CONFIG_FILE, readConfig } from '../../../src/adapters/pi/config.ts'
 
 async function withDir(body: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-config-'))

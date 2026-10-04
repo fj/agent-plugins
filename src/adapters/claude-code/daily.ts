@@ -1,5 +1,5 @@
-import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore, type DayKey } from '../src/core/daily.ts'
-import type { Totals } from '../src/core/totals.ts'
+import { dayDir, isCountedSessionFile, parseTotals, sessionFile, type DailyStore, type DayKey } from '../../core/daily.ts'
+import type { Totals } from '../../core/totals.ts'
 
 const SESSION_KEY_PREFIX = 'claude-code-'
 

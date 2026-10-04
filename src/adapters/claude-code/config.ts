@@ -1,9 +1,9 @@
 import type { PluginOptions } from 'claude-code'
 
-import { footerLayout, parseFooterConfig } from '../src/config/config.ts'
-import type { FooterLayout } from '../src/render/footer.ts'
-import { subscriptionStrategy, type SubscriptionStrategy } from '../src/strategies/subscription/index.ts'
-import { usageStrategy, type UsageStrategy } from '../src/strategies/usage/index.ts'
+import { footerLayout, parseFooterConfig } from '../../config/config.ts'
+import type { FooterLayout } from '../../render/footer.ts'
+import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
+import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 
 export type Config = { usage: UsageStrategy; subscription: SubscriptionStrategy; footer: FooterLayout; isDebug: boolean }
 

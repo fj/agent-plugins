@@ -1,7 +1,7 @@
-import { DONE_TIMER_COLOR, PALETTE } from '../src/render/palette.ts'
-import type { Line } from '../src/render/segment.ts'
-import { shimmer } from '../src/render/shimmer.ts'
-import type { TimerView } from '../src/render/timer.ts'
+import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
+import type { Line } from '../../render/segment.ts'
+import { shimmer } from '../../render/shimmer.ts'
+import type { TimerView } from '../../render/timer.ts'
 
 export type TextWidth = {
   visibleWidth(text: string): number
