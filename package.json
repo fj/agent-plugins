@@ -1,6 +1,6 @@
 {
   "name": "mod-jxf-fancy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Timers, usage prefixes, a usage footer and a top hat for Claude Code and Pi.",
   "type": "module",
   "private": true,
