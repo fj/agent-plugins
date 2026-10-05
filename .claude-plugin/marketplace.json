@@ -13,7 +13,7 @@
     },
     {
       "name": "mod-jxf-fancy-details",
-      "source": { "source": "github", "repo": "fj/mod-jxf-fancy-details", "ref": "release/claude-code" },
+      "source": "./mod-jxf-fancy-details/dist/claude-code",
       "description": "Prompt and tool timers, per-reply usage prefixes and a usage footer."
     }
   ]
