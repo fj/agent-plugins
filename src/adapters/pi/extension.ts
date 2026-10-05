@@ -16,8 +16,8 @@ import { ticker } from './ticker.ts'
 import { patchToolRows, type ToolRowPrototype } from './tool-rows.ts'
 import { hatLines, promptLines, stepLines, toolTimerLine, view } from './views.ts'
 
-export const CUSTOM_TYPE = 'mod-jxf-fancy'
-export const HAT_WIDGET = 'mod-jxf-fancy-hat'
+export const CUSTOM_TYPE = 'mod-jxf-fancy-details'
+export const HAT_WIDGET = 'mod-jxf-fancy-details-hat'
 export const FRAME_MS = 100
 export const PERSIST_POLL_MS = 5
 export const MAX_PERSIST_POLLS = 40
@@ -58,7 +58,7 @@ const tokenUsage = (usage: TokenUsage | undefined): TokenUsage => ({
   output: usage?.output ?? 0,
 })
 
-export function modJxfFancy(deps: FancyDeps): (pi: ExtensionAPI) => void {
+export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void {
   const now = deps.now ?? Date.now
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const loadConfig = deps.readConfig ?? readConfig

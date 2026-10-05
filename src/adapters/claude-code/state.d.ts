@@ -55,7 +55,7 @@ export type FancyContextFill = { tokens?: number; window: number }
 
 declare module 'claude-code' {
   interface PluginState {
-    'mod-jxf-fancy': {
+    'mod-jxf-fancy-details': {
       journal: FancyJournal
       others: FancyOtherSessions
       rows: FancyRows

@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { readRootManifest, ROOT } from './root-manifest.ts'
 import { buildVariant, VARIANTS } from './variants.ts'
 
-export const LOCAL_MARKETPLACE = 'mod-jxf-fancy-local'
+export const LOCAL_MARKETPLACE = 'mod-jxf-fancy-details-local'
 
 const MARKETPLACE_MANIFEST = join('.claude-plugin', 'marketplace.json')
 const PUBLISHED_PI_SOURCE = /^(npm|git|https?):/
@@ -14,7 +14,7 @@ const PI_SOURCE_LINE = /^ {2}\S/
 export type Run = (command: string, args: string[]) => string
 
 export function defaultTarget(env: NodeJS.ProcessEnv = process.env): string {
-  return join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'mod-jxf-fancy')
+  return join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'mod-jxf-fancy-details')
 }
 
 export async function publishLocally(target: string, run: Run, root = ROOT): Promise<void> {

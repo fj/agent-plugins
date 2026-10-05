@@ -6,11 +6,11 @@ import { truncateToWidth, visibleWidth } from '@earendil-works/pi-tui'
 
 import { fsDailyStore } from './fs-daily-store.ts'
 import { CONFIG_FILE } from './config.ts'
-import { modJxfFancy } from './extension.ts'
+import { modJxfFancyDetails } from './extension.ts'
 
 const home = homedir()
 
-export default modJxfFancy({
+export default modJxfFancyDetails({
   measure: { visibleWidth, truncateToWidth },
   store: fsDailyStore(home),
   home,
