@@ -4,46 +4,46 @@
   "userConfig": {
     "usageStrategy": {
       "type": "string",
-      "title": "Usage strategy",
+      "title": "🎩 Usage strategy",
       "description": "How tokens are priced and drawn.",
       "options": ["default"],
       "default": "default"
     },
     "subscriptionStrategy": {
       "type": "string",
-      "title": "Subscription strategy",
+      "title": "🎩 Subscription strategy",
       "description": "How subscription rate-limit windows are read and drawn.",
       "options": ["anthropic", "null"],
       "default": "anthropic"
     },
     "combineTotals": {
       "type": "boolean",
-      "title": "Session and today on one line",
+      "title": "🎩 Session and today on one line",
       "description": "Draw the session and today totals side by side in the footer.",
       "default": false
     },
     "showSubscription": {
       "type": "boolean",
-      "title": "Show subscription usage",
+      "title": "🎩 Show subscription usage",
       "description": "Draw the subscription rate-limit meters in the footer.",
       "default": true
     },
     "showContext": {
       "type": "boolean",
-      "title": "Show context window",
+      "title": "🎩 Show context window",
       "description": "Draw the context window fill and size in the footer.",
       "default": true
     },
     "footerPlacement": {
       "type": "string",
-      "title": "Footer placement",
+      "title": "🎩 Footer placement",
       "description": "Where the totals and meter rows are drawn: beside the mode line, or above the prompt so the agent list sits under the mode line.",
       "options": ["belowPrompt", "abovePrompt"],
       "default": "belowPrompt"
     },
     "debug": {
       "type": "boolean",
-      "title": "Debug",
+      "title": "🎩 Debug",
       "description": "Log how transcript rows are matched to prompts, replies and tool calls.",
       "default": false
     }
