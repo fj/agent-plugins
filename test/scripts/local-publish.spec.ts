@@ -1,28 +1,44 @@
 import assert from 'node:assert/strict'
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, test } from 'node:test'
 
 import { defaultTarget, MARKETPLACE, publishLocally, type Run } from '../../scripts/local-publish.ts'
-import { commitTime } from '../../scripts/git.ts'
+import { git } from '../../scripts/git.ts'
 import { readRootManifest, ROOT } from '../../scripts/root-manifest.ts'
-import { stamped } from '../../scripts/version.ts'
 
 const LOCAL_ID = `mod-jxf-fancy-details@${MARKETPLACE}`
 const OLD_LOCAL_ID = 'mod-jxf-fancy-details@mod-jxf-fancy-details-local'
 
 type Machine = { marketplaces: string[]; plugins: string[]; piSources: string[] }
 
+const SOURCE_TIME = '2026-09-15T12:34:56Z'
+const STAMP = '20260915123456'
+
+let scratch: string
+let root: string
 let target: string
 let calls: string[]
 
 beforeEach(async () => {
-  target = await mkdtemp(join(tmpdir(), 'local-publish-spec-'))
+  scratch = await mkdtemp(join(tmpdir(), 'local-publish-spec-'))
+  root = join(scratch, 'repo')
+  target = defaultTarget(root)
   calls = []
+  await cp(join(ROOT, 'package.json'), join(root, 'package.json'))
+  await cp(join(ROOT, 'src'), join(root, 'src'), { recursive: true })
+  git(scratch, ['init', '--quiet', root])
+  git(root, ['add', '.'])
+  git(root, ['-c', 'user.name=Tester', '-c', 'user.email=tester@example.com', 'commit', '--quiet', '-m', 'source'], {
+    ...process.env,
+    GIT_COMMITTER_DATE: SOURCE_TIME,
+  })
 })
 
-afterEach(() => rm(target, { recursive: true, force: true }))
+afterEach(() => rm(scratch, { recursive: true, force: true }))
+
+const publish = (run: Run, time?: Date) => publishLocally(run, { root, time })
 
 const fakeRun =
   ({ marketplaces, plugins, piSources }: Machine): Run =>
@@ -42,7 +58,7 @@ const FRESH: Machine = {
 }
 
 test('a first local publish swaps other installs for the jxf marketplace build', async () => {
-  await publishLocally(target, fakeRun(FRESH))
+  await publish(fakeRun(FRESH))
 
   assert.deepEqual(calls, [
     `claude plugin uninstall ${OLD_LOCAL_ID} --keep-data`,
@@ -61,13 +77,13 @@ test('a repeat local publish updates the local installs and touches nothing else
     piSources: ['npm:pi-effort', '/repo/dist/pi'],
   }
 
-  await publishLocally(target, fakeRun(machine))
+  await publish(fakeRun(machine))
 
   assert.deepEqual(calls, [`claude plugin update ${LOCAL_ID}`, `pi install ${join(target, 'pi')}`])
 })
 
 test('the target holds both builds and no marketplace of its own', async () => {
-  await publishLocally(target, fakeRun(FRESH))
+  await publish(fakeRun(FRESH))
 
   await assert.rejects(access(join(target, '.claude-plugin')))
   await access(join(target, 'claude-code', '.claude-plugin', 'plugin.json'))
@@ -75,9 +91,9 @@ test('the target holds both builds and no marketplace of its own', async () => {
 })
 
 test('both builds carry major and minor from the root and the publish time in UTC as patch', async () => {
-  await publishLocally(target, fakeRun(FRESH), undefined, new Date('2026-09-15T23:30:00-05:00'))
+  await publish(fakeRun(FRESH), new Date('2026-09-15T23:30:00-05:00'))
 
-  const [major, minor] = ((await readRootManifest()).version as string).split('.')
+  const [major, minor] = ((await readRootManifest(root)).version as string).split('.')
   const expected = `${major}.${minor}.20260916043000`
   assert.equal(JSON.parse(await readFile(join(target, 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')).version, expected)
   assert.equal(JSON.parse(await readFile(join(target, 'pi', 'package.json'), 'utf8')).version, expected)
@@ -90,7 +106,7 @@ test('the default target is the dist directory the jxf marketplace points at', (
 test('a missing jxf marketplace stops the publish before any build or install', async () => {
   const machine: Machine = { marketplaces: ['claude-plugins-official'], plugins: [OLD_LOCAL_ID], piSources: [] }
 
-  await assert.rejects(publishLocally(target, fakeRun(machine)), /register the jxf marketplace/)
+  await assert.rejects(publish(fakeRun(machine)), /register the jxf marketplace/)
   assert.deepEqual(calls, [])
   await assert.rejects(access(join(target, 'claude-code')))
 })
@@ -98,7 +114,7 @@ test('a missing jxf marketplace stops the publish before any build or install', 
 test('a jxf install next to another install still removes the other one', async () => {
   const machine: Machine = { marketplaces: [MARKETPLACE], plugins: [OLD_LOCAL_ID, LOCAL_ID], piSources: [] }
 
-  await publishLocally(target, fakeRun(machine))
+  await publish(fakeRun(machine))
 
   assert.deepEqual(calls.slice(0, 2), [`claude plugin uninstall ${OLD_LOCAL_ID} --keep-data`, `claude plugin update ${LOCAL_ID}`])
 })
@@ -106,26 +122,26 @@ test('a jxf install next to another install still removes the other one', async 
 test('a registered jxf marketplace without the plugin installs it', async () => {
   const machine: Machine = { marketplaces: [MARKETPLACE], plugins: [], piSources: [] }
 
-  await publishLocally(target, fakeRun(machine))
+  await publish(fakeRun(machine))
 
   assert.deepEqual(calls.slice(0, 1), [`claude plugin install ${LOCAL_ID}`])
 })
 
 test('a failed build runs no claude or pi command', async () => {
-  const root = join(target, 'broken')
-  await mkdir(root)
-  await writeFile(join(root, 'package.json'), '{ "name": "mod-jxf-fancy-details", "version": "1.0.0" }\n')
+  const broken = join(scratch, 'broken')
+  await mkdir(broken)
+  await writeFile(join(broken, 'package.json'), '{ "name": "mod-jxf-fancy-details", "version": "1.0.0" }\n')
 
-  await assert.rejects(publishLocally(join(target, 'out'), fakeRun(FRESH), root, new Date()))
+  await assert.rejects(publishLocally(fakeRun(FRESH), { root: broken, time: new Date() }))
   assert.deepEqual(calls, [])
 })
 
-test('a local publish reports the version it installed', async () => {
-  const version = await publishLocally(target, fakeRun(FRESH))
+test('a local publish stamps and reports the HEAD commit time by default', async () => {
+  const version = await publish(fakeRun(FRESH))
 
   const plugin = JSON.parse(await readFile(join(target, 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'))
-  const expected = stamped((await readRootManifest()).version as string, commitTime(ROOT))
-  assert.match(version, /^\d+\.\d+\.\d{14}$/)
+  const [major, minor] = ((await readRootManifest(root)).version as string).split('.')
+  const expected = `${major}.${minor}.${STAMP}`
   assert.equal(version, expected)
   assert.equal(plugin.version, expected)
 })

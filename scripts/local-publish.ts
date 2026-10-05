@@ -16,7 +16,10 @@ export function defaultTarget(root = ROOT): string {
   return join(root, 'dist')
 }
 
-export async function publishLocally(target: string, run: Run, root = ROOT, time = commitTime(root)): Promise<string> {
+type PublishOptions = { root?: string; time?: Date }
+
+export async function publishLocally(run: Run, { root = ROOT, time = commitTime(root) }: PublishOptions = {}): Promise<string> {
+  const target = defaultTarget(root)
   const manifest = await readRootManifest(root)
   const plugin = manifest.name as string
   const version = stamped(manifest.version as string, time)
