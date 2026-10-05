@@ -8,7 +8,6 @@ import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, turnTag } from '../../render/prefix.ts'
-import { topHat } from '../../render/hat.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
@@ -189,27 +188,13 @@ export function drawSites(on: On, config: Config): void {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const { ledger } = await read($, journalAtom)
-    const isNewSession = ledger.turn === 0 && (await $.session.turns()) === 0
-
-    if (e.props.hasSurvey || !(isNewSession || isAbovePrompt)) {
+    if (e.props.hasSurvey || !isAbovePrompt) {
       return next(e)
     }
 
     const { Box, Text } = $.ui.resolve(e)
-    const rows = isAbovePrompt ? footerRows(await footerInput($, config)) : []
+    const rows = footerRows(await footerInput($, config))
 
-    return (
-      <Box flexDirection="column">
-        {isNewSession && (
-          <Box key="top-hat" flexDirection="column">
-            {topHat().map(line => (
-              <Text>{lineNodes(Text, line)}</Text>
-            ))}
-          </Box>
-        )}
-        {isAbovePrompt && rightColumn(Box, Text, rows, { key: 'footer-rows', width: e.props.bodyColumns })}
-      </Box>
-    )
+    return rightColumn(Box, Text, rows, { key: 'footer-rows', width: e.props.bodyColumns })
   })
 }

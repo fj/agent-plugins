@@ -3,11 +3,10 @@ import { afterEach, beforeEach, mock, test } from 'node:test'
 
 import type { ContextUsage } from '@earendil-works/pi-coding-agent'
 
-import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
-import { BANNER_TEXT } from '../../../src/render/hat.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
@@ -213,19 +212,15 @@ test('a provider without a subscription shows no meter', async () => {
   assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
 })
 
-test('the top hat shows in a new session until the first input', async () => {
+test('a new session draws no widget above the editor', async () => {
   const s = setup()
 
   await s.emit('session_start', { reason: 'new' })
-  const hat = s.widgets.get(HAT_WIDGET)?.(s.tui, {}).render(WIDTH).map(plain)
 
-  assert.ok(hat?.some(line => line.endsWith(BANNER_TEXT)))
-  await s.emit('input', { text: 'hi', source: 'interactive' })
-  assert.equal(s.widgets.get(HAT_WIDGET), undefined)
-  assert.ok(s.widgets.has(HAT_WIDGET))
+  assert.equal(s.widgets.size, 0)
 })
 
-test('a resumed session gets no hat and rebuilds prefixes from its records', async () => {
+test('a resumed session rebuilds prefixes from its records', async () => {
   const records = [
     { kind: 'prompt', id: 'p', at: T0 },
     { kind: 'step', id: 's', at: T0 + 1000, model: 'claude-opus-5-5' },
@@ -241,7 +236,6 @@ test('a resumed session gets no hat and rebuilds prefixes from its records', asy
 
   await s.emit('session_start', { reason: 'resume' })
 
-  assert.equal(s.widgets.has(HAT_WIDGET), false)
   assert.equal(s.shown(branch[1]!), '\n {2026-10-03 04:20:37 Δ 1.0s}')
   assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)

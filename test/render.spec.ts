@@ -7,7 +7,6 @@ import { footer } from '../src/render/footer.ts'
 import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
-import { topHat } from '../src/render/hat.ts'
 import { lineText } from '../src/render/segment.ts'
 import { rainbow } from '../src/render/shimmer.ts'
 import { promptTimerView, timerView } from '../src/render/timer.ts'
@@ -176,8 +175,3 @@ test('daily totals accumulate per local day and round-trip through JSON', () => 
   assert.equal(parseTotals('not json'), null)
   assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy-details/days/2026-10-03/claude_a_b.json')
 })
-
-test('the top hat is an emoji that announces the mod', () => {
-  assert.deepEqual(topHat().map(lineText), ['🎩 mod-jxf-fancy-details is on'])
-})
-

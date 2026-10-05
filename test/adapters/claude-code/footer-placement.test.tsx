@@ -43,13 +43,6 @@ test('below the prompt, the band draws no footer rows', BELOW, async ($, on) => 
   world(on)
   await start($)
 
-  const hat = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AbovePrompt', props: BAND })
-  expect(await hat.find({ key: 'top-hat' })).toBeDefined()
-  expect(await hat.find({ key: 'footer-rows' })).toBeUndefined()
-  await hat.unmount()
-
-  await submit($, 'hello')
-
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AbovePrompt', props: BAND })
   expect(shownText(await ui.drawn())).toBe(`AbovePrompt ${ENGINE_TEXT}`)
 })
@@ -84,20 +77,6 @@ test('above the prompt, the band draws the totals and meters right-aligned acros
     const rows = await ui.find({ key: 'footer-rows' })
     expect(rows?.props).toMatchObject({ alignItems: 'flex-end', width: BODY_COLUMNS })
     expect(shownRows(rows)).toEqual([...TOTALS, METERS])
-    expect(await ui.find({ key: 'top-hat' })).toBeUndefined()
-    await ui.unmount()
-  }
-})
-
-test('above the prompt, a new session shows the top hat over the footer rows', ABOVE, async ($, on) => {
-  world(on)
-  await start($)
-
-  for (const surface of LIVE_SURFACES) {
-    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
-    const keys = ((await ui.drawn()).children ?? []).map(child => (child as { props?: { key?: string } }).props?.key)
-    expect(keys).toEqual(['top-hat', 'footer-rows'])
-    expect(shownRows(await ui.find({ key: 'footer-rows' }))).toEqual([...TOTALS, METERS])
     await ui.unmount()
   }
 })

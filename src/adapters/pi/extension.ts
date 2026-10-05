@@ -14,10 +14,9 @@ import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
 import { ticker } from './ticker.ts'
 import { patchToolRows, type ToolRowPrototype } from './tool-rows.ts'
-import { hatLines, promptLines, stepLines, toolTimerLine, view } from './views.ts'
+import { promptLines, stepLines, toolTimerLine, view } from './views.ts'
 
 export const CUSTOM_TYPE = 'mod-jxf-fancy-details'
-export const HAT_WIDGET = 'mod-jxf-fancy-details-hat'
 export const FRAME_MS = 100
 export const PERSIST_POLL_MS = 5
 export const MAX_PERSIST_POLLS = 40
@@ -72,7 +71,6 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let model: ModelInfo | undefined
     let tui: Renderable | undefined
     let running = false
-    let hatShown = false
     let pendingPrompt: { record: JournalRecord; message: unknown; polls: number } | undefined
     let unpatchToolRows: (() => void) | undefined
     let openStepId: string | undefined
@@ -162,24 +160,12 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       )
     }
 
-    function hideHat() {
-      if (hatShown) {
-        hatShown = false
-        ctx?.ui.setWidget(HAT_WIDGET, undefined)
-      }
-    }
-
     function showUi(context: ExtensionContext) {
       context.ui.setFooter((host, _theme, data: FooterData) => {
         tui = host
 
         return view(width => footerLines(scene, data, width))
       })
-
-      if (!context.sessionManager.getBranch().some(entry => entry.type === 'message')) {
-        hatShown = true
-        context.ui.setWidget(HAT_WIDGET, () => view(width => hatLines(width, deps.measure)), { placement: 'aboveEditor' })
-      }
 
       if (deps.toolRows !== undefined && unpatchToolRows === undefined) {
         unpatchToolRows = patchToolRows(deps.toolRows, (id, width) => toolTimerLine(scene, id, width))
@@ -238,10 +224,6 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       chooseStrategies()
     })
 
-    pi.on('input', async () => {
-      hideHat()
-    })
-
     pi.on('agent_start', async () => {
       running = true
       frames.start()
@@ -249,10 +231,6 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
 
     pi.on('message_start', async event => {
       const message = event.message as Message
-
-      if (message.role === 'user') {
-        hideHat()
-      }
 
       if (message.role === 'assistant') {
         openStepId = newId()
