@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 
-import { defaultTarget, publishLocally } from './local-publish.ts'
+import { defaultTarget, MARKETPLACE, publishLocally } from './local-publish.ts'
 
 const QUERIES = new Set(['list'])
 
@@ -10,4 +10,4 @@ const version = await publishLocally(target, (command, args) => {
   return execFileSync(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] })
 })
 
-console.log(`published ${version} to ${target} locally: run /reload-plugins in Claude Code and restart Pi`)
+console.log(`published ${version} to ${target} for the ${MARKETPLACE} marketplace: run /reload-plugins in Claude Code and restart Pi`)
