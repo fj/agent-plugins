@@ -6,6 +6,7 @@ import { afterEach, beforeEach, test } from 'node:test'
 
 import { git } from '../../scripts/git.ts'
 import { release } from '../../scripts/release.ts'
+import { readVersion } from '../../scripts/root-version.ts'
 
 const ROOT_MANIFEST = { name: 'mod', version: '1.2.3', description: 'A mod.', author: { name: 'Tester' } }
 const FILES: Record<string, string> = {
@@ -18,6 +19,8 @@ const FILES: Record<string, string> = {
 }
 
 const RELEASE_BRANCHES = ['release/claude-code', 'release/pi']
+const SOURCE_TIME = '2026-09-15T12:34:56Z'
+const STAMP = '20260915123456'
 
 let scratch: string
 let root: string
@@ -44,7 +47,7 @@ beforeEach(async () => {
     await writeFile(join(root, path), text)
   }
   git(root, ['add', '.'])
-  git(root, ['commit', '--quiet', '-m', 'source'])
+  git(root, ['commit', '--quiet', '-m', 'source'], { ...process.env, GIT_COMMITTER_DATE: SOURCE_TIME })
 })
 
 afterEach(() => rm(scratch, { recursive: true, force: true }))
@@ -53,29 +56,31 @@ const run = (requested: string, dryRun = false, options: Partial<Parameters<type
   release({ root, requested, dryRun, verify, ...options })
 
 test('a release commits each built variant to its own release branch', async () => {
-  assert.equal(await run('minor'), '1.3.0')
+  const version = `1.3.${STAMP}`
+  assert.equal(await run('minor'), version)
 
   assert.equal(verified, 1)
-  assert.equal(shown('release/claude-code', '.claude-plugin/plugin.json').version, '1.3.0')
+  assert.equal(shown('release/claude-code', '.claude-plugin/plugin.json').version, version)
   assert.deepEqual(filesOf('release/claude-code'), ['.claude-plugin/plugin.json', 'package.json', 'src/adapters/claude-code/hooks.json', 'src/core/shared.ts'])
   assert.deepEqual(shown('release/pi', 'package.json'), {
     name: 'mod-jxf-fancy-details-pi',
-    version: '1.3.0',
+    version,
     description: 'A mod.',
     author: { name: 'Tester' },
     pi: { extensions: ['./src/adapters/pi'] },
   })
   assert.deepEqual(filesOf('release/pi'), ['package.json', 'src/adapters/pi/index.ts', 'src/core/shared.ts'])
-  assert.equal(git(root, ['log', '-1', '--format=%s', 'release/pi']), 'chore: release 1.3.0')
+  assert.equal(git(root, ['log', '-1', '--format=%s', 'release/pi']), `chore: release ${version}`)
 })
 
 test('a release commits the version, tags it and pushes main, the tag and the release branches', async () => {
-  await run('2.0.0')
+  const version = await run('2.0')
 
-  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version, '2.0.0')
-  assert.equal(git(root, ['log', '-1', '--format=%s', 'main']), 'chore: release 2.0.0')
-  assert.equal(git(root, ['rev-parse', 'v2.0.0^{commit}']), git(root, ['rev-parse', 'main']))
-  assert.notEqual(git(root, ['ls-remote', '--tags', 'origin', 'v2.0.0']), '')
+  assert.equal(version, `2.0.${STAMP}`)
+  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version, version)
+  assert.equal(git(root, ['log', '-1', '--format=%s', 'main']), `chore: release ${version}`)
+  assert.equal(git(root, ['rev-parse', `v${version}^{commit}`]), git(root, ['rev-parse', 'main']))
+  assert.notEqual(git(root, ['ls-remote', '--tags', 'origin', `v${version}`]), '')
   for (const branch of ['main', ...RELEASE_BRANCHES]) {
     assert.equal(git(root, ['ls-remote', 'origin', branch]).split('\t')[0], git(root, ['rev-parse', branch]))
   }
@@ -87,7 +92,7 @@ test('a release builds on the previous release of its branch', async () => {
   await run('patch')
 
   assert.deepEqual(RELEASE_BRANCHES.map((branch) => git(root, ['rev-parse', `${branch}^`])), previous)
-  assert.equal(shown('release/pi', 'package.json').version, '1.2.5')
+  assert.equal(shown('release/pi', 'package.json').version, await readVersion(root))
 })
 
 test('a release builds on a release branch that only the remote has', async () => {
@@ -102,7 +107,7 @@ test('a release builds on a release branch that only the remote has', async () =
 test('a dry run builds every variant and leaves the repo and remote as they were', async () => {
   const head = git(root, ['rev-parse', 'HEAD'])
 
-  assert.equal(await run('patch', true), '1.2.4')
+  assert.equal(await run('patch', true), `1.2.${STAMP}`)
   assert.equal(git(root, ['rev-parse', 'HEAD']), head)
   assert.equal(git(root, ['status', '--porcelain']), '')
   assert.equal(git(root, ['tag']), '')

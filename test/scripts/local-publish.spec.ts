@@ -5,7 +5,9 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, test } from 'node:test'
 
 import { defaultTarget, LOCAL_MARKETPLACE, publishLocally, type Run } from '../../scripts/local-publish.ts'
-import { readRootManifest } from '../../scripts/root-manifest.ts'
+import { commitTime } from '../../scripts/git.ts'
+import { readRootManifest, ROOT } from '../../scripts/root-manifest.ts'
+import { stamped } from '../../scripts/version.ts'
 
 const LOCAL_ID = `mod-jxf-fancy-details@${LOCAL_MARKETPLACE}`
 
@@ -77,6 +79,15 @@ test('the target holds both builds and a marketplace that points at the Claude C
   await access(join(target, 'pi', 'package.json'))
 })
 
+test('both builds carry major and minor from the root and the publish time in UTC as patch', async () => {
+  await publishLocally(target, fakeRun(FRESH), undefined, new Date('2026-09-15T23:30:00-05:00'))
+
+  const [major, minor] = ((await readRootManifest()).version as string).split('.')
+  const expected = `${major}.${minor}.20260916043000`
+  assert.equal(JSON.parse(await readFile(join(target, 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8')).version, expected)
+  assert.equal(JSON.parse(await readFile(join(target, 'pi', 'package.json'), 'utf8')).version, expected)
+})
+
 test('the default target follows XDG_DATA_HOME and falls back to ~/.local/share', () => {
   assert.equal(defaultTarget({ XDG_DATA_HOME: '/data' }), '/data/mod-jxf-fancy-details')
   assert.match(defaultTarget({}), /\/\.local\/share\/mod-jxf-fancy-details$/)
@@ -103,7 +114,7 @@ test('a failed build runs no claude or pi command', async () => {
   await mkdir(root)
   await writeFile(join(root, 'package.json'), '{ "name": "mod-jxf-fancy-details", "version": "1.0.0" }\n')
 
-  await assert.rejects(publishLocally(join(target, 'out'), fakeRun(FRESH), root))
+  await assert.rejects(publishLocally(join(target, 'out'), fakeRun(FRESH), root, new Date()))
   assert.deepEqual(calls, [])
 })
 
@@ -111,8 +122,8 @@ test('a local publish reports the version it installed', async () => {
   const version = await publishLocally(target, fakeRun(FRESH))
 
   const plugin = JSON.parse(await readFile(join(target, 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'))
-  const { version: expected } = await readRootManifest()
-  assert.match(version, /^\d+\.\d+\.\d+$/)
+  const expected = stamped((await readRootManifest()).version as string, commitTime(ROOT))
+  assert.match(version, /^\d+\.\d+\.\d{14}$/)
   assert.equal(version, expected)
   assert.equal(plugin.version, expected)
 })
