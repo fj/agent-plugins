@@ -3,7 +3,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test'
 
 import type { ContextUsage } from '@earendil-works/pi-coding-agent'
 
-import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancy, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { CUSTOM_TYPE, FRAME_MS, HAT_WIDGET, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
@@ -50,11 +50,11 @@ function setup(options: SetupOptions = {}) {
   const tui = fakeTui()
 
   pi.branch.push(...(options.branch ?? []))
-  modJxfFancy({
+  modJxfFancyDetails({
     measure,
     store,
     home: '/home/j',
-    configPath: '/nowhere/mod-jxf-fancy.json',
+    configPath: '/nowhere/mod-jxf-fancy-details.json',
     toolRows: FakeToolRow.prototype,
     readConfig: () => options.config ?? {},
     now: () => clock,

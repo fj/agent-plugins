@@ -16,11 +16,11 @@ import { blankLine, lineNodes, rightColumn } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { TimerProps } from './timer.tsx'
 
-const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, EMPTY_JOURNAL)
-const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
-const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
-const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
-const contextAtom = atom({ plugin: 'mod-jxf-fancy', key: 'context' } as const, null)
+const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
+const othersAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'others' } as const, NO_OTHER_SESSIONS)
+const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const, EMPTY_ROWS)
+const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
+const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '

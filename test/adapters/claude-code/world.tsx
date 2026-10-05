@@ -1,13 +1,13 @@
 import type { On, SessionRateLimit, TurnStepChunk, TurnUsage } from 'claude-code'
 import { mock, type Engine, type MockClock } from 'claude-code/testing'
 
-export const PLUGIN = 'mod-jxf-fancy'
+export const PLUGIN = 'mod-jxf-fancy-details'
 export const HOME = '/home/tester'
 export const CWD = `${HOME}/src/projects/fancy`
 export const SESSION_ID = 'session-1'
 export const MODEL = 'claude-opus-5-5'
 export const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
-export const dayDirOf = (day: string) => `${HOME}/.local/state/mod-jxf-fancy/days/${day}`
+export const dayDirOf = (day: string) => `${HOME}/.local/state/mod-jxf-fancy-details/days/${day}`
 export const TODAY_DIR = dayDirOf('2026-10-03')
 export const LIVE_SURFACES = ['terminal', 'desktop'] as const
 export const ENGINE_TEXT = 'drawn by the engine'

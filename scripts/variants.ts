@@ -13,8 +13,8 @@ const NPM_MANIFEST = 'package.json'
 export type Variant = { name: string; package: string; manifest: string }
 
 export const VARIANTS: Variant[] = [
-  { name: 'claude-code', package: 'mod-jxf-fancy-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
-  { name: 'pi', package: 'mod-jxf-fancy-pi', manifest: NPM_MANIFEST },
+  { name: 'claude-code', package: 'mod-jxf-fancy-details-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
+  { name: 'pi', package: 'mod-jxf-fancy-details-pi', manifest: NPM_MANIFEST },
 ]
 
 export async function buildVariant(variant: Variant, out: string, root = ROOT, version?: string): Promise<void> {

@@ -19,7 +19,7 @@ type Harness = {
 }
 
 async function piHarness(): Promise<Harness> {
-  const home = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-'))
+  const home = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-details-'))
 
   return {
     store: fsDailyStore(home),
@@ -123,7 +123,7 @@ for (const [host, open] of Object.entries(HARNESSES)) {
 }
 
 test('the pi store leaves only session files behind', async () => {
-  const home = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-'))
+  const home = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-details-'))
 
   try {
     const store = fsDailyStore(home)

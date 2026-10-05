@@ -9,7 +9,7 @@ export type DailyStore = {
   readAll(day: DayKey, exceptSessionKey?: string): Promise<Totals[]>
 }
 
-const STATE_DIR = '.local/state/mod-jxf-fancy/days'
+const STATE_DIR = '.local/state/mod-jxf-fancy-details/days'
 const SESSION_FILE_SUFFIX = '.json'
 
 export function localDayKey(ms: number): DayKey {

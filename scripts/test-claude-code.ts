@@ -8,7 +8,7 @@ import { buildVariant, VARIANTS } from './variants.ts'
 
 const TESTS = join('test', 'adapters', 'claude-code')
 const variant = VARIANTS.find(({ name }) => name === 'claude-code')!
-const out = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-claude-code-'))
+const out = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-details-claude-code-'))
 
 try {
   await buildVariant(variant, out)

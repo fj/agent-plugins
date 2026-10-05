@@ -31,7 +31,7 @@ test('tokens and dollars use compact units', () => {
 
 test('long paths keep the head and tail around an ellipsis', () => {
   assert.equal(shortenPath('/home/j/src/a', '/home/j', 40), '~/src/a')
-  assert.equal(shortenPath('/home/j/src/projects/jxf/mod-jxf-fancy', '/home/j', 24), '~/src/…/mod-jxf-fancy')
+  assert.equal(shortenPath('/home/j/src/projects/jxf/mod-jxf-fancy-details', '/home/j', 24), '~/src/…/mod-jxf-fancy-details')
 })
 
 test('a live timer counts from the start; a stopped one shows its duration', () => {
@@ -99,7 +99,7 @@ const QUOTA = [{ text: '5h 42%', role: 'meter' } as const]
 
 const FOOTER_INPUT = {
   model: 'claude-opus-5-5',
-  cwd: '/home/j/src/projects/jxf/mod-jxf-fancy',
+  cwd: '/home/j/src/projects/jxf/mod-jxf-fancy-details',
   home: '/home/j',
   session: { ...ZERO_TOTALS, cost: { usd: 12.34, isLowerBound: false }, activeMs: 65_000 },
   today: { ...ZERO_TOTALS, cost: { usd: 48.1, isLowerBound: true }, activeMs: 3_725_000 },
@@ -111,7 +111,7 @@ const FOOTER_INPUT = {
 
 test('the footer puts model and path, session, and today on their own lines', () => {
   assert.deepEqual(footer(FOOTER_INPUT).map(lineText), [
-    'claude-opus-5-5 · ~/src/…/mod-jxf-fancy',
+    'claude-opus-5-5 · ~/src/…/mod-jxf-fancy-details',
     'session 1m 05s · $12.34 ↑0 ↓0',
     'today 1h 02m · $48.10+ ↑0 ↓0',
   ])
@@ -174,10 +174,10 @@ test('daily totals accumulate per local day and round-trip through JSON', () => 
   assert.deepEqual(parseTotals(JSON.stringify(days[day])), days[day])
   assert.equal(parseTotals('{"nope":1}'), null)
   assert.equal(parseTotals('not json'), null)
-  assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy/days/2026-10-03/claude_a_b.json')
+  assert.equal(sessionFile('/h', day, 'claude/a:b'), '/h/.local/state/mod-jxf-fancy-details/days/2026-10-03/claude_a_b.json')
 })
 
 test('the top hat is an emoji that announces the mod', () => {
-  assert.deepEqual(topHat().map(lineText), ['🎩 mod-jxf-fancy is on'])
+  assert.deepEqual(topHat().map(lineText), ['🎩 mod-jxf-fancy-details is on'])
 })
 

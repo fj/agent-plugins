@@ -64,10 +64,10 @@ test('a release verifies, then dry-runs every package before it publishes any', 
 
   assert.equal(verified, 1)
   assert.deepEqual(published, [
-    { name: 'mod-jxf-fancy-claude-code', version: '1.3.0', dryRun: true, plugin: '1.3.0' },
-    { name: 'mod-jxf-fancy-pi', version: '1.3.0', dryRun: true },
-    { name: 'mod-jxf-fancy-claude-code', version: '1.3.0', dryRun: false, plugin: '1.3.0' },
-    { name: 'mod-jxf-fancy-pi', version: '1.3.0', dryRun: false },
+    { name: 'mod-jxf-fancy-details-claude-code', version: '1.3.0', dryRun: true, plugin: '1.3.0' },
+    { name: 'mod-jxf-fancy-details-pi', version: '1.3.0', dryRun: true },
+    { name: 'mod-jxf-fancy-details-claude-code', version: '1.3.0', dryRun: false, plugin: '1.3.0' },
+    { name: 'mod-jxf-fancy-details-pi', version: '1.3.0', dryRun: false },
   ])
 })
 

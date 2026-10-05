@@ -10,11 +10,11 @@ import type { Config } from './config.ts'
 import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
 import { isUserOrigin } from './origin.ts'
 
-const journalAtom = atom({ plugin: 'mod-jxf-fancy', key: 'journal' } as const, EMPTY_JOURNAL)
-const othersAtom = atom({ plugin: 'mod-jxf-fancy', key: 'others' } as const, NO_OTHER_SESSIONS)
-const rowsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rows' } as const, EMPTY_ROWS)
-const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy', key: 'rateLimits' } as const, [])
-const contextAtom = atom({ plugin: 'mod-jxf-fancy', key: 'context' } as const, null)
+const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
+const othersAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'others' } as const, NO_OTHER_SESSIONS)
+const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const, EMPTY_ROWS)
+const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
+const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 
 const OTHERS_POLL_MS = 30_000
 
