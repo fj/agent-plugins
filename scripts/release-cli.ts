@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { parseArgs } from 'node:util'
 
-import { publishArgs } from './npm.ts'
 import { release } from './release.ts'
 import { ROOT } from './root-manifest.ts'
 
@@ -11,7 +10,7 @@ const { positionals, values } = parseArgs({ allowPositionals: true, options: { '
 if (positionals.length !== 1) throw new Error(USAGE)
 
 const dryRun = values['dry-run'] ?? false
-const npm = (args: string[], cwd = ROOT) => execFileSync('npm', args, { cwd, stdio: 'inherit' })
+const npm = (args: string[]) => execFileSync('npm', args, { cwd: ROOT, stdio: 'inherit' })
 const version = await release({
   root: ROOT,
   requested: positionals[0]!,
@@ -20,7 +19,6 @@ const version = await release({
     npm(['test'])
     npm(['run', 'test:claude-code'])
   },
-  publish: (dir, dryRun) => npm(publishArgs(dryRun), dir),
 })
 
-console.log(dryRun ? `dry run of ${version}: nothing committed, published or pushed` : `released ${version}`)
+console.log(dryRun ? `dry run of ${version}: nothing committed or pushed` : `released ${version}`)
