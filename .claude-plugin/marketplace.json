@@ -14,7 +14,7 @@
     {
       "name": "mod-jxf-fancy-details",
       "source": { "source": "npm", "package": "mod-jxf-fancy-claude-code" },
-      "description": "Prompt and tool timers, per-reply usage prefixes, a usage footer and a top hat."
+      "description": "Prompt and tool timers, per-reply usage prefixes and a usage footer."
     }
   ]
 }
