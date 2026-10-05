@@ -1,22 +1,19 @@
-import { mkdir, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 
 import { commitTime } from './git.ts'
 import { readRootManifest, ROOT } from './root-manifest.ts'
 import { buildVariant, VARIANTS } from './variants.ts'
 import { stamped } from './version.ts'
 
-export const LOCAL_MARKETPLACE = 'mod-jxf-fancy-details-local'
+export const MARKETPLACE = 'jxf'
 
-const MARKETPLACE_MANIFEST = join('.claude-plugin', 'marketplace.json')
 const PUBLISHED_PI_SOURCE = /^(npm|git|https?):/
 const PI_SOURCE_LINE = /^ {2}\S/
 
 export type Run = (command: string, args: string[]) => string
 
-export function defaultTarget(env: NodeJS.ProcessEnv = process.env): string {
-  return join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'mod-jxf-fancy-details')
+export function defaultTarget(root = ROOT): string {
+  return join(root, 'dist')
 }
 
 export async function publishLocally(target: string, run: Run, root = ROOT, time = commitTime(root)): Promise<string> {
@@ -24,31 +21,25 @@ export async function publishLocally(target: string, run: Run, root = ROOT, time
   const plugin = manifest.name as string
   const version = stamped(manifest.version as string, time)
 
+  requireMarketplace(run)
   for (const variant of VARIANTS) await buildVariant(variant, join(target, variant.name), root, version)
-  await writeMarketplace(target, manifest)
-  installInClaudeCode(target, plugin, run)
+  installInClaudeCode(plugin, run)
   installInPi(join(target, 'pi'), plugin, run)
   return version
 }
 
-async function writeMarketplace(target: string, manifest: Record<string, unknown>): Promise<void> {
-  const marketplace = {
-    name: LOCAL_MARKETPLACE,
-    owner: manifest.author,
-    plugins: [{ name: manifest.name, source: './claude-code', description: manifest.description }],
+function requireMarketplace(run: Run): void {
+  const marketplaces: { name: string }[] = JSON.parse(run('claude', ['plugin', 'marketplace', 'list', '--json']))
+  if (!marketplaces.some(({ name }) => name === MARKETPLACE)) {
+    throw new Error(`register the ${MARKETPLACE} marketplace first: claude plugin marketplace add <agent-plugins checkout>`)
   }
-
-  await mkdir(dirname(join(target, MARKETPLACE_MANIFEST)), { recursive: true })
-  await writeFile(join(target, MARKETPLACE_MANIFEST), `${JSON.stringify(marketplace, null, 2)}\n`)
 }
 
-function installInClaudeCode(target: string, plugin: string, run: Run): void {
-  const local = `${plugin}@${LOCAL_MARKETPLACE}`
-  const marketplaces: { name: string }[] = JSON.parse(run('claude', ['plugin', 'marketplace', 'list', '--json']))
+function installInClaudeCode(plugin: string, run: Run): void {
+  const local = `${plugin}@${MARKETPLACE}`
   const plugins: { id: string }[] = JSON.parse(run('claude', ['plugin', 'list', '--json']))
   const installed = plugins.map(({ id }) => id).filter((id) => id.startsWith(`${plugin}@`))
 
-  if (!marketplaces.some(({ name }) => name === LOCAL_MARKETPLACE)) run('claude', ['plugin', 'marketplace', 'add', target])
   for (const id of installed) if (id !== local) run('claude', ['plugin', 'uninstall', id, '--keep-data'])
   run('claude', ['plugin', installed.includes(local) ? 'update' : 'install', local])
 }

@@ -4,12 +4,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, test } from 'node:test'
 
-import { defaultTarget, LOCAL_MARKETPLACE, publishLocally, type Run } from '../../scripts/local-publish.ts'
+import { defaultTarget, MARKETPLACE, publishLocally, type Run } from '../../scripts/local-publish.ts'
 import { commitTime } from '../../scripts/git.ts'
 import { readRootManifest, ROOT } from '../../scripts/root-manifest.ts'
 import { stamped } from '../../scripts/version.ts'
 
-const LOCAL_ID = `mod-jxf-fancy-details@${LOCAL_MARKETPLACE}`
+const LOCAL_ID = `mod-jxf-fancy-details@${MARKETPLACE}`
+const OLD_LOCAL_ID = 'mod-jxf-fancy-details@mod-jxf-fancy-details-local'
 
 type Machine = { marketplaces: string[]; plugins: string[]; piSources: string[] }
 
@@ -35,17 +36,16 @@ const fakeRun =
   }
 
 const FRESH: Machine = {
-  marketplaces: ['claude-plugins-official', 'jxf'],
-  plugins: ['jxf@jxf', 'mod-jxf-fancy-details@jxf', 'mod-jxf-fancy-details-extra@jxf', 'rust-analyzer-lsp@claude-plugins-official'],
+  marketplaces: ['claude-plugins-official', MARKETPLACE],
+  plugins: ['jxf@jxf', OLD_LOCAL_ID, 'mod-jxf-fancy-details-extra@jxf', 'rust-analyzer-lsp@claude-plugins-official'],
   piSources: ['npm:pi-effort', 'git:github.com/fj/mod-jxf-fancy-details', 'npm:mod-jxf-fancy-details-pi@0.3.0', 'https://github.com/fj/mod-jxf-fancy-details'],
 }
 
-test('a first local publish swaps the published installs for the local build', async () => {
+test('a first local publish swaps other installs for the jxf marketplace build', async () => {
   await publishLocally(target, fakeRun(FRESH))
 
   assert.deepEqual(calls, [
-    `claude plugin marketplace add ${target}`,
-    'claude plugin uninstall mod-jxf-fancy-details@jxf --keep-data',
+    `claude plugin uninstall ${OLD_LOCAL_ID} --keep-data`,
     `claude plugin install ${LOCAL_ID}`,
     'pi remove git:github.com/fj/mod-jxf-fancy-details',
     'pi remove npm:mod-jxf-fancy-details-pi@0.3.0',
@@ -56,9 +56,9 @@ test('a first local publish swaps the published installs for the local build', a
 
 test('a repeat local publish updates the local installs and touches nothing else', async () => {
   const machine: Machine = {
-    marketplaces: ['jxf', LOCAL_MARKETPLACE],
+    marketplaces: [MARKETPLACE],
     plugins: ['jxf@jxf', LOCAL_ID],
-    piSources: ['npm:pi-effort', '../../.local/share/mod-jxf-fancy-details/pi'],
+    piSources: ['npm:pi-effort', '/repo/dist/pi'],
   }
 
   await publishLocally(target, fakeRun(machine))
@@ -66,15 +66,10 @@ test('a repeat local publish updates the local installs and touches nothing else
   assert.deepEqual(calls, [`claude plugin update ${LOCAL_ID}`, `pi install ${join(target, 'pi')}`])
 })
 
-test('the target holds both builds and a marketplace that points at the Claude Code build', async () => {
+test('the target holds both builds and no marketplace of its own', async () => {
   await publishLocally(target, fakeRun(FRESH))
 
-  const marketplace = JSON.parse(await readFile(join(target, '.claude-plugin', 'marketplace.json'), 'utf8'))
-  assert.equal(marketplace.name, LOCAL_MARKETPLACE)
-  assert.deepEqual(
-    marketplace.plugins.map(({ name, source }: { name: string; source: string }) => ({ name, source })),
-    [{ name: 'mod-jxf-fancy-details', source: './claude-code' }],
-  )
+  await assert.rejects(access(join(target, '.claude-plugin')))
   await access(join(target, 'claude-code', '.claude-plugin', 'plugin.json'))
   await access(join(target, 'pi', 'package.json'))
 })
@@ -88,21 +83,28 @@ test('both builds carry major and minor from the root and the publish time in UT
   assert.equal(JSON.parse(await readFile(join(target, 'pi', 'package.json'), 'utf8')).version, expected)
 })
 
-test('the default target follows XDG_DATA_HOME and falls back to ~/.local/share', () => {
-  assert.equal(defaultTarget({ XDG_DATA_HOME: '/data' }), '/data/mod-jxf-fancy-details')
-  assert.match(defaultTarget({}), /\/\.local\/share\/mod-jxf-fancy-details$/)
+test('the default target is the dist directory the jxf marketplace points at', () => {
+  assert.equal(defaultTarget('/repo'), '/repo/dist')
 })
 
-test('a local install next to a published one still removes the published one', async () => {
-  const machine: Machine = { marketplaces: [LOCAL_MARKETPLACE], plugins: ['mod-jxf-fancy-details@jxf', LOCAL_ID], piSources: [] }
+test('a missing jxf marketplace stops the publish before any build or install', async () => {
+  const machine: Machine = { marketplaces: ['claude-plugins-official'], plugins: [OLD_LOCAL_ID], piSources: [] }
+
+  await assert.rejects(publishLocally(target, fakeRun(machine)), /register the jxf marketplace/)
+  assert.deepEqual(calls, [])
+  await assert.rejects(access(join(target, 'claude-code')))
+})
+
+test('a jxf install next to another install still removes the other one', async () => {
+  const machine: Machine = { marketplaces: [MARKETPLACE], plugins: [OLD_LOCAL_ID, LOCAL_ID], piSources: [] }
 
   await publishLocally(target, fakeRun(machine))
 
-  assert.deepEqual(calls.slice(0, 2), ['claude plugin uninstall mod-jxf-fancy-details@jxf --keep-data', `claude plugin update ${LOCAL_ID}`])
+  assert.deepEqual(calls.slice(0, 2), [`claude plugin uninstall ${OLD_LOCAL_ID} --keep-data`, `claude plugin update ${LOCAL_ID}`])
 })
 
-test('a registered local marketplace without the plugin installs it', async () => {
-  const machine: Machine = { marketplaces: [LOCAL_MARKETPLACE], plugins: [], piSources: [] }
+test('a registered jxf marketplace without the plugin installs it', async () => {
+  const machine: Machine = { marketplaces: [MARKETPLACE], plugins: [], piSources: [] }
 
   await publishLocally(target, fakeRun(machine))
 
