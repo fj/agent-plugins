@@ -30,13 +30,12 @@ function stepTokens(step: TokenUsage, session: TokenUsage): Line {
     seg(formatTokens(newInput(step)), 'input'),
     seg(' + ⟲ ', 'muted'),
     seg(formatTokens(step.cacheRead), 'cache'),
-    seg(' / ', 'muted'),
+    seg(' / Σ ', 'muted'),
     seg(formatTokens(totalInput(session)), 'input'),
-    seg(' Σ · ↓ Δ ', 'muted'),
+    seg(' · ↓ Δ ', 'muted'),
     seg(formatTokens(step.output), 'output'),
-    seg(' / ', 'muted'),
+    seg(' / Σ ', 'muted'),
     seg(formatTokens(session.output), 'output'),
-    seg(' Σ', 'muted'),
   ]
 }
 
@@ -44,9 +43,8 @@ function stepCost(step: Cost, session: Cost): Line {
   return [
     seg('Δ ', 'muted'),
     seg(formatUsd(step), 'cost'),
-    seg(' / ', 'muted'),
+    seg(' / Σ ', 'muted'),
     seg(formatUsd(session), 'cost'),
-    seg(' Σ', 'muted'),
   ]
 }
 

@@ -131,7 +131,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
-  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ 76\.5k Σ · ↓ Δ 3\.2k \/ 3\.2k Σ\} \{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}$/)
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\} \{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}$/)
 
   const row = new FakeToolRow('call-1') as ToolRow
 

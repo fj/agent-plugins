@@ -41,13 +41,13 @@ test('default token line shows new input, cached input, session input and output
   const step = { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 }
   const session = { input: 1000, cacheWrite: 30_000, cacheRead: 60_800, output: 12_000 }
 
-  assert.equal(lineText(defaultUsageStrategy.stepTokens(step, session)), '↑ Δ 15.4k + ⟲ 61.1k / 91.8k Σ · ↓ Δ 3.2k / 12.0k Σ')
+  assert.equal(lineText(defaultUsageStrategy.stepTokens(step, session)), '↑ Δ 15.4k + ⟲ 61.1k / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k')
 })
 
 test('default cost line marks lower bounds with +', () => {
   const line = defaultUsageStrategy.stepCost({ usd: 0.06, isLowerBound: true }, { usd: 1.234, isLowerBound: true })
 
-  assert.equal(lineText(line), 'Δ $0.06+ / $1.23+ Σ')
+  assert.equal(lineText(line), 'Δ $0.06+ / Σ $1.23+')
 })
 
 test('unknown strategy names fall back to the defaults', () => {

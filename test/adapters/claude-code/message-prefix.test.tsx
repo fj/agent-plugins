@@ -58,8 +58,8 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
   for (const ui of drawings) {
     const text = shownText(await ui.drawn())
     expect(text).toContain('{2026-10-03 04:20:37 Δ 3.0s}')
-    expect(text).toContain('{turn 1.1: ↑ Δ 1.2k + ⟲ 5.0k / 6.2k Σ · ↓ Δ 300 / 300 Σ}')
-    expect(text).toMatch(/\{Δ \$0\.\d\d \/ \$0\.\d\d Σ\}/)
+    expect(text).toContain('{turn 1.1: ↑ Δ 1.2k + ⟲ 5.0k / Σ 6.2k · ↓ Δ 300 / Σ 300}')
+    expect(text).toMatch(/\{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}/)
   }
 })
 
@@ -127,7 +127,7 @@ test('a model without public pricing shows a lower bound', async ($, on) => {
   }
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW })
-  expect(shownText(await ui.drawn())).toContain('{Δ $0.00+ / $0.00+ Σ}')
+  expect(shownText(await ui.drawn())).toContain('{Δ $0.00+ / Σ $0.00+}')
 })
 
 test('subagent steps stay out of the ledger', async ($, on) => {

@@ -81,7 +81,7 @@ test('the message prefix shows timing, turn, tokens and cost', () => {
 
   assert.equal(
     lineText(messagePrefix({ mark, step, now: T0, usage: defaultUsageStrategy })),
-    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / 91.8k Σ · ↓ Δ 3.2k / 12.0k Σ} {Δ $0.06 / $12.34 Σ}',
+    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k} {Δ $0.06 / Σ $12.34}',
   )
 })
 
