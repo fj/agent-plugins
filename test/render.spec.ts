@@ -13,6 +13,7 @@ import { promptTimerView, timerView } from '../src/render/timer.ts'
 import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
+const CACHED = { showsCachedInput: true }
 
 test('durations count tenths under a minute, then minutes and hours', () => {
   assert.equal(formatDuration(4149), '4.1s')
@@ -80,8 +81,8 @@ test('the message prefix shows timing, turn, tokens and cost', () => {
   const mark = { id: 'm', kind: 'message' as const, turn: 3, seq: 2, startedAt: T0, stepId: 's' }
 
   assert.equal(
-    lineText(messagePrefix({ mark, step, now: T0, usage: defaultUsageStrategy })),
-    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ Δ 15.4k + ⟲ 61.1k / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k} {Δ $0.06 / Σ $12.34}',
+    lineText(messagePrefix({ mark, step, now: T0, usage: defaultUsageStrategy, display: CACHED })),
+    '{2026-10-03 04:20:37 Δ 4.1s} {turn 3.2: ↑ ( Δ 15.4k + ⟲ 61.1k ) / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k} {Δ $0.06 / Σ $12.34}',
   )
 })
 
@@ -89,7 +90,7 @@ test('a prefix without a finished step shows live timing and the turn only', () 
   const mark = { id: 'm', kind: 'message' as const, turn: 1, seq: 1, startedAt: T0 }
 
   assert.equal(
-    lineText(messagePrefix({ mark, now: T0 + 1500, usage: defaultUsageStrategy })),
+    lineText(messagePrefix({ mark, now: T0 + 1500, usage: defaultUsageStrategy, display: CACHED })),
     '{2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}',
   )
 })
@@ -104,6 +105,7 @@ const FOOTER_INPUT = {
   today: { ...ZERO_TOTALS, cost: { usd: 48.1, isLowerBound: true }, activeMs: 3_725_000 },
   quota: [],
   usage: defaultUsageStrategy,
+  display: { showsCachedInput: false },
   maxPathWidth: 24,
   layout: { isTotalsCombined: false, showsSubscription: true, showsContext: true },
 }
@@ -115,6 +117,13 @@ test('the footer puts model and path, session, and today on their own lines', ()
     'today 1h 02m · $48.10+ ↑0 ↓0',
   ])
 })
+test('the footer splits total input into new and cached input when asked', () => {
+  const session = { ...ZERO_TOTALS, usage: { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 } }
+  const lines = footer({ ...FOOTER_INPUT, session, display: CACHED })
+
+  assert.equal(lineText(lines[1]!), 'session $0.00 ↑(Δ15.4k + ⟲ 61.1k)/76.5k ↓3.2k')
+})
+
 test('the footer leaves out a time that shows as zero', () => {
   const lines = footer({ ...FOOTER_INPUT, session: ZERO_TOTALS, today: { ...ZERO_TOTALS, activeMs: 99 } })
 

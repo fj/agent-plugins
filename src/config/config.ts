@@ -1,8 +1,11 @@
 import type { FooterLayout } from '../render/footer.ts'
+import type { TokenDisplay } from '../render/usage-lines.ts'
 
 export type FooterConfig = { combineTotals?: boolean; showSubscription?: boolean; showContext?: boolean }
 
-export type FancyConfig = { usageStrategy?: string; subscriptionStrategy?: string } & FooterConfig
+export type DisplayConfig = { showCachedInput?: boolean }
+
+export type FancyConfig = { usageStrategy?: string; subscriptionStrategy?: string } & FooterConfig & DisplayConfig
 
 export type ModelInfo = { id: string; provider: string }
 
@@ -28,6 +31,14 @@ export function footerLayout(config: FooterConfig): FooterLayout {
   }
 }
 
+export function parseDisplayConfig(value: Readonly<Record<string, unknown>> | null): DisplayConfig {
+  return { showCachedInput: optionalBoolean(value?.showCachedInput) }
+}
+
+export function tokenDisplay(config: DisplayConfig): TokenDisplay {
+  return { showsCachedInput: config.showCachedInput ?? true }
+}
+
 export function parseConfig(text: string): FancyConfig {
   try {
     const value = JSON.parse(text) as Record<string, unknown> | null
@@ -36,6 +47,7 @@ export function parseConfig(text: string): FancyConfig {
       usageStrategy: optionalString(value?.usageStrategy),
       subscriptionStrategy: optionalString(value?.subscriptionStrategy),
       ...parseFooterConfig(value),
+      ...parseDisplayConfig(value),
     }
   } catch {
     return {}

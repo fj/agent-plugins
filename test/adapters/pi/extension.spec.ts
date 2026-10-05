@@ -119,6 +119,18 @@ test('a prompt record waits for the user message, but never past the next record
   )
 })
 
+test('the message prefix shows one input count when cached input is off', async () => {
+  const s = setup({ config: { showCachedInput: false } })
+
+  await s.emit('session_start', { reason: 'startup' })
+  await submit(s)
+  await s.emit('message_start', { message: { role: 'assistant', model: 'claude-opus-5-5' } })
+  const step = s.ours().find(entry => (entry.data as { kind: string }).kind === 'step')!
+
+  await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 76\.5k \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\}/)
+})
+
 test('the message prefix fills in tokens and cost when the step ends, and tools get live timers', async () => {
   const s = setup()
 
@@ -131,7 +143,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
-  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 15\.4k \+ ⟲ 61\.1k \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\} \{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}$/)
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ \( Δ 15\.4k \+ ⟲ 61\.1k \) \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\} \{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}$/)
 
   const row = new FakeToolRow('call-1') as ToolRow
 
@@ -185,12 +197,12 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
   assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
-  assert.match(session!, /^ +session \$0\.00 ↑0 ↓0$/)
-  assert.match(today!, /^ +today \$10\.00 ↑0 ↓0$/)
+  assert.match(session!, /^ +session \$0\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
+  assert.match(today!, /^ +today \$10\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
-test('the footer follows the config for one totals line and the context window', async () => {
-  const s = setup({ config: { combineTotals: true }, context: { tokens: 50_000, contextWindow: 200_000, percent: 25 } })
+test('the footer follows the config for one totals line, cached input and the context window', async () => {
+  const s = setup({ config: { combineTotals: true, showCachedInput: false }, context: { tokens: 50_000, contextWindow: 200_000, percent: 25 } })
 
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
@@ -237,7 +249,7 @@ test('a resumed session rebuilds prefixes from its records', async () => {
   await s.emit('session_start', { reason: 'resume' })
 
   assert.equal(s.shown(branch[1]!), '\n {2026-10-03 04:20:37 Δ 1.0s}')
-  assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ Δ 15\.4k/)
+  assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ \( Δ 15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)
   assert.equal(s.pi.renders(branch[4]!), false)
   assert.match(s.footerLines()![1]!, /session 5\.0s · \$0\.\d\d /)

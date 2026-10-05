@@ -3,8 +3,8 @@ import type { Engine } from 'claude-code/testing'
 
 import { CWD, ENGINE_TEXT, LIVE_SURFACES, MODEL, PLUGIN, shownRows, shownText, submit, world } from './world.tsx'
 
-const ABOVE = { options: { footerPlacement: 'abovePrompt' } }
-const BELOW = { options: { footerPlacement: 'belowPrompt' } }
+const ABOVE = { options: { footerPlacement: 'abovePrompt', showCachedInput: false } }
+const BELOW = { options: { footerPlacement: 'belowPrompt', showCachedInput: false } }
 const BODY_COLUMNS = 96
 const BAND = {
   hasSurvey: false,
@@ -47,7 +47,7 @@ test('below the prompt, the band draws no footer rows', BELOW, async ($, on) => 
   expect(shownText(await ui.drawn())).toBe(`AbovePrompt ${ENGINE_TEXT}`)
 })
 
-test('an unknown placement keeps the footer below the prompt', { options: { footerPlacement: 'sideways' } }, async ($, on) => {
+test('an unknown placement keeps the footer below the prompt', { options: { footerPlacement: 'sideways', showCachedInput: false } }, async ($, on) => {
   world(on)
   await start($)
   await submit($, 'hello')
@@ -94,7 +94,7 @@ test('above the prompt, the band yields to a survey', ABOVE, async ($, on) => {
 
 test(
   'above the prompt, the footer options combine the totals and hide the meters',
-  { options: { footerPlacement: 'abovePrompt', combineTotals: true, showSubscription: false, showContext: false } },
+  { ...ABOVE, options: { ...ABOVE.options, combineTotals: true, showSubscription: false, showContext: false } },
   async ($, on) => {
     world(on)
     await start($)
