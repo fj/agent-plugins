@@ -42,6 +42,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     quota: scene.quota(),
     context: scene.context(),
     usage: scene.usage(),
+    display: scene.display(),
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),
     layout: scene.layout(),
   })

@@ -2,6 +2,7 @@ import type { Cost } from '../../core/cost.ts'
 import { newInput, totalInput, type TokenUsage } from '../../core/usage.ts'
 import { formatTokens, formatUsd } from '../../render/format.ts'
 import { seg, type Line } from '../../render/segment.ts'
+import type { TokenDisplay } from '../../render/usage-lines.ts'
 import { CACHE_WRITE_MULTIPLIER, ratesFor } from './pricing.ts'
 import type { UsageStrategy } from './strategy.ts'
 
@@ -24,35 +25,51 @@ function price(model: string, usage: TokenUsage): Cost {
   return { usd, isLowerBound: false }
 }
 
-function stepTokens(step: TokenUsage, session: TokenUsage): Line {
+function stepInput(step: TokenUsage, display: TokenDisplay): Line {
+  if (!display.showsCachedInput) {
+    return [seg('Δ ', 'muted'), seg(formatTokens(totalInput(step)), 'input')]
+  }
+
   return [
-    seg('↑ Δ ', 'muted'),
+    seg('( Δ ', 'muted'),
     seg(formatTokens(newInput(step)), 'input'),
     seg(' + ⟲ ', 'muted'),
     seg(formatTokens(step.cacheRead), 'cache'),
-    seg(' / ', 'muted'),
+    seg(' )', 'muted'),
+  ]
+}
+
+function stepTokens(step: TokenUsage, session: TokenUsage, display: TokenDisplay): Line {
+  return [
+    seg('↑ ', 'muted'),
+    ...stepInput(step, display),
+    seg(' / Σ ', 'muted'),
     seg(formatTokens(totalInput(session)), 'input'),
-    seg(' Σ · ↓ Δ ', 'muted'),
+    seg(' · ↓ Δ ', 'muted'),
     seg(formatTokens(step.output), 'output'),
-    seg(' / ', 'muted'),
+    seg(' / Σ ', 'muted'),
     seg(formatTokens(session.output), 'output'),
-    seg(' Σ', 'muted'),
   ]
 }
 
 function stepCost(step: Cost, session: Cost): Line {
+  return [seg('Δ ', 'muted'), seg(formatUsd(step), 'cost'), seg(' / Σ ', 'muted'), seg(formatUsd(session), 'cost')]
+}
+
+function cachedInput(total: TokenUsage): Line {
   return [
-    seg('Δ ', 'muted'),
-    seg(formatUsd(step), 'cost'),
-    seg(' / ', 'muted'),
-    seg(formatUsd(session), 'cost'),
-    seg(' Σ', 'muted'),
+    seg('(Δ', 'muted'),
+    seg(formatTokens(newInput(total)), 'input'),
+    seg(' + ⟲ ', 'muted'),
+    seg(formatTokens(total.cacheRead), 'cache'),
+    seg(')/', 'muted'),
   ]
 }
 
-function totalTokens(total: TokenUsage): Line {
+function totalTokens(total: TokenUsage, display: TokenDisplay): Line {
   return [
     seg('↑', 'muted'),
+    ...(display.showsCachedInput ? cachedInput(total) : []),
     seg(formatTokens(totalInput(total)), 'input'),
     seg(' ↓', 'muted'),
     seg(formatTokens(total.output), 'output'),

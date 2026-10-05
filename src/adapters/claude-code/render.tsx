@@ -69,6 +69,7 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
     quota: windows === null ? [] : config.subscription.render(windows),
     context: context ?? undefined,
     usage: config.usage,
+    display: config.display,
     maxPathWidth: MAX_PATH_WIDTH,
     layout: config.footer,
   }
@@ -130,6 +131,7 @@ export function drawSites(on: On, config: Config): void {
       step: markStep(ledger, mark.id),
       now: await $.clock.now(),
       usage: config.usage,
+      display: config.display,
     })
 
     return (

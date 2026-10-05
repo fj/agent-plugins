@@ -1,6 +1,7 @@
 import { markStep, type LedgerState } from '../../core/ledger.ts'
 import { messagePrefix, turnTag } from '../../render/prefix.ts'
 import { promptTimerView, timerView } from '../../render/timer.ts'
+import type { TokenDisplay } from '../../render/usage-lines.ts'
 import type { UsageStrategy } from '../../strategies/usage/strategy.ts'
 import { chatLine, paintLine, paintTimer, type TextWidth } from './paint.ts'
 
@@ -8,6 +9,7 @@ export type Scene = {
   ledger(): LedgerState
   now(): number
   usage(): UsageStrategy
+  display(): TokenDisplay
   measure: TextWidth
 }
 
@@ -39,7 +41,13 @@ export function stepLines(scene: Scene, id: string, width: number): string[] {
     return []
   }
 
-  const prefix = messagePrefix({ mark, step: markStep(ledger, id), now: scene.now(), usage: scene.usage() })
+  const prefix = messagePrefix({
+    mark,
+    step: markStep(ledger, id),
+    now: scene.now(),
+    usage: scene.usage(),
+    display: scene.display(),
+  })
 
   return ['', chatLine(paintLine(prefix), width, scene.measure)]
 }

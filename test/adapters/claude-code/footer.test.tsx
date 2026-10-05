@@ -46,8 +46,8 @@ test('the footer shows model and path, session, and today on separate lines besi
     expect(shownText(drawn)).toStartWith('focus  ')
     expect(shownRows(drawn)).toEqual([
       `${MODEL} · ~/src/projects/fancy`,
-      'session $0.00 ↑0 ↓0',
-      'today 1m 00s · $1.25 ↑1.0k ↓1.0k',
+      'session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0',
+      'today 1m 00s · $1.25 ↑(Δ1.0k + ⟲ 0)/1.0k ↓1.0k',
       'ctx 200.0k',
     ])
     await ui.unmount()
@@ -66,8 +66,8 @@ test('the footer shows model and path, session, and today on separate lines besi
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const text = shownText(await ui.drawn())
   expect(text).toStartWith(MODEL)
-  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
-  expect(text).toContain('today 1m 04s · $1.26 ↑7.2k ↓1.3k')
+  expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
+  expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
 })
 
 test('the footer lines align to the right', async ($, on) => {
@@ -182,7 +182,7 @@ test('subagent turns add nothing to the session', async ($, on) => {
     agentId: 'agent-1',
   })
 
-  expect(await footerText($)).toContain('session $0.00 ↑0 ↓0')
+  expect(await footerText($)).toContain('session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0')
   expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
 })
 
@@ -217,8 +217,8 @@ test('a failed day-file write leaves the turn and the footer intact', async ($, 
 
   expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
   const text = await footerText($)
-  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
-  expect(text).toContain('today 1m 04s · $1.26 ↑7.2k ↓1.3k')
+  expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
+  expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
 })
 
 const BEFORE_MIDNIGHT = new Date(2026, 9, 3, 23, 59, 58).getTime()
@@ -240,8 +240,8 @@ test('a turn across midnight splits its totals between the two day files', async
   expect([today.usage.output, today.activeMs]).toEqual([0, TURN_MS])
 
   const text = await footerText($)
-  expect(text).toContain('session 4.0s · $0.01 ↑6.2k ↓300')
-  expect(text).toContain('today 4.0s · $0.00 ↑0 ↓0')
+  expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
+  expect(text).toContain('today 4.0s · $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0')
 })
 
 test('the footer fills the context meter once the session measures it', async ($, on) => {
@@ -253,8 +253,8 @@ test('the footer fills the context meter once the session measures it', async ($
 })
 
 test(
-  'the footer options put the totals on one line and hide the meters',
-  { options: { combineTotals: true, showSubscription: false, showContext: false } },
+  'the footer options put the totals on one line, hide the meters and drop cached input',
+  { options: { combineTotals: true, showSubscription: false, showContext: false, showCachedInput: false } },
   async ($, on) => {
     world(on)
     await start($)

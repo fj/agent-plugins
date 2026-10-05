@@ -2,7 +2,7 @@ import type { Totals } from '../core/totals.ts'
 import { contextMeter, type ContextFill } from './context.ts'
 import { formatDuration, formatUsd, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
-import type { UsageLines } from './usage-lines.ts'
+import type { TokenDisplay, UsageLines } from './usage-lines.ts'
 
 export type FooterLayout = { isTotalsCombined: boolean; showsSubscription: boolean; showsContext: boolean }
 
@@ -15,6 +15,7 @@ export type FooterInput = {
   quota: Line
   context?: ContextFill
   usage: UsageLines
+  display: TokenDisplay
   maxPathWidth: number
   layout: FooterLayout
 }
@@ -28,18 +29,18 @@ function timeSegments(activeMs: number): Line {
   return duration === ZERO_DURATION ? [] : [seg(duration, 'time'), seg(' · ', 'muted')]
 }
 
-function totalsLine(label: string, totals: Totals, usage: UsageLines): Line {
+function totalsLine(label: string, totals: Totals, { usage, display }: FooterInput): Line {
   return [
     seg(`${label} `, 'muted'),
     ...timeSegments(totals.activeMs),
     seg(formatUsd(totals.cost), 'cost'),
     seg(' '),
-    ...usage.totalTokens(totals.usage),
+    ...usage.totalTokens(totals.usage, display),
   ]
 }
 
 function totalsLines(input: FooterInput): Line[] {
-  const lines = [totalsLine('session', input.session, input.usage), totalsLine('today', input.today, input.usage)]
+  const lines = [totalsLine('session', input.session, input), totalsLine('today', input.today, input)]
 
   return input.layout.isTotalsCombined ? [join(lines, GROUP_GAP)] : lines
 }

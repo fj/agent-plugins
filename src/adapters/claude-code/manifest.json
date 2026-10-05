@@ -34,6 +34,12 @@
       "description": "Draw the context window fill and size in the footer.",
       "default": true
     },
+    "showCachedInput": {
+      "type": "boolean",
+      "title": "🎩 Show cached input token counts",
+      "description": "Split input tokens into new and cached counts in the footer totals and the turn counter.",
+      "default": true
+    },
     "footerPlacement": {
       "type": "string",
       "title": "🎩 Footer placement",

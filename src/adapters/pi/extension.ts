@@ -1,6 +1,6 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
-import { footerLayout, subscriptionName, type FancyConfig, type ModelInfo } from '../../config/config.ts'
+import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaWindow } from '../../core/quota.ts'
@@ -80,6 +80,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       ledger: () => tracker.ledger(),
       now,
       usage: () => usage,
+      display: () => tokenDisplay(config),
       measure: deps.measure,
       model: () => model?.id ?? 'no model',
       cwd: () => ctx?.cwd ?? '',
