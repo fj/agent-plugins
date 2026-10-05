@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, test } from 'node:test'
 
 import { defaultTarget, LOCAL_MARKETPLACE, publishLocally, type Run } from '../../scripts/local-publish.ts'
+import { readRootManifest } from '../../scripts/root-manifest.ts'
 
 const LOCAL_ID = `mod-jxf-fancy-details@${LOCAL_MARKETPLACE}`
 
@@ -104,4 +105,14 @@ test('a failed build runs no claude or pi command', async () => {
 
   await assert.rejects(publishLocally(join(target, 'out'), fakeRun(FRESH), root))
   assert.deepEqual(calls, [])
+})
+
+test('a local publish reports the version it installed', async () => {
+  const version = await publishLocally(target, fakeRun(FRESH))
+
+  const plugin = JSON.parse(await readFile(join(target, 'claude-code', '.claude-plugin', 'plugin.json'), 'utf8'))
+  const { version: expected } = await readRootManifest()
+  assert.match(version, /^\d+\.\d+\.\d+$/)
+  assert.equal(version, expected)
+  assert.equal(plugin.version, expected)
 })

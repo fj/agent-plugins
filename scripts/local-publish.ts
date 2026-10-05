@@ -17,7 +17,7 @@ export function defaultTarget(env: NodeJS.ProcessEnv = process.env): string {
   return join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'mod-jxf-fancy-details')
 }
 
-export async function publishLocally(target: string, run: Run, root = ROOT): Promise<void> {
+export async function publishLocally(target: string, run: Run, root = ROOT): Promise<string> {
   const manifest = await readRootManifest(root)
   const plugin = manifest.name as string
 
@@ -25,6 +25,7 @@ export async function publishLocally(target: string, run: Run, root = ROOT): Pro
   await writeMarketplace(target, manifest)
   installInClaudeCode(target, plugin, run)
   installInPi(join(target, 'pi'), plugin, run)
+  return manifest.version as string
 }
 
 async function writeMarketplace(target: string, manifest: Record<string, unknown>): Promise<void> {
