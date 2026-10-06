@@ -6,8 +6,8 @@ import { readJson, writeJson } from './json.ts'
 import { MARKETPLACE_FILE, RELEASED_MARKETPLACE, marketplace } from './marketplace.ts'
 import { INDEX_REPO, SOURCE_REPO, piGitSource, releaseTag } from './repos.ts'
 
-export const RELEASES_FILE = 'releases.json'
-export const README_FILE = 'README.md'
+const RELEASES_FILE = 'releases.json'
+const README_FILE = 'README.md'
 
 export type Release = { repo: string; version: string }
 export type PluginReleases = { description: string } & Partial<Record<Harness, Release>>
@@ -40,7 +40,7 @@ export async function writeIndexFiles(indexDir: string, releases: Releases, owne
   return [RELEASES_FILE, MARKETPLACE_FILE, README_FILE]
 }
 
-export function releasedMarketplace(releases: Releases, owner: string) {
+function releasedMarketplace(releases: Releases, owner: string) {
   const plugins = Object.entries(releases).flatMap(([name, { description, claude }]) =>
     claude
       ? [{ name, description, version: claude.version, source: { source: 'github', repo: claude.repo, ref: releaseTag(claude.version) } }]
@@ -49,7 +49,7 @@ export function releasedMarketplace(releases: Releases, owner: string) {
   return marketplace(RELEASED_MARKETPLACE, `Plugins released from ${owner}/${SOURCE_REPO}.`, plugins)
 }
 
-export function indexReadme(releases: Releases, owner: string): string {
+function indexReadme(releases: Releases, owner: string): string {
   const entries = Object.entries(releases)
   const rows = entries.map(
     ([name, plugin]) => `| ${name} | ${plugin.description} | ${HARNESSES.map((h) => plugin[h]?.version ?? '-').join(' | ')} |`,

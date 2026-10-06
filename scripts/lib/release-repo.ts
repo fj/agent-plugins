@@ -1,8 +1,7 @@
 import { cp, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { git, tryGit } from './git.ts'
-import { MAIN, ORIGIN } from './index-checkout.ts'
+import { MAIN, ORIGIN, git, tryGit } from './git.ts'
 import { releaseTag } from './repos.ts'
 
 export type PublishRequest = {

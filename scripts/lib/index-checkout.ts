@@ -1,10 +1,7 @@
 import { existsSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-import { git, requireClean } from './git.ts'
-
-export const MAIN = 'main'
-export const ORIGIN = 'origin'
+import { MAIN, ORIGIN, git, requireClean } from './git.ts'
 
 export function prepareIndex(indexDir: string, url: string, log: (line: string) => void): void {
   if (!existsSync(indexDir)) {

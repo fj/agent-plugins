@@ -2,6 +2,9 @@ import { execFileSync } from 'node:child_process'
 
 const ARCHIVE_MAX_BYTES = 1024 ** 3
 
+export const MAIN = 'main'
+export const ORIGIN = 'origin'
+
 export function git(dir: string, args: string[]): string {
   return execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 }
