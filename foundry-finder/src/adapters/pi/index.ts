@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { parseConfig, type ResourceConfig } from "../src/config.ts";
-import type { CatalogLookup } from "../src/models.ts";
-import { LOG_PREFIX, registerResource } from "../src/register.ts";
+import { parseConfig, type ResourceConfig } from "../../config.ts";
+import type { CatalogLookup } from "../../models.ts";
+import { LOG_PREFIX, registerResource } from "../../register.ts";
 
 const CONFIG_FILE = "foundry-finder.json";
 
