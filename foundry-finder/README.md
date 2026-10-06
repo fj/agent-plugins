@@ -1,4 +1,4 @@
-# pi-foundry-finder
+# foundry-finder
 
 A [pi](https://pi.dev) extension that finds the model deployments on your Azure AI Foundry resources when pi starts, and registers them as pi models.
 
@@ -6,7 +6,9 @@ You do not list models by hand. When you deploy or remove a model in Foundry, th
 
 ## Install
 
-    pi install git:github.com/fj/agent-extensions-pi-foundry-finder
+    pi install git:github.com/fj/jxf-agent-plugins-foundry-finder-pi
+
+This installs the released build. The sources live in [fj/agent-plugins](https://github.com/fj/agent-plugins).
 
 ## Configure
 
@@ -54,6 +56,10 @@ If a key is not set or discovery fails, the extension writes a message to stderr
 
 ## Develop
 
-    npm test
+    node --test 'test/*.test.ts'
 
 The tests use Node's built-in test runner and type stripping (Node 22.18 or later). They need no dependencies.
+
+To build the Pi package:
+
+    node scripts/build.ts --harness pi --out <absolute dir> --version <x.y.t>
