@@ -1,0 +1,4 @@
+{
+  "extends": "../../../dist/claude-code/.claude-plugin/types/tsconfig.json",
+  "include": ["."]
+}

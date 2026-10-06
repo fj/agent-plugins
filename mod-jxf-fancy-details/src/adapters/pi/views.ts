@@ -1,0 +1,66 @@
+import { markStep, type LedgerState } from '../../core/ledger.ts'
+import { messagePrefix, turnTag } from '../../render/prefix.ts'
+import { promptTimerView, timerView } from '../../render/timer.ts'
+import type { TokenDisplay } from '../../render/usage-lines.ts'
+import type { UsageStrategy } from '../../strategies/usage/strategy.ts'
+import { chatLine, paintLine, paintTimer, type TextWidth } from './paint.ts'
+
+export type Scene = {
+  ledger(): LedgerState
+  now(): number
+  usage(): UsageStrategy
+  display(): TokenDisplay
+  measure: TextWidth
+}
+
+export type View = { render(width: number): string[]; invalidate(): void }
+
+export function view(render: (width: number) => string[]): View {
+  return { render, invalidate() {} }
+}
+
+export function promptLines(scene: Scene, id: string, width: number): string[] {
+  const ledger = scene.ledger()
+  const prompt = ledger.prompts[id]
+
+  if (prompt === undefined) {
+    return []
+  }
+
+  const now = scene.now()
+  const timer = promptTimerView(prompt, ledger.currentPromptId === id, now)
+
+  return ['', chatLine(paintTimer(timer, now), width, scene.measure)]
+}
+
+export function stepLines(scene: Scene, id: string, width: number): string[] {
+  const ledger = scene.ledger()
+  const mark = ledger.marks[id]
+
+  if (mark === undefined) {
+    return []
+  }
+
+  const prefix = messagePrefix({
+    mark,
+    step: markStep(ledger, id),
+    now: scene.now(),
+    usage: scene.usage(),
+    display: scene.display(),
+  })
+
+  return ['', chatLine(paintLine(prefix), width, scene.measure)]
+}
+
+export function toolTimerLine(scene: Scene, id: string, width: number): string | undefined {
+  const mark = scene.ledger().marks[id]
+
+  if (mark?.kind !== 'tool') {
+    return undefined
+  }
+
+  const now = scene.now()
+  const timer = paintTimer(timerView(mark.startedAt, now, mark.endedAt), now)
+
+  return chatLine(`${timer} ${paintLine(turnTag(mark))}`, width, scene.measure)
+}
