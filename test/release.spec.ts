@@ -14,7 +14,7 @@ const FIRST = '0.1.20260102030405'
 const SECOND_DATE = '2026-02-03T04:05:06Z'
 const SECOND = '0.1.20260203040506'
 
-async function setup(t: TestContext, { dryRun = false } = {}) {
+async function setup(t: TestContext, { dryRun = false, emptyIndex = false } = {}) {
   const dir = await tempDir(t)
   const remotes = join(dir, 'remotes')
   const testLog = join(dir, 'tests.log')
@@ -28,8 +28,12 @@ async function setup(t: TestContext, { dryRun = false } = {}) {
     },
     FIRST_DATE,
   )
-  const seed = await makeRepo(join(dir, 'index-seed'), { 'README.md': 'index\n' }, FIRST_DATE)
-  gitIn(dir, ['clone', '--quiet', '--bare', seed, join(remotes, 'jxf-agent-plugins-index.git')])
+  if (emptyIndex) {
+    gitIn(dir, ['init', '--quiet', '--bare', join(remotes, 'jxf-agent-plugins-index.git')])
+  } else {
+    const seed = await makeRepo(join(dir, 'index-seed'), { 'README.md': 'index\n' }, FIRST_DATE)
+    gitIn(dir, ['clone', '--quiet', '--bare', seed, join(remotes, 'jxf-agent-plugins-index.git')])
+  }
 
   const created: string[][] = []
   const ctx: ReleaseContext = {
@@ -53,7 +57,11 @@ async function setup(t: TestContext, { dryRun = false } = {}) {
     await rm(checkout, { recursive: true, force: true })
     return text
   }
-  return { dir, root, ctx, created, release, remote, indexFile, testLog }
+  const changeAlpha = async () => {
+    await writeFiles(root, { 'alpha/commands/hello.md': 'Hello again.\n' })
+    commitAll(root, 'change alpha', SECOND_DATE)
+  }
+  return { dir, root, ctx, created, release, remote, indexFile, testLog, changeAlpha }
 }
 
 test('the first release creates the repo, the submodule and the index entries', async (t) => {
@@ -216,4 +224,72 @@ test('release:all reports every plugin, even after a failure', async (t) => {
     ],
   )
   assert.equal(existsSync(remote('jxf-agent-plugins-alpha-claude')), true)
+})
+
+test('a release into a fresh index clone initializes the existing submodule', async (t) => {
+  const { ctx, created, release, remote, changeAlpha } = await setup(t)
+  await release('claude')
+  await rm(ctx.indexDir, { recursive: true, force: true })
+  await changeAlpha()
+
+  assert.deepEqual(await release('claude'), { plugin: 'alpha', version: SECOND, outcome: 'released' })
+
+  const repo = remote('jxf-agent-plugins-alpha-claude')
+  const index = remote('jxf-agent-plugins-index')
+  assert.equal(created.length, 1)
+  assert.equal(gitIn(repo, ['rev-list', '--count', 'main']), '2')
+  assert.equal(gitIn(index, ['ls-tree', 'main', 'alpha-claude']).split(/\s/)[2], gitIn(repo, ['rev-parse', 'main']))
+  assert.equal(gitIn(index, ['log', '-1', '--format=%s', 'main']), `release: alpha-claude ${SECOND}`)
+})
+
+test('an existing tag in a repo the index does not list yet is skipped without leftovers', async (t) => {
+  const { dir, ctx, created, release, remote } = await setup(t)
+  await release('claude')
+  const index = remote('jxf-agent-plugins-index')
+  const view = join(dir, 'rewind')
+  gitIn(dir, ['clone', '--quiet', index, view])
+  gitIn(view, ['reset', '--quiet', '--hard', 'HEAD~1'])
+  gitIn(view, ['push', '--quiet', '--force', 'origin', 'main'])
+  const indexHead = gitIn(index, ['rev-parse', 'main'])
+  await rm(ctx.indexDir, { recursive: true, force: true })
+
+  assert.deepEqual(await release('claude'), { plugin: 'alpha', version: FIRST, outcome: 'skipped' })
+
+  assert.equal(created.length, 1)
+  assert.equal(gitIn(ctx.indexDir, ['status', '--porcelain']), '')
+  assert.equal(existsSync(join(ctx.indexDir, 'alpha-claude')), false)
+  assert.equal(gitIn(index, ['rev-parse', 'main']), indexHead)
+})
+
+test('the first release into an empty index starts its main branch', async (t) => {
+  const { release, remote, indexFile } = await setup(t, { emptyIndex: true })
+
+  assert.deepEqual(await release('claude'), { plugin: 'alpha', version: FIRST, outcome: 'released' })
+
+  assert.equal(gitIn(remote('jxf-agent-plugins-index'), ['log', '--format=%s', 'main']), `release: alpha-claude ${FIRST}`)
+  assert.equal(JSON.parse(await indexFile('releases.json')).alpha.claude.version, FIRST)
+})
+
+test('a release pulls index changes made elsewhere first', async (t) => {
+  const { dir, release, remote, indexFile, changeAlpha } = await setup(t)
+  await release('claude')
+  const other = join(dir, 'other-index')
+  gitIn(dir, ['clone', '--quiet', remote('jxf-agent-plugins-index'), other])
+  await writeFiles(other, { 'notes.md': 'from elsewhere\n' })
+  commitAll(other, 'notes', SECOND_DATE)
+  gitIn(other, ['push', '--quiet', 'origin', 'main'])
+  await changeAlpha()
+
+  await release('claude')
+
+  assert.equal(await indexFile('notes.md'), 'from elsewhere\n')
+  assert.equal(gitIn(remote('jxf-agent-plugins-index'), ['log', '-1', '--format=%s', 'main']), `release: alpha-claude ${SECOND}`)
+})
+
+test('a release needs a clean index', async (t) => {
+  const { ctx, release, changeAlpha } = await setup(t)
+  await release('claude')
+  await writeFiles(ctx.indexDir, { 'scratch.md': 'local edit' })
+  await changeAlpha()
+  await assert.rejects(release('claude'), /index has uncommitted changes/)
 })
