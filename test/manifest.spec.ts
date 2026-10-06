@@ -28,6 +28,13 @@ test('harnesses must be known and not empty', () => {
   }
 })
 
+test('author needs a name and test must be a command', () => {
+  assert.throws(() => validateManifest({ ...valid(), author: { email: 'a@b' } }, 'demo'), /author must be an object with a string name/)
+  assert.throws(() => validateManifest({ ...valid(), author: 'Someone' }, 'demo'), /author must be an object/)
+  assert.throws(() => validateManifest({ ...valid(), test: '' }, 'demo'), /test must be a non-empty string/)
+  assert.throws(() => validateManifest({ ...valid(), test: ['node'] }, 'demo'), /test must be a non-empty string/)
+})
+
 test('all problems are reported together', () => {
   assert.throws(
     () => validateManifest({ name: 'x', version: '1', harnesses: [], build: 3 }, 'demo'),

@@ -15,6 +15,7 @@ const COMMANDS = {
   'demo/commands/coding/pr/make.md': '---\ndescription: Make a PR, then run {{command:coding:pr:review}}.\n---\nRun $ARGUMENTS.\n',
   'demo/commands/coding/pr/review.md': 'Review it. Then see {{command:top}} and {{command:coding:pr:make}}.\n',
   'demo/commands/top.md': 'Top level.\n',
+  'demo/commands/notes.txt': 'Not a command.\n',
 }
 
 const CUSTOM_BUILD = `
@@ -36,7 +37,7 @@ writeFileSync(join(out, 'seen.json'), JSON.stringify({ argv: process.argv.slice(
 async function setup(t: TestContext, files: Record<string, string>, fields: Record<string, unknown> = {}) {
   const dir = await tempDir(t)
   const root = await makeRepo(join(dir, 'repo'), { 'demo/agent-plugin.json': manifest('demo', fields), ...files }, DATE)
-  const out = join(dir, 'out')
+  const out = join(dir, "out dir's")
   const build = (harness: Harness) =>
     buildPlugin({ root, plugin: findPlugin(discoverPlugins(root), 'demo'), harness, version: VERSION, out })
   return { root, out, build }

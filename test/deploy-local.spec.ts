@@ -112,7 +112,7 @@ test('the Pi deploy removes released installs and installs each local path once'
   assert.equal(JSON.parse(await readFile(join(dataDir, 'pi/beta/package.json'), 'utf8')).version, VERSION)
 })
 
-test('deploying with no harness list covers Claude and Pi', async (t) => {
+test('deploying to both harnesses runs both installers', async (t) => {
   const { fake, deploy } = await setup(t, () => ({}))
   await deploy(['claude', 'pi'])
   assert.ok(fake.calls.includes('claude plugin install alpha@jxf-local'))

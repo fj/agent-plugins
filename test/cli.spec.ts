@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { parseCli } from '../scripts/lib/cli.ts'
+import { main, parseCli } from '../scripts/lib/cli.ts'
 import { parseHarnesses } from '../scripts/lib/harness.ts'
 
 test('a leading -- from pnpm is ignored', () => {
@@ -17,4 +17,27 @@ test('harness lists default to all harnesses and reject unknown ones', () => {
   assert.deepEqual(parseHarnesses([]), ['claude', 'pi'])
   assert.deepEqual(parseHarnesses(['pi']), ['pi'])
   assert.throws(() => parseHarnesses(['claude', 'codex']), /harness must be one of claude, pi; got codex/)
+})
+
+test('main exits with an error when the action fails or reports failure', async (t) => {
+  const errors = t.mock.method(console, 'error', () => {})
+  t.after(() => {
+    process.exitCode = 0
+  })
+  const exitAfter = async (action: () => Promise<boolean | void>) => {
+    process.exitCode = 0
+    await main(action)
+    return process.exitCode
+  }
+
+  assert.equal(await exitAfter(async () => {}), 0)
+  assert.equal(await exitAfter(async () => true), 0)
+  assert.equal(await exitAfter(async () => false), 1)
+  assert.equal(
+    await exitAfter(async () => {
+      throw new Error('boom')
+    }),
+    1,
+  )
+  assert.deepEqual(errors.mock.calls.map((call) => call.arguments), [['boom']])
 })
