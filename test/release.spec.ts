@@ -25,6 +25,8 @@ async function setup(t: TestContext, { dryRun = false, emptyIndex = false } = {}
       'alpha/commands/hello.md': 'Hello. See {{command:bye}}.\n',
       'alpha/commands/bye.md': 'Bye.\n',
       'broken/agent-plugin.json': manifest('broken', { build: 'exit 1 ;' }),
+      'pionly/agent-plugin.json': manifest('pionly', { harnesses: ['pi'] }),
+      'pionly/commands/hi.md': 'Hi.\n',
     },
     FIRST_DATE,
   )
@@ -156,6 +158,7 @@ test('each harness has its own repo and only Claude releases enter the marketpla
   const { release, remote, indexFile } = await setup(t)
   await release('claude')
   await release('pi')
+  await release('pi', 'pionly')
 
   const pi = remote('jxf-agent-plugins-alpha-pi')
   assert.deepEqual(gitIn(pi, ['ls-tree', '-r', '--name-only', 'main']).split('\n'), [
@@ -170,7 +173,10 @@ test('each harness has its own repo and only Claude releases enter the marketpla
   })
   const marketplace = JSON.parse(await indexFile('.claude-plugin/marketplace.json'))
   assert.deepEqual(marketplace.plugins.map(({ name }: { name: string }) => name), ['alpha'])
-  assert.match(await indexFile('README.md'), new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-alpha-pi@v${FIRST}\n`))
+  const readme = await indexFile('README.md')
+  assert.match(readme, /claude plugin marketplace add fj\/jxf-agent-plugins-index\nclaude plugin install alpha@jxf\n```/)
+  assert.match(readme, new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-alpha-pi@v${FIRST}\n`))
+  assert.match(readme, new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-pionly-pi@v${FIRST}\n`))
 })
 
 test('a dry run builds but creates, commits and pushes nothing', async (t) => {
