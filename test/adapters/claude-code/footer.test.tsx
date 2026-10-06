@@ -6,6 +6,7 @@ import {
   dayDirOf,
   LIVE_SURFACES,
   MODEL,
+  runTool,
   PLUGIN,
   SESSION_ID,
   shownColumn,
@@ -264,3 +265,34 @@ test(
     expect(shownRows(await ui.drawn())).toEqual([`${MODEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
   },
 )
+
+const BRANCH_GLYPH = ''
+
+test('the footer head shows the git branch of the session directory after the path', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
+  expect(w.gitCwds).toEqual([CWD])
+})
+
+test('the footer head leaves out the branch outside a git repository', async ($, on) => {
+  world(on)
+  await start($)
+
+  expect(await footerText($)).not.toContain(BRANCH_GLYPH)
+})
+
+test('the footer branch follows a checkout by a tool call and one made outside the session', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  w.branch = 'topic/x'
+  await runTool($, w)
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} topic/x`)
+
+  w.branch = 'topic/y'
+  await w.clock.advance(POLL_MS)
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} topic/y`)
+})

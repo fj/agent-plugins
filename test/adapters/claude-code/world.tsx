@@ -21,6 +21,8 @@ export type World = {
   scripts: Script[]
   toolIds: string[]
   rateLimits: SessionRateLimit[]
+  branch: string | null
+  gitCwds: string[]
 }
 
 export const USAGE: TurnUsage = {
@@ -33,6 +35,8 @@ export const USAGE: TurnUsage = {
 
 export const TOOL_MS = 2000
 
+const NOT_A_REPO = 128
+
 const NO_ROW_STORE = 'no implementation for session.append'
 
 export type WorldOptions = {
@@ -40,9 +44,13 @@ export type WorldOptions = {
   turns?: number
   isToolFailing?: boolean
   isWriteFailing?: boolean
+  branch?: string | null
 }
 
-export function world(on: On, { files = {}, turns = 0, isToolFailing = false, isWriteFailing = false }: WorldOptions = {}): World {
+export function world(
+  on: On,
+  { files = {}, turns = 0, isToolFailing = false, isWriteFailing = false, branch = null }: WorldOptions = {},
+): World {
   const w: World = {
     clock: mock.clock(on, { now: T0 }),
     files: new Map(Object.entries(files)),
@@ -50,6 +58,8 @@ export function world(on: On, { files = {}, turns = 0, isToolFailing = false, is
     scripts: [],
     toolIds: [],
     rateLimits: [],
+    branch,
+    gitCwds: [],
   }
   mock.env(on, { HOME })
 
@@ -96,6 +106,16 @@ export function world(on: On, { files = {}, turns = 0, isToolFailing = false, is
         mtimeMs: 0,
         isLink: false,
       })),
+    }
+  })
+  on('process.run', (_$, e) => {
+    w.gitCwds.push(e.init?.cwd ?? '')
+
+    return {
+      value:
+        w.branch === null
+          ? { exitCode: NOT_A_REPO, stdout: '', stderr: 'fatal: not a git repository', isStdoutTruncated: false, isStderrTruncated: false }
+          : { exitCode: 0, stdout: `${w.branch}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
     }
   })
   on('turn.step', async function* (_$, e) {

@@ -8,6 +8,7 @@ import { isPersistedRecord, NO_OTHER_SESSIONS, persistDay, readOtherSessions } f
 import type { TokenUsage } from '../../core/usage.ts'
 import type { Config } from './config.ts'
 import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
+import { branchFrom, SHOW_BRANCH } from './git.ts'
 import { isUserOrigin } from './origin.ts'
 
 const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
@@ -15,8 +16,10 @@ const othersAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'others' } as co
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const, EMPTY_ROWS)
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
+const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
 
-const OTHERS_POLL_MS = 30_000
+const POLL_MS = 30_000
+const GIT_TIMEOUT_MS = 2000
 
 type ContentBlock = { type: string; [field: string]: unknown }
 
@@ -64,6 +67,19 @@ async function refreshOthers($: EngineInterface): Promise<void> {
   await update($, othersAtom, () => others)
 }
 
+async function refreshBranch($: EngineInterface): Promise<void> {
+  const cwd = await $.session.cwd()
+  const branch = await $.process
+    .run(SHOW_BRANCH, { cwd, timeoutMs: GIT_TIMEOUT_MS })
+    .then(branchFrom)
+    .catch(() => null)
+  await update($, branchAtom, () => branch)
+}
+
+async function refreshPolled($: EngineInterface): Promise<void> {
+  await Promise.all([refreshOthers($), refreshBranch($)])
+}
+
 function debugLog($: EngineInterface, isDebug: boolean, text: string): void {
   if (isDebug) {
     $.ui.log(text)
@@ -82,8 +98,8 @@ export function trackEvents(on: On, config: Config): void {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     await refreshUsage($)
-    await refreshOthers($)
-    $.clock.every(OTHERS_POLL_MS, () => void refreshOthers($))
+    await refreshPolled($)
+    $.clock.every(POLL_MS, () => void refreshPolled($))
 
     return started
   })
@@ -186,6 +202,7 @@ export function trackEvents(on: On, config: Config): void {
       return await next(e)
     } finally {
       await record($, config, { kind: 'toolEnd', id, at: await $.clock.now() })
+      await refreshBranch($)
     }
   })
 
@@ -197,7 +214,7 @@ export function trackEvents(on: On, config: Config): void {
         await record($, config, { kind: 'turnEnd', at: await $.clock.now() })
       }
 
-      await refreshOthers($)
+      await refreshPolled($)
     }
 
     return next(e)

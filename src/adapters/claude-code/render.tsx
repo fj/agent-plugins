@@ -20,6 +20,7 @@ const othersAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'others' } as co
 const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const, EMPTY_ROWS)
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
+const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '
@@ -58,11 +59,13 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const others = await read($, othersAtom)
   const rateLimits = await read($, rateLimitsAtom)
   const context = await read($, contextAtom)
+  const branch = await read($, branchAtom)
   const windows = config.subscription.read({ windows: rateLimits })
 
   return {
     model: await $.session.model(),
     cwd: await $.session.cwd(),
+    branch: branch ?? undefined,
     home: (await $.env.get('HOME')) ?? '',
     session: ledger.totals,
     today: todayTotals(days, others, await $.clock.now()),
