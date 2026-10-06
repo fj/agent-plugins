@@ -10,11 +10,11 @@ const SHARED_FIELDS = ['name', 'version', 'description', 'author', 'repository']
 const NPM_MANIFEST = 'package.json'
 const REPOSITORY = 'https://github.com/fj/agent-plugins'
 
-export type Variant = { harness: string; adapter: string; package: string; manifest: string }
+export type Variant = { harness: string; adapter: string; manifest: string }
 
 export const VARIANTS: Variant[] = [
-  { harness: 'claude', adapter: 'claude-code', package: 'mod-jxf-fancy-details-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
-  { harness: 'pi', adapter: 'pi', package: 'mod-jxf-fancy-details-pi', manifest: NPM_MANIFEST },
+  { harness: 'claude', adapter: 'claude-code', manifest: join('.claude-plugin', 'plugin.json') },
+  { harness: 'pi', adapter: 'pi', manifest: NPM_MANIFEST },
 ]
 
 export async function buildVariant(variant: Variant, out: string, version: string, root = ROOT): Promise<void> {
@@ -39,7 +39,7 @@ function belongsTo(variant: Variant, path: string): boolean {
 async function manifestsOf(variant: Variant, root: string, version: string): Promise<Map<string, Record<string, unknown>>> {
   const shared = pick({ ...(await readPluginManifest(root)), version, repository: REPOSITORY }, SHARED_FIELDS)
   const template = await readJson(join(root, ADAPTERS, variant.adapter, TEMPLATE))
-  const manifests = new Map([[NPM_MANIFEST, { ...shared, name: variant.package }]])
+  const manifests = new Map([[NPM_MANIFEST, shared]])
 
   manifests.set(variant.manifest, { ...(manifests.get(variant.manifest) ?? shared), ...template })
   return manifests

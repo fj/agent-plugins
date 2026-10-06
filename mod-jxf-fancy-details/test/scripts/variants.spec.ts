@@ -23,7 +23,7 @@ before(async () => {
 
 after(() => rm(scratch, { recursive: true, force: true }))
 
-test('every variant has an npm manifest named for its package with the shared fields', async () => {
+test('every variant has an npm manifest named for the plugin with the shared fields', async () => {
   for (const variant of VARIANTS) {
     const manifest = await readJson(join(outOf(variant), 'package.json'))
 
@@ -35,7 +35,7 @@ test('every variant has an npm manifest named for its package with the shared fi
         author: manifest.author,
         repository: manifest.repository,
       },
-      { name: variant.package, version: VERSION, description: DESCRIPTION, author: AUTHOR, repository: REPOSITORY },
+      { name: 'mod-jxf-fancy-details', version: VERSION, description: DESCRIPTION, author: AUTHOR, repository: REPOSITORY },
     )
   }
 })
