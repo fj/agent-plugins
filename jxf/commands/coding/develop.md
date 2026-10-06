@@ -28,13 +28,13 @@ $ARGUMENTS
    - **Overlapping or dependent tasks** run sequentially, or are merged into a single subagent when they're really one unit of work.
    - **Read-only tasks** (research, analysis, review) never need isolation and can always run in parallel.
 4. Choose isolation per subagent:
-   - Use a separate git worktree (`isolation: "worktree"`) for any subagent that mutates files while other mutating subagents run concurrently.
+   - Use a separate git worktree for any subagent that mutates files while other mutating subagents run concurrently.
    - Skip worktree isolation when only one subagent writes at a time, or the task is read-only.
 5. Briefly state the plan (tasks, grouping, isolation choices) before launching. For a single trivial task, skip the ceremony and just do it inline.
 
 ## Execute
 
-1. Launch parallel subagents in a single batch so they run concurrently. Give each a self-contained prompt: the task, relevant file paths or context discovered during planning, and clear completion criteria.
+1. Launch independent subagents in parallel. Give each a self-contained prompt: the task, relevant file paths or context discovered during planning, and clear completion criteria.
 2. Instruct each mutating subagent to report exactly what it changed (files, tests run, results). Worktree-isolated agents should commit their work in the worktree so it can be merged back.
 3. Include the following commit rules verbatim in every worktree-isolated subagent's prompt, filling in the placeholders:
 
