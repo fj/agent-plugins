@@ -6,7 +6,9 @@ import { test, type TestContext } from 'node:test'
 
 import type { Harness } from '../scripts/lib/harness.ts'
 import { discoverPlugins, findPlugin } from '../scripts/lib/manifest.ts'
+import { main } from '../scripts/lib/cli.ts'
 import { releaseAll, releasePlugin, type ReleaseContext } from '../scripts/lib/release.ts'
+import { reportReleaseAll } from '../scripts/lib/release-all.ts'
 import { commitAll, gitIn, makeRepo, manifest, tempDir, writeFiles } from './helpers.ts'
 
 const FIRST_DATE = '2026-01-02T03:04:05Z'
@@ -25,6 +27,8 @@ async function setup(t: TestContext, { dryRun = false, emptyIndex = false } = {}
       'alpha/commands/hello.md': 'Hello. See {{command:bye}}.\n',
       'alpha/commands/bye.md': 'Bye.\n',
       'broken/agent-plugin.json': manifest('broken', { build: 'exit 1 ;' }),
+      'pionly/agent-plugin.json': manifest('pionly', { harnesses: ['pi'] }),
+      'pionly/commands/hi.md': 'Hi.\n',
     },
     FIRST_DATE,
   )
@@ -156,6 +160,7 @@ test('each harness has its own repo and only Claude releases enter the marketpla
   const { release, remote, indexFile } = await setup(t)
   await release('claude')
   await release('pi')
+  await release('pi', 'pionly')
 
   const pi = remote('jxf-agent-plugins-alpha-pi')
   assert.deepEqual(gitIn(pi, ['ls-tree', '-r', '--name-only', 'main']).split('\n'), [
@@ -170,7 +175,10 @@ test('each harness has its own repo and only Claude releases enter the marketpla
   })
   const marketplace = JSON.parse(await indexFile('.claude-plugin/marketplace.json'))
   assert.deepEqual(marketplace.plugins.map(({ name }: { name: string }) => name), ['alpha'])
-  assert.match(await indexFile('README.md'), new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-alpha-pi@v${FIRST}\n`))
+  const readme = await indexFile('README.md')
+  assert.match(readme, /claude plugin marketplace add fj\/jxf-agent-plugins-index\nclaude plugin install alpha@jxf\n```/)
+  assert.match(readme, new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-alpha-pi@v${FIRST}\n`))
+  assert.match(readme, new RegExp(`pi install git:github.com/fj/jxf-agent-plugins-pionly-pi@v${FIRST}\n`))
 })
 
 test('a dry run builds but creates, commits and pushes nothing', async (t) => {
@@ -224,6 +232,28 @@ test('release:all reports every plugin, even after a failure', async (t) => {
     ],
   )
   assert.equal(existsSync(remote('jxf-agent-plugins-alpha-claude')), true)
+})
+
+test('the release:all command exits with an error only when a plugin fails', async (t) => {
+  const { ctx, root } = await setup(t, { dryRun: true })
+  t.after(() => {
+    process.exitCode = 0
+  })
+  const run = async () => {
+    const lines: string[] = []
+    process.exitCode = 0
+    await main(() => reportReleaseAll({ ...ctx, log: (line) => lines.push(line) }, 'claude'))
+    return { exitCode: process.exitCode, summary: lines.slice(lines.indexOf('\nSummary:')) }
+  }
+
+  const failed = await run()
+  assert.equal(failed.exitCode, 1)
+  assert.deepEqual(failed.summary.slice(0, 2), ['\nSummary:', `  alpha: dry run ${FIRST}`])
+  assert.match(failed.summary[2]!, /^ {2}broken: FAILED: .*exit code 1/)
+
+  await rm(join(root, 'broken'), { recursive: true })
+  commitAll(root, 'remove broken', SECOND_DATE)
+  assert.deepEqual(await run(), { exitCode: 0, summary: ['\nSummary:', `  alpha: dry run ${FIRST}`] })
 })
 
 test('a release into a fresh index clone initializes the existing submodule', async (t) => {
