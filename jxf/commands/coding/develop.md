@@ -4,7 +4,7 @@ description: Carry out directions or a task list with subagents on parallel git 
 
 Carry out the following directions or task list by decomposing the work and fanning out subagents on parallel git worktrees.
 
-* **This command never commits or merges to `main`.** It produces changes and leaves them on `agent/*` branches or in the working tree; organizing them into `topic/*` branches is `/jxf:coding:organize`'s job, and landing them on `main` is the user's. Only override this if the user explicitly asks.
+* **This command never commits or merges to `main`.** It produces changes and leaves them on `agent/*` branches or in the working tree; organizing them into `topic/*` branches is `{{command:coding:organize}}`'s job, and landing them on `main` is the user's. Only override this if the user explicitly asks.
 
 * **Never push an `agent/*` branch to a remote.** `agent/*` branches are local, throwaway scratch created by the fan-out below; anything that needs to reach a remote (a PR) goes on a `topic/*` branch instead. A global `pre-push` hook enforces this, but don't rely on it — don't try to push `agent/*` in the first place.
 
@@ -45,10 +45,10 @@ $ARGUMENTS
    > 4. When done, report your branch name. Do not integrate your work yourself.
 
 4. As results come in, verify them: check that claimed changes exist, run tests or builds where applicable.
-5. Leave results where `/jxf:coding:organize` can pick them up: worktree agents keep their committed `agent/*` branches; non-isolated agents leave plain uncommitted changes in the working tree (no `git add`/`git commit`). If the current branch is not `main`/shared you may merge `agent/*` branches onto it for convenience, but never onto `main`, never delete `agent/*` branches at this stage — `/jxf:coding:organize` consumes them later — and surface any conflicts to the user instead of picking a side.
+5. Leave results where `{{command:coding:organize}}` can pick them up: worktree agents keep their committed `agent/*` branches; non-isolated agents leave plain uncommitted changes in the working tree (no `git add`/`git commit`). If the current branch is not `main`/shared you may merge `agent/*` branches onto it for convenience, but never onto `main`, never delete `agent/*` branches at this stage — `{{command:coding:organize}}` consumes them later — and surface any conflicts to the user instead of picking a side.
 
 ## Report
 
 - Summarize per task: what was done, by which agent, and verification status.
 - List any tasks that failed, were skipped, or need user decisions, with enough detail to act on.
-- State where each task's output lives (`agent/*` branch names and/or working-tree changes), and remind the user that `/jxf:coding:organize` turns this output into `topic/*` branches ready to merge.
+- State where each task's output lives (`agent/*` branch names and/or working-tree changes), and remind the user that `{{command:coding:organize}}` turns this output into `topic/*` branches ready to merge.

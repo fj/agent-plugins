@@ -2,14 +2,14 @@
 description: Organize work into logical commits on topic/* branches
 ---
 
-Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `/jxf:coding:develop` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
+Organize all outstanding work — uncommitted changes in the working tree and any `agent/*` branches left by `{{command:coding:develop}}` — into logical, complete commits on `topic/*` branches. Leave branches unmerged.
 
 ## Process
 
 1. Start from the latest:
    - If there is a remote, `git fetch` it, then fast-forward `main` to its remote counterpart (`git pull --ff-only`) so topic branches are created from the current tip.
    - If worktree changes block the fast-forward or `main` has diverged, don't force it — surface the situation and ask how to proceed.
-2. Inventory the outstanding work: `git status` and `git diff` for modified, staged, and untracked files, plus `git branch --list 'agent/*'` for branches left behind by `/jxf:coding:develop` (with `git log --oneline main..agent/<name>` and `git diff main...agent/<name>` for their commits). Read the file contents and diffs to understand what each change does.
+2. Inventory the outstanding work: `git status` and `git diff` for modified, staged, and untracked files, plus `git branch --list 'agent/*'` for branches left behind by `{{command:coding:develop}}` (with `git log --oneline main..agent/<name>` and `git diff main...agent/<name>` for their commits). Read the file contents and diffs to understand what each change does.
 3. Propose a set of topic branches, each with:
    - A branch name (`topic/<slug>`)
    - The files it includes
