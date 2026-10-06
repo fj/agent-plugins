@@ -1,23 +1,23 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative, sep } from 'node:path'
 
-import { readJson, readRootManifest, ROOT } from './root-manifest.ts'
+import { readJson, readPluginManifest, ROOT } from './plugin-manifest.ts'
 
 const ADAPTERS = join('src', 'adapters')
 const TEMPLATE = 'manifest.json'
 const DEV_ONLY = new Set([TEMPLATE, 'tsconfig.json'])
-const SHARED_FIELDS = ['name', 'version', 'description', 'author']
-const NPM_FIELDS = [...SHARED_FIELDS, 'repository']
+const SHARED_FIELDS = ['name', 'version', 'description', 'author', 'repository']
 const NPM_MANIFEST = 'package.json'
+const REPOSITORY = 'https://github.com/fj/agent-plugins'
 
-export type Variant = { name: string; package: string; manifest: string }
+export type Variant = { harness: string; adapter: string; manifest: string }
 
 export const VARIANTS: Variant[] = [
-  { name: 'claude-code', package: 'mod-jxf-fancy-details-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
-  { name: 'pi', package: 'mod-jxf-fancy-details-pi', manifest: NPM_MANIFEST },
+  { harness: 'claude', adapter: 'claude-code', manifest: join('.claude-plugin', 'plugin.json') },
+  { harness: 'pi', adapter: 'pi', manifest: NPM_MANIFEST },
 ]
 
-export async function buildVariant(variant: Variant, out: string, root = ROOT, version?: string): Promise<void> {
+export async function buildVariant(variant: Variant, out: string, version: string, root = ROOT): Promise<void> {
   await rm(join(out, 'src'), { recursive: true, force: true })
   await cp(join(root, 'src'), join(out, 'src'), {
     recursive: true,
@@ -30,18 +30,18 @@ export async function buildVariant(variant: Variant, out: string, root = ROOT, v
 }
 
 function belongsTo(variant: Variant, path: string): boolean {
-  const adapter = join(ADAPTERS, variant.name)
+  const adapter = join(ADAPTERS, variant.adapter)
 
   if (path.startsWith(ADAPTERS + sep) && path !== adapter && !path.startsWith(adapter + sep)) return false
   return !(dirname(path) === adapter && DEV_ONLY.has(basename(path)))
 }
 
-async function manifestsOf(variant: Variant, root: string, version?: string): Promise<Map<string, Record<string, unknown>>> {
-  const shared = { ...(await readRootManifest(root)), ...(version && { version }) }
-  const template = await readJson(join(root, ADAPTERS, variant.name, TEMPLATE))
-  const manifests = new Map([[NPM_MANIFEST, { ...pick(shared, NPM_FIELDS), name: variant.package }]])
+async function manifestsOf(variant: Variant, root: string, version: string): Promise<Map<string, Record<string, unknown>>> {
+  const shared = pick({ ...(await readPluginManifest(root)), version, repository: REPOSITORY }, SHARED_FIELDS)
+  const template = await readJson(join(root, ADAPTERS, variant.adapter, TEMPLATE))
+  const manifests = new Map([[NPM_MANIFEST, shared]])
 
-  manifests.set(variant.manifest, { ...(manifests.get(variant.manifest) ?? pick(shared, SHARED_FIELDS)), ...template })
+  manifests.set(variant.manifest, { ...(manifests.get(variant.manifest) ?? shared), ...template })
   return manifests
 }
 
