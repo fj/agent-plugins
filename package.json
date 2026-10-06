@@ -6,7 +6,8 @@
     "test": "node --test 'test/**/*.spec.ts'",
     "release": "node scripts/release.ts",
     "release:all": "node scripts/release-all.ts",
-    "deploy:local": "node scripts/deploy-local.ts"
+    "deploy:local": "node scripts/deploy-local.ts",
+    "install:released": "node scripts/install-released.ts"
   },
   "engines": { "node": ">=22.18" }
 }
