@@ -6,7 +6,9 @@ import { test, type TestContext } from 'node:test'
 
 import type { Harness } from '../scripts/lib/harness.ts'
 import { discoverPlugins, findPlugin } from '../scripts/lib/manifest.ts'
+import { main } from '../scripts/lib/cli.ts'
 import { releaseAll, releasePlugin, type ReleaseContext } from '../scripts/lib/release.ts'
+import { reportReleaseAll } from '../scripts/lib/release-all.ts'
 import { commitAll, gitIn, makeRepo, manifest, tempDir, writeFiles } from './helpers.ts'
 
 const FIRST_DATE = '2026-01-02T03:04:05Z'
@@ -230,6 +232,28 @@ test('release:all reports every plugin, even after a failure', async (t) => {
     ],
   )
   assert.equal(existsSync(remote('jxf-agent-plugins-alpha-claude')), true)
+})
+
+test('the release:all command exits with an error only when a plugin fails', async (t) => {
+  const { ctx, root } = await setup(t, { dryRun: true })
+  t.after(() => {
+    process.exitCode = 0
+  })
+  const run = async () => {
+    const lines: string[] = []
+    process.exitCode = 0
+    await main(() => reportReleaseAll({ ...ctx, log: (line) => lines.push(line) }, 'claude'))
+    return { exitCode: process.exitCode, summary: lines.slice(lines.indexOf('\nSummary:')) }
+  }
+
+  const failed = await run()
+  assert.equal(failed.exitCode, 1)
+  assert.deepEqual(failed.summary.slice(0, 2), ['\nSummary:', `  alpha: dry run ${FIRST}`])
+  assert.match(failed.summary[2]!, /^ {2}broken: FAILED: .*exit code 1/)
+
+  await rm(join(root, 'broken'), { recursive: true })
+  commitAll(root, 'remove broken', SECOND_DATE)
+  assert.deepEqual(await run(), { exitCode: 0, summary: ['\nSummary:', `  alpha: dry run ${FIRST}`] })
 })
 
 test('a release into a fresh index clone initializes the existing submodule', async (t) => {
