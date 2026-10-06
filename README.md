@@ -48,3 +48,28 @@ To refer to another command of the same plugin, write `{{command:<path>}}`, wher
 
 - GitHub repo `fj/jxf-agent-plugins-<plugin>-<harness>`, a submodule at `<plugin>-<harness>` in the index.
 - Each release replaces the whole tree, commits it on `main` and tags it `v<x.y.t>`.
+
+## Commands
+
+Run these from the repo root with Node 22.18 or newer. No install step is needed. With pnpm, put `--` before the arguments, for example `pnpm run release -- claude jxf --dry-run`.
+
+| Command | What it does |
+|---|---|
+| `pnpm test` | Runs the tests of the tools. |
+| `pnpm run release <harness> <plugin> [--dry-run]` | Releases one plugin for one harness. |
+| `pnpm run release:all <harness> [--dry-run]` | Releases every plugin that supports the harness. One failure does not stop the others. It prints a summary and exits with an error if any release failed. |
+| `pnpm run deploy:local [harness...]` | Builds every plugin and installs the builds in the local harnesses. The default is `claude` and `pi`. |
+| `pnpm run install:released [harness...]` | Installs the released versions from the index in place of local builds. The default is `claude` and `pi`. |
+
+All commands read plugins and build them from the committed `HEAD`, not from the working tree.
+
+A release:
+
+1. Needs a clean checkout. It runs the plugin `test` in the plugin directory of this checkout.
+2. Builds the plugin. `--dry-run` stops here and reports the version.
+3. Uses the index checkout at `../jxf-agent-plugins-index`, or at `$JXF_AGENT_PLUGINS_INDEX`. It clones the index if it is missing. The index must be clean and on `main`; the release pulls it first.
+4. Creates the release repo and its submodule if they do not exist yet. `gh` runs with the token of the repo owner (`gh auth token --user fj`).
+5. Skips the release if the tag `v<version>` exists. Otherwise it commits the build on `main`, tags it and pushes both.
+6. Updates `releases.json`, `.claude-plugin/marketplace.json` and `README.md` in the index, commits and pushes.
+
+`deploy:local` writes builds to `${XDG_DATA_HOME:-~/.local/share}/jxf-agent-plugins/<harness>/<plugin>`. Claude Code loads them from the `jxf-local` marketplace in that directory; run `/reload-plugins` after a deploy. Pi loads them from their paths. `install:released` reverses this: Claude Code uses the `jxf` marketplace from the index, and Pi installs `git:github.com/fj/jxf-agent-plugins-<plugin>-pi@v<version>`.
