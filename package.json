@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test 'test/**/*.spec.ts'"
+    "test": "node --test 'test/**/*.spec.ts'",
+    "release": "node scripts/release.ts",
+    "release:all": "node scripts/release-all.ts"
   },
   "engines": { "node": ">=22.18" }
 }

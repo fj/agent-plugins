@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { TestContext } from 'node:test'
 
+import type { Run, RunOptions } from '../scripts/lib/run.ts'
+
 const GIT_CONFIG = `[user]
   name = Test
   email = test@example.com
@@ -65,4 +67,18 @@ export function manifest(name: string, fields: Record<string, unknown> = {}): st
     harnesses: ['claude', 'pi'],
     ...fields,
   })
+}
+
+export type FakeRunner = { run: Run; calls: string[]; options: RunOptions[] }
+
+export function fakeRunner(outputs: Record<string, string> = {}): FakeRunner {
+  const calls: string[] = []
+  const options: RunOptions[] = []
+  const run: Run = (command, args, opts = {}) => {
+    const call = [command, ...args].join(' ')
+    calls.push(call)
+    options.push(opts)
+    return outputs[call] ?? ''
+  }
+  return { run, calls, options }
 }
