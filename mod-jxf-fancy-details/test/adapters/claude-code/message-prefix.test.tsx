@@ -58,8 +58,8 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
   for (const ui of drawings) {
     const text = shownText(await ui.drawn())
     expect(text).toContain('{2026-10-03 04:20:37 Δ 3.0s}')
-    expect(text).toContain('{turn 1.1: ↑ ( Δ 1.2k + ⟲ 5.0k ) / Σ 6.2k · ↓ Δ 300 / Σ 300}')
-    expect(text).toMatch(/\{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}/)
+    expect(text).toContain('{turn 1.1: ↑ (Δ1.2k + ⟲5.0k) / Σ6.2k · ↓ Δ300 / Σ300}')
+    expect(text).toMatch(/\{Δ\$0\.\d\d \/ Σ\$0\.\d\d\}/)
   }
 })
 
@@ -77,7 +77,7 @@ test('the turn counter shows one input count when cached input is off', { option
     props: ROW,
     requestId: 'reply-1',
   })
-  expect(shownText(await ui.drawn())).toContain('{turn 1.1: ↑ Δ 6.2k / Σ 6.2k · ↓ Δ 300 / Σ 300}')
+  expect(shownText(await ui.drawn())).toContain('{turn 1.1: ↑ Δ6.2k / Σ6.2k · ↓ Δ300 / Σ300}')
 })
 
 test('later rows of a reply and unknown rows get no prefix', async ($, on) => {
@@ -144,7 +144,7 @@ test('a model without public pricing shows a lower bound', async ($, on) => {
   }
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW })
-  expect(shownText(await ui.drawn())).toContain('{Δ $0.00+ / Σ $0.00+}')
+  expect(shownText(await ui.drawn())).toContain('{Δ$0.00+ / Σ$0.00+}')
 })
 
 test('subagent steps stay out of the ledger', async ($, on) => {

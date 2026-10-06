@@ -128,7 +128,7 @@ test('the message prefix shows one input count when cached input is off', async 
   const step = s.ours().find(entry => (entry.data as { kind: string }).kind === 'step')!
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
-  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ 76\.5k \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\}/)
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ Δ76\.5k \/ Σ76\.5k · ↓ Δ3\.2k \/ Σ3\.2k\}/)
 })
 
 test('the message prefix fills in tokens and cost when the step ends, and tools get live timers', async () => {
@@ -143,7 +143,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
-  assert.match(s.shown(step), /\{turn 1\.1: ↑ \( Δ 15\.4k \+ ⟲ 61\.1k \) \/ Σ 76\.5k · ↓ Δ 3\.2k \/ Σ 3\.2k\} \{Δ \$0\.\d\d \/ Σ \$0\.\d\d\}$/)
+  assert.match(s.shown(step), /\{turn 1\.1: ↑ \(Δ15\.4k \+ ⟲61\.1k\) \/ Σ76\.5k · ↓ Δ3\.2k \/ Σ3\.2k\} \{Δ\$0\.\d\d \/ Σ\$0\.\d\d\}$/)
 
   const row = new FakeToolRow('call-1') as ToolRow
 
@@ -259,7 +259,7 @@ test('a resumed session rebuilds prefixes from its records', async () => {
   await s.emit('session_start', { reason: 'resume' })
 
   assert.equal(s.shown(branch[1]!), '\n {2026-10-03 04:20:37 Δ 1.0s}')
-  assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ \( Δ 15\.4k/)
+  assert.match(s.shown(branch[2]!), /^\n \{2026-10-03 04:20:38 Δ 3\.0s\} \{turn 1\.1: ↑ \(Δ15\.4k/)
   assert.equal(s.pi.renders(branch[3]!), false)
   assert.equal(s.pi.renders(branch[4]!), false)
   assert.match(s.footerLines()![1]!, /session 5\.0s · \$0\.\d\d /)
@@ -323,11 +323,11 @@ test('moving to another branch replays that branch for the prefixes', async () =
   const entry = { type: 'custom', customType: CUSTOM_TYPE, data: step(0)[1] }
 
   await s.emit('session_start', { reason: 'resume' })
-  assert.match(s.shown(entry), /↓ Δ 1\.0k/)
+  assert.match(s.shown(entry), /↓ Δ1\.0k/)
 
   s.pi.branch.splice(0, s.pi.branch.length, ...step(2000).map(data => ({ type: 'custom', customType: CUSTOM_TYPE, data })))
   await s.emit('session_tree', {})
-  assert.match(s.shown(entry), /↓ Δ 2\.0k/)
+  assert.match(s.shown(entry), /↓ Δ2\.0k/)
 })
 
 test('switching to a model without a subscription drops the meter', async () => {

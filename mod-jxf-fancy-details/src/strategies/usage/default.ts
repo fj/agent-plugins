@@ -27,15 +27,15 @@ function price(model: string, usage: TokenUsage): Cost {
 
 function stepInput(step: TokenUsage, display: TokenDisplay): Line {
   if (!display.showsCachedInput) {
-    return [seg('Δ ', 'muted'), seg(formatTokens(totalInput(step)), 'input')]
+    return [seg('Δ', 'muted'), seg(formatTokens(totalInput(step)), 'input')]
   }
 
   return [
-    seg('( Δ ', 'muted'),
+    seg('(Δ', 'muted'),
     seg(formatTokens(newInput(step)), 'input'),
-    seg(' + ⟲ ', 'muted'),
+    seg(' + ⟲', 'muted'),
     seg(formatTokens(step.cacheRead), 'cache'),
-    seg(' )', 'muted'),
+    seg(')', 'muted'),
   ]
 }
 
@@ -43,17 +43,17 @@ function stepTokens(step: TokenUsage, session: TokenUsage, display: TokenDisplay
   return [
     seg('↑ ', 'muted'),
     ...stepInput(step, display),
-    seg(' / Σ ', 'muted'),
+    seg(' / Σ', 'muted'),
     seg(formatTokens(totalInput(session)), 'input'),
-    seg(' · ↓ Δ ', 'muted'),
+    seg(' · ↓ Δ', 'muted'),
     seg(formatTokens(step.output), 'output'),
-    seg(' / Σ ', 'muted'),
+    seg(' / Σ', 'muted'),
     seg(formatTokens(session.output), 'output'),
   ]
 }
 
 function stepCost(step: Cost, session: Cost): Line {
-  return [seg('Δ ', 'muted'), seg(formatUsd(step), 'cost'), seg(' / Σ ', 'muted'), seg(formatUsd(session), 'cost')]
+  return [seg('Δ', 'muted'), seg(formatUsd(step), 'cost'), seg(' / Σ', 'muted'), seg(formatUsd(session), 'cost')]
 }
 
 function cachedInput(total: TokenUsage): Line {
