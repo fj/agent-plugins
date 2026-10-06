@@ -61,6 +61,7 @@ declare module 'claude-code' {
       rows: FancyRows
       rateLimits: readonly FancyQuotaWindow[]
       context: FancyContextFill | null
+      branch: string | null
     }
   }
 }

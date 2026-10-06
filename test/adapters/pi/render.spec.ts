@@ -20,10 +20,8 @@ test('a live timer shimmers per character; a stopped one is a single gray run', 
   assert.equal(done, '\x1b[38;2;138;138;138mabc\x1b[39m')
 })
 
-test('right alignment pads to the width, keeps the left text only when it fits, and never overflows', () => {
+test('right alignment pads to the width and never overflows', () => {
   assert.equal(alignRight('abc', 6, measure), '   abc')
-  assert.equal(alignRight('abc', 8, measure, 'xy'), 'xy   abc')
-  assert.equal(alignRight('abc', 5, measure, 'xy'), '  abc')
   assert.equal(alignRight('abcdef', 4, measure), 'abcd')
 })
 

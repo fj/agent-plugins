@@ -196,11 +196,21 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.equal(status, 'lens ok')
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
-  assert.match(head!, /^\(main\) +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
   assert.match(session!, /^ +session \$0\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(today!, /^ +today \$10\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
 })
+test('the footer head leaves out the branch outside a git repository', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines(footerData({}, null))!
+
+  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+})
+
 test('the footer follows the config for one totals line, cached input and the context window', async () => {
   const s = setup({ config: { combineTotals: true, showCachedInput: false }, context: { tokens: 50_000, contextWindow: 200_000, percent: 25 } })
 

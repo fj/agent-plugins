@@ -41,16 +41,8 @@ export function chatLine(text: string, width: number, measure: TextWidth): strin
   return measure.truncateToWidth(`${CHAT_INDENT}${text}`, width)
 }
 
-export function alignRight(text: string, width: number, measure: TextWidth, left = ''): string {
+export function alignRight(text: string, width: number, measure: TextWidth): string {
   const used = measure.visibleWidth(text)
-  const leftWidth = measure.visibleWidth(left)
 
-  if (used >= width) {
-    return measure.truncateToWidth(text, width)
-  }
-
-  const showLeft = left !== '' && leftWidth + 1 + used <= width
-  const gap = width - used - (showLeft ? leftWidth : 0)
-
-  return `${showLeft ? left : ''}${' '.repeat(gap)}${text}`
+  return used >= width ? measure.truncateToWidth(text, width) : `${' '.repeat(width - used)}${text}`
 }

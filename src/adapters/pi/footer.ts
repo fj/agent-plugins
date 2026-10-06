@@ -1,9 +1,8 @@
 import type { Totals } from '../../core/totals.ts'
 import type { ContextFill } from '../../render/context.ts'
 import { footer, type FooterLayout } from '../../render/footer.ts'
-import { PALETTE } from '../../render/palette.ts'
 import type { Line } from '../../render/segment.ts'
-import { alignRight, paint, paintLine } from './paint.ts'
+import { alignRight, paintLine } from './paint.ts'
 import type { Scene } from './views.ts'
 
 export type FooterScene = Scene & {
@@ -36,6 +35,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
   const lines = footer({
     model: scene.model(),
     cwd: scene.cwd(),
+    branch: data.getGitBranch() ?? undefined,
     home: scene.home,
     session: scene.ledger().totals,
     today: scene.today(),
@@ -46,10 +46,8 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),
     layout: scene.layout(),
   })
-  const branch = data.getGitBranch()
-  const left = branch === null ? '' : paint(`(${branch})`, PALETTE.muted)
   const statuses = statusLine(data)
-  const main = lines.map((line, i) => alignRight(paintLine(line), width, scene.measure, i === 0 ? left : ''))
+  const main = lines.map(line => alignRight(paintLine(line), width, scene.measure))
 
   return statuses === undefined ? main : [scene.measure.truncateToWidth(statuses, width), ...main]
 }

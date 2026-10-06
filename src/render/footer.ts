@@ -9,6 +9,7 @@ export type FooterLayout = { isTotalsCombined: boolean; showsSubscription: boole
 export type FooterInput = {
   model: string
   cwd: string
+  branch?: string
   home: string
   session: Totals
   today: Totals
@@ -22,6 +23,7 @@ export type FooterInput = {
 
 const ZERO_DURATION = formatDuration(0)
 const GROUP_GAP = seg('  ')
+const BRANCH_SYMBOL = '\ue0a0'
 
 function timeSegments(activeMs: number): Line {
   const duration = formatDuration(activeMs)
@@ -52,11 +54,16 @@ function metersLine({ quota, context, layout }: FooterInput): Line {
   return join([shownQuota, shownContext], GROUP_GAP)
 }
 
+function branchSegments(branch: string | undefined): Line {
+  return branch === undefined ? [] : [seg(' · ', 'muted'), seg(`${BRANCH_SYMBOL} ${branch}`, 'branch')]
+}
+
 export function footerHead(input: FooterInput): Line {
   return [
     seg(input.model, 'model'),
     seg(' · ', 'muted'),
     seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
+    ...branchSegments(input.branch),
   ]
 }
 

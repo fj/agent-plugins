@@ -11,6 +11,7 @@ export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   cost: '#9be27f',
   model: '#d7a8ff',
   path: '#8fc7ff',
+  branch: '#f5a3c7',
   meter: '#f0c674',
 }
 
