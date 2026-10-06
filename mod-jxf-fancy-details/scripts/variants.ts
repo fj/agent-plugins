@@ -10,11 +10,11 @@ const SHARED_FIELDS = ['name', 'version', 'description', 'author', 'repository']
 const NPM_MANIFEST = 'package.json'
 const REPOSITORY = 'https://github.com/fj/agent-plugins'
 
-export type Variant = { harness: string; name: string; package: string; manifest: string }
+export type Variant = { harness: string; adapter: string; package: string; manifest: string }
 
 export const VARIANTS: Variant[] = [
-  { harness: 'claude', name: 'claude-code', package: 'mod-jxf-fancy-details-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
-  { harness: 'pi', name: 'pi', package: 'mod-jxf-fancy-details-pi', manifest: NPM_MANIFEST },
+  { harness: 'claude', adapter: 'claude-code', package: 'mod-jxf-fancy-details-claude-code', manifest: join('.claude-plugin', 'plugin.json') },
+  { harness: 'pi', adapter: 'pi', package: 'mod-jxf-fancy-details-pi', manifest: NPM_MANIFEST },
 ]
 
 export async function buildVariant(variant: Variant, out: string, version: string, root = ROOT): Promise<void> {
@@ -30,7 +30,7 @@ export async function buildVariant(variant: Variant, out: string, version: strin
 }
 
 function belongsTo(variant: Variant, path: string): boolean {
-  const adapter = join(ADAPTERS, variant.name)
+  const adapter = join(ADAPTERS, variant.adapter)
 
   if (path.startsWith(ADAPTERS + sep) && path !== adapter && !path.startsWith(adapter + sep)) return false
   return !(dirname(path) === adapter && DEV_ONLY.has(basename(path)))
@@ -38,7 +38,7 @@ function belongsTo(variant: Variant, path: string): boolean {
 
 async function manifestsOf(variant: Variant, root: string, version: string): Promise<Map<string, Record<string, unknown>>> {
   const shared = pick({ ...(await readPluginManifest(root)), version, repository: REPOSITORY }, SHARED_FIELDS)
-  const template = await readJson(join(root, ADAPTERS, variant.name, TEMPLATE))
+  const template = await readJson(join(root, ADAPTERS, variant.adapter, TEMPLATE))
   const manifests = new Map([[NPM_MANIFEST, { ...shared, name: variant.package }]])
 
   manifests.set(variant.manifest, { ...(manifests.get(variant.manifest) ?? shared), ...template })
