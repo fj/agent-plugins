@@ -1,14 +1,14 @@
 ---
-description: Review every PR worked on this session by applying /jxf:coding:pr:review to each
+description: Review every PR worked on this session by applying {{command:coding:pr:review}} to each
 ---
 
-Review **all** pull requests worked on in this session, applying the same per-PR logic as `/jxf:coding:pr:review` to each:
+Review **all** pull requests worked on in this session, applying the same per-PR logic as `{{command:coding:pr:review}}` to each:
 
 $ARGUMENTS
 
 ## Preflight
 
-Run `/jxf:coding:pr:review`'s Preflight once for the repository as a whole: confirm you are in a git repo, a remote exists, and `gh` is authenticated. Stop with a clear message if any fails.
+Run `{{command:coding:pr:review}}`'s Preflight once for the repository as a whole: confirm you are in a git repo, a remote exists, and `gh` is authenticated. Stop with a clear message if any fails.
 
 ## Enumerate the session's PRs
 
@@ -20,7 +20,7 @@ Report the list before you start.
 
 ## Review each PR
 
-Apply the **Review** steps from `/jxf:coding:pr:review` to each PR. Reviews are read-only, so when there is more than one PR, fan them out as parallel subagents — give each subagent its PR identifier and the full review instructions, and have it return its confirmed findings.
+Apply the **Review** steps from `{{command:coding:pr:review}}` to each PR. Reviews are read-only, so when there is more than one PR, fan them out as parallel subagents — give each subagent its PR identifier and the full review instructions, and have it return its confirmed findings.
 
 If one PR's review fails (e.g. `gh` errors), record the failure and continue with the remaining PRs rather than aborting the whole run.
 

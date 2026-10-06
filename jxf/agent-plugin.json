@@ -1,0 +1,7 @@
+{
+  "name": "jxf",
+  "description": "Personal coding workflow.",
+  "version": "0.1",
+  "author": { "name": "John Feminella" },
+  "harnesses": ["claude", "pi"]
+}

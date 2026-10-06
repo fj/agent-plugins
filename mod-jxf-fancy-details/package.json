@@ -1,0 +1,11 @@
+{
+  "name": "mod-jxf-fancy-details",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'test/**/*.spec.ts'",
+    "test:claude-code": "node scripts/test-claude-code.ts",
+    "build": "node scripts/build.ts"
+  },
+  "engines": { "node": ">=22.18" }
+}

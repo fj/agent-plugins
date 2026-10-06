@@ -1,20 +1,20 @@
 ---
-description: Make PRs for every outstanding unmerged branch by applying /jxf:coding:pr:make to each in turn
+description: Make PRs for every outstanding unmerged branch by applying {{command:coding:pr:make}} to each in turn
 ---
 
-Create pull requests for **all** outstanding work, applying the same per-PR logic as `/jxf:coding:pr:make` to each unmerged branch in turn:
+Create pull requests for **all** outstanding work, applying the same per-PR logic as `{{command:coding:pr:make}}` to each unmerged branch in turn:
 
 $ARGUMENTS
 
 ## Preflight
 
-Run `/jxf:coding:pr:make`'s repository-wide Preflight checks once: confirm you are in a git repo, a remote exists, and `gh` is authenticated, and `git fetch` the latest so every PR is built against the current default-branch tip. Stop with a clear message if any fails.
+Run `{{command:coding:pr:make}}`'s repository-wide Preflight checks once: confirm you are in a git repo, a remote exists, and `gh` is authenticated, and `git fetch` the latest so every PR is built against the current default-branch tip. Stop with a clear message if any fails.
 
 Its unresolved-findings gate is per-branch, not repository-wide, so it is applied to each branch in "Make each PR" below rather than here.
 
 ## Enumerate outstanding branches
 
-1. If branches were given as arguments, PR those. Otherwise find every local branch not merged into the default branch (`git branch --no-merged <default>`), excluding the default branch itself. These are the outstanding branches — one PR each. **Exclude `agent/*` branches** — those are local scratch that must never be pushed; note any that hold un-PR'd work as needing `/jxf:coding:organize` to move them onto `topic/*` branches first.
+1. If branches were given as arguments, PR those. Otherwise find every local branch not merged into the default branch (`git branch --no-merged <default>`), excluding the default branch itself. These are the outstanding branches — one PR each. **Exclude `agent/*` branches** — those are local scratch that must never be pushed; note any that hold un-PR'd work as needing `{{command:coding:organize}}` to move them onto `topic/*` branches first.
 2. Order them oldest-first by their first unmerged commit (`git log --reverse <default>..<branch>`), so dependent branches are PR'd after the work they build on.
 3. Skip any branch that already has an open PR (`gh pr list --head <branch>`); note it as already-PR'd rather than duplicating.
 4. If there are no outstanding branches, report that there is nothing to PR and stop.
@@ -25,13 +25,13 @@ Report the ordered list before you start.
 
 For each branch in order:
 
-1. Apply `/jxf:coding:pr:make`'s unresolved-findings gate to that branch. A branch it blocks is recorded as blocked, with what is unresolved or unknown, and the run moves on to the next branch instead of stopping.
-2. Apply the **Make the PR** steps from `/jxf:coding:pr:make` verbatim (rebase if needed and safe, push with upstream, review all commits in `<default>...<branch>`, `gh pr create` with a "## Summary" and "## Test plan", target the default branch, no auto-merge/reviewers/merge unless asked).
+1. Apply `{{command:coding:pr:make}}`'s unresolved-findings gate to that branch. A branch it blocks is recorded as blocked, with what is unresolved or unknown, and the run moves on to the next branch instead of stopping.
+2. Apply the **Make the PR** steps from `{{command:coding:pr:make}}` verbatim (rebase if needed and safe, push with upstream, review all commits in `<default>...<branch>`, `gh pr create` with a "## Summary" and "## Test plan", target the default branch, no auto-merge/reviewers/merge unless asked).
 
 - Do the branches one at a time; do not run `gh pr create` in parallel.
 - If a branch fails (conflict, push rejection, etc.), record the failure and continue with the remaining branches rather than aborting the whole run.
 - A branch blocked by the gate is not a failure of this command — it is unresolved review work, and it never stops the other branches from being PR'd.
-- When the run ends with any branch blocked, present the blocked list and offer the same choice `/jxf:coding:pr:make` would have: resolve the findings (`/jxf:coding:review`), or say explicitly to accept them and re-run. Don't end a run that PR'd nothing without telling the user how to proceed.
+- When the run ends with any branch blocked, present the blocked list and offer the same choice `{{command:coding:pr:make}}` would have: resolve the findings (`{{command:coding:review}}`), or say explicitly to accept them and re-run. Don't end a run that PR'd nothing without telling the user how to proceed.
 
 ## Report
 
