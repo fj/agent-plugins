@@ -1,0 +1,9 @@
+{
+  "name": "foundry-finder",
+  "description": "Discovers Azure AI Foundry deployments at startup and registers them as pi models.",
+  "version": "0.1",
+  "author": { "name": "John Feminella" },
+  "harnesses": ["pi"],
+  "build": "node scripts/build.ts",
+  "test": "node --test 'test/*.test.ts'"
+}
