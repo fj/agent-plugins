@@ -2,13 +2,13 @@
 description: Review every outstanding branch in parallel and resolve what the reviews find, one branch at a time
 ---
 
-Review **all** outstanding branches, applying the same per-branch logic as `/jxf:coding:review` to each:
+Review **all** outstanding branches, applying the same per-branch logic as `{{command:coding:review}}` to each:
 
 $ARGUMENTS
 
 ## Preflight
 
-Run `/jxf:coding:review`'s Preflight once: confirm you are in a git repo and determine the default branch.
+Run `{{command:coding:review}}`'s Preflight once: confirm you are in a git repo and determine the default branch.
 
 ## Enumerate outstanding branches
 
@@ -20,15 +20,15 @@ Report the list before you start.
 
 ## Review each branch
 
-Apply the **Review** steps from `/jxf:coding:review` to each branch, including the adversarial verification of every candidate finding. Reviews are read-only, so when there is more than one branch, fan them out as parallel subagents — give each subagent its branch name and the full review instructions, and have it return its confirmed findings.
+Apply the **Review** steps from `{{command:coding:review}}` to each branch, including the adversarial verification of every candidate finding. Reviews are read-only, so when there is more than one branch, fan them out as parallel subagents — give each subagent its branch name and the full review instructions, and have it return its confirmed findings.
 
 If one branch's review fails, record the failure and continue with the remaining branches rather than aborting the whole run.
 
 ## Resolve each branch
 
-Apply the **Resolve** steps from `/jxf:coding:review` to each branch's confirmed findings, on the branch they were found on. Resolution writes commits, so run it after the reviews return and work one branch at a time — never fan it out in parallel over a shared checkout.
+Apply the **Resolve** steps from `{{command:coding:review}}` to each branch's confirmed findings, on the branch they were found on. Resolution writes commits, so run it after the reviews return and work one branch at a time — never fan it out in parallel over a shared checkout.
 
-A finding that needs a user decision does not stop a branch — `/jxf:coding:review`'s Resolve step records it as outstanding and carries on with that branch's remaining findings. If a branch's resolution genuinely cannot complete, finish what it can, record its remaining high-severity findings as outstanding and defer the rest with the failure as the reason, then continue with the other branches rather than aborting the whole run.
+A finding that needs a user decision does not stop a branch — `{{command:coding:review}}`'s Resolve step records it as outstanding and carries on with that branch's remaining findings. If a branch's resolution genuinely cannot complete, finish what it can, record its remaining high-severity findings as outstanding and defer the rest with the failure as the reason, then continue with the other branches rather than aborting the whole run.
 
 ## Report
 

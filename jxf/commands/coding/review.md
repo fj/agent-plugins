@@ -22,14 +22,14 @@ Work down this list and use the first that applies:
 
 1. Gather full context: `git log <default>..<branch>` and `git diff <default>...<branch>`.
 2. Review the complete diff, not just the latest commit. Read the surrounding code in the repository as needed — hunk-local review misses broken callers, violated invariants, and missing updates elsewhere.
-3. Cover the same dimensions as `/jxf:coding:pr:review` — correctness, design, tests, commit atomicity — fanning out parallel read-only subagents when the diff is large enough to warrant it.
+3. Cover the same dimensions as `{{command:coding:pr:review}}` — correctness, design, tests, commit atomicity — fanning out parallel read-only subagents when the diff is large enough to warrant it.
 4. Adversarially verify every candidate finding against the actual code before reporting it. Drop anything without a concrete failure scenario or clear, substantiated impact.
 
 ## Resolve
 
 Resolution writes, so make the checkout safe first: note the branch you started on and return to it when you are done, and stage only the files your fixes touch. If the working tree carries changes that are not the work under review, surface them and ask before committing anything.
 
-1. Fix every confirmed **high-severity** finding on the branch it was found on, and commit the fixes onto that same branch — never `main`. Where the reviewed work is uncommitted changes in the working tree or sits on an `agent/*` branch, fix it in place and leave it for `/jxf:coding:organize` to commit rather than committing it yourself. If the reviewed work is a bare commit range or sits on the default branch there is nowhere to put a fix: report the high-severity findings as outstanding and defer the rest, giving that as the reason.
+1. Fix every confirmed **high-severity** finding on the branch it was found on, and commit the fixes onto that same branch — never `main`. Where the reviewed work is uncommitted changes in the working tree or sits on an `agent/*` branch, fix it in place and leave it for `{{command:coding:organize}}` to commit rather than committing it yourself. If the reviewed work is a bare commit range or sits on the default branch there is nowhere to put a fix: report the high-severity findings as outstanding and defer the rest, giving that as the reason.
 2. Follow the repository's existing commit discipline: amend or fixup into the commit that introduced the problem when the branch has not been pushed and nothing is based on it; otherwise add a follow-up commit that stands on its own. If other branches are stacked on this one, prefer the follow-up commit — and if you do rewrite anyway, rebase every dependent branch onto the new tip and re-verify it.
 3. A finding that lives in a base branch's commits belongs to that base branch, not to the branch stacked on it. Fix it once on the base and rebase the dependent onto the result; do not commit the same fix to both.
 4. Re-review the changed code after fixing: confirm the finding is actually resolved and that the fix introduced nothing new. A finding is resolved only once it has been re-verified, not when the edit is written.

@@ -23,11 +23,11 @@ Work down this list and use the first that applies:
 
 If the chosen work sits only on the default branch (e.g., merged topic branches or direct commits) and the remote default branch is behind, create a branch from the local default branch containing those commits and PR that — never PR by pushing the default branch itself.
 
-**Never push an `agent/*` branch.** Those are local scratch left by `/jxf:coding:develop`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
+**Never push an `agent/*` branch.** Those are local scratch left by `{{command:coding:develop}}`. If the chosen work lives on an `agent/*` branch, create a `topic/*` branch from its commits (`git switch -c topic/<slug> agent/<name>`) and PR that instead. A global `pre-push` hook rejects `agent/*` pushes as a backstop.
 
 ## Make the PR
 
-1. **Gate on unresolved findings.** Establish that the chosen branch's high-severity review findings were fixed and re-verified. If any are outstanding, or you cannot establish the branch's resolution state at all — no review covered it in this session, or its review failed — do not open the PR. Show the user what is unresolved or unknown and stop, so they can resolve it (`/jxf:coding:review`) or tell you explicitly to accept it and proceed. Never treat "no findings recorded" as "no findings". A branch stacked on a blocked branch is blocked too, since its PR would carry the base branch's unresolved commits.
+1. **Gate on unresolved findings.** Establish that the chosen branch's high-severity review findings were fixed and re-verified. If any are outstanding, or you cannot establish the branch's resolution state at all — no review covered it in this session, or its review failed — do not open the PR. Show the user what is unresolved or unknown and stop, so they can resolve it (`{{command:coding:review}}`) or tell you explicitly to accept it and proceed. Never treat "no findings recorded" as "no findings". A branch stacked on a blocked branch is blocked too, since its PR would carry the base branch's unresolved commits.
 2. Ensure the branch is rebased on (or at least cleanly mergeable into) the latest remote default branch; rebase if needed and safe (never rewrite commits that are already on the remote).
 3. Push the branch to the remote with an upstream (`git push -u origin <branch>`). If the branch is an `agent/*` branch, stop and move the work onto a `topic/*` branch first (see above).
 4. Review **all** commits the PR will contain (`git log` and `git diff <default>...<branch>`), not just the latest commit.
