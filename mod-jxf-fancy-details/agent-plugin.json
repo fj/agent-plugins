@@ -1,0 +1,9 @@
+{
+  "name": "mod-jxf-fancy-details",
+  "description": "Prompt and tool timers, per-reply usage prefixes and a usage footer.",
+  "version": "0.3",
+  "author": { "name": "John Feminella" },
+  "harnesses": ["claude", "pi"],
+  "build": "node scripts/build.ts",
+  "test": "node --test 'test/**/*.spec.ts' && node scripts/test-claude-code.ts"
+}

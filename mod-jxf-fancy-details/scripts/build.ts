@@ -1,6 +1,13 @@
-import { join } from 'node:path'
+import { parseArgs } from 'node:util'
 
-import { ROOT } from './root-manifest.ts'
 import { buildVariant, VARIANTS } from './variants.ts'
 
-for (const variant of VARIANTS) await buildVariant(variant, join(ROOT, 'dist', variant.name))
+const USAGE = `usage: node scripts/build.ts --harness <${VARIANTS.map(({ harness }) => harness).join('|')}> --out <dir> --version <x.y.t>`
+
+const { values } = parseArgs({
+  options: { harness: { type: 'string' }, out: { type: 'string' }, version: { type: 'string' } },
+})
+const variant = VARIANTS.find(({ harness }) => harness === values.harness)
+if (!variant || !values.out || !values.version) throw new Error(USAGE)
+
+await buildVariant(variant, values.out, values.version)

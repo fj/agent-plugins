@@ -4,9 +4,11 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { after, before, test } from 'node:test'
 
-import { readRootManifest } from '../../scripts/root-manifest.ts'
+import { readPluginManifest } from '../../scripts/plugin-manifest.ts'
 import { buildVariant, VARIANTS, type Variant } from '../../scripts/variants.ts'
 
+const VERSION = '0.3.20261005120000'
+const REPOSITORY = 'https://github.com/fj/agent-plugins'
 const byName = (name: string) => VARIANTS.find((variant) => variant.name === name)!
 const readJson = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 
@@ -15,13 +17,13 @@ const outOf = (variant: Variant) => join(scratch, variant.name)
 
 before(async () => {
   scratch = await mkdtemp(join(tmpdir(), 'variants-spec-'))
-  for (const variant of VARIANTS) await buildVariant(variant, outOf(variant))
+  for (const variant of VARIANTS) await buildVariant(variant, outOf(variant), VERSION)
 })
 
 after(() => rm(scratch, { recursive: true, force: true }))
 
 test('every variant has an npm manifest named for its package with the shared fields', async () => {
-  const { version, description, author, repository } = await readRootManifest()
+  const { description, author } = await readPluginManifest()
 
   for (const variant of VARIANTS) {
     const manifest = await readJson(join(outOf(variant), 'package.json'))
@@ -34,21 +36,26 @@ test('every variant has an npm manifest named for its package with the shared fi
         author: manifest.author,
         repository: manifest.repository,
       },
-      { name: variant.package, version, description, author, repository },
+      { name: variant.package, version: VERSION, description, author, repository: REPOSITORY },
     )
   }
 })
 
 test('the Claude Code plugin manifest keeps the shared plugin name and fields', async () => {
-  const { name, version, description, author } = await readRootManifest()
+  const { name, description, author } = await readPluginManifest()
   const variant = byName('claude-code')
   const manifest = await readJson(join(outOf(variant), variant.manifest))
 
   assert.deepEqual(
-    { name: manifest.name, version: manifest.version, description: manifest.description, author: manifest.author },
-    { name, version, description, author },
+    {
+      name: manifest.name,
+      version: manifest.version,
+      description: manifest.description,
+      author: manifest.author,
+      repository: manifest.repository,
+    },
+    { name, version: VERSION, description, author, repository: REPOSITORY },
   )
-  assert.equal(manifest.repository, undefined)
 })
 
 test('every variant holds the shared source and only its own adapter', async () => {
@@ -92,7 +99,7 @@ test('a rebuild drops source left from the last build', async () => {
   const stale = join(outOf(variant), 'src', 'stale.ts')
 
   await writeFile(stale, '')
-  await buildVariant(variant, outOf(variant))
+  await buildVariant(variant, outOf(variant), VERSION)
   await assert.rejects(access(stale))
 })
 
@@ -102,7 +109,7 @@ test('a rebuild keeps the types Claude Code generates beside the manifest', asyn
 
   await mkdir(types, { recursive: true })
   await writeFile(join(types, 'tsconfig.json'), '{}')
-  await buildVariant(variant, outOf(variant))
+  await buildVariant(variant, outOf(variant), VERSION)
   await access(join(types, 'tsconfig.json'))
 })
 

@@ -7,10 +7,6 @@ export async function readJson(path: string): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(path, 'utf8'))
 }
 
-export function rootManifestPath(root = ROOT): string {
-  return join(root, 'package.json')
-}
-
-export function readRootManifest(root = ROOT): Promise<Record<string, unknown>> {
-  return readJson(rootManifestPath(root))
+export function readPluginManifest(root = ROOT): Promise<Record<string, unknown>> {
+  return readJson(join(root, 'agent-plugin.json'))
 }
