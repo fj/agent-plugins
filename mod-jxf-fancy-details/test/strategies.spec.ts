@@ -45,12 +45,12 @@ const UNCACHED = { showsCachedInput: false }
 test('default token line splits step input into new and cached input when asked', () => {
   assert.equal(
     lineText(defaultUsageStrategy.stepTokens(STEP, SESSION, CACHED)),
-    '↑ ( Δ 15.4k + ⟲ 61.1k ) / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k',
+    '↑ (Δ15.4k + ⟲61.1k) / Σ91.8k · ↓ Δ3.2k / Σ12.0k',
   )
 })
 
 test('default token line shows step input as one count otherwise', () => {
-  assert.equal(lineText(defaultUsageStrategy.stepTokens(STEP, SESSION, UNCACHED)), '↑ Δ 76.5k / Σ 91.8k · ↓ Δ 3.2k / Σ 12.0k')
+  assert.equal(lineText(defaultUsageStrategy.stepTokens(STEP, SESSION, UNCACHED)), '↑ Δ76.5k / Σ91.8k · ↓ Δ3.2k / Σ12.0k')
 })
 
 test('default totals split input into new and cached input only when asked', () => {
@@ -61,7 +61,7 @@ test('default totals split input into new and cached input only when asked', () 
 test('default cost line marks lower bounds with +', () => {
   const line = defaultUsageStrategy.stepCost({ usd: 0.06, isLowerBound: true }, { usd: 1.234, isLowerBound: true })
 
-  assert.equal(lineText(line), 'Δ $0.06+ / Σ $1.23+')
+  assert.equal(lineText(line), 'Δ$0.06+ / Σ$1.23+')
 })
 
 test('unknown strategy names fall back to the defaults', () => {
