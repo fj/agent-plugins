@@ -1,6 +1,7 @@
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
+import type { Harness } from './harness.ts'
 import { DEFAULT_OWNER, INDEX_REPO, githubRemoteBase } from './repos.ts'
 
 export const ROOT = resolve(import.meta.dirname, '..', '..')
@@ -20,3 +21,5 @@ export function settings(env: NodeJS.ProcessEnv = process.env, root = ROOT): Set
     dataDir: join(env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), DATA_SUBDIR),
   }
 }
+
+export const deployDir = (dataDir: string, harness: Harness, plugin: string) => join(dataDir, harness, plugin)
