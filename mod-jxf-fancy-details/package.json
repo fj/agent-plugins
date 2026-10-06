@@ -1,11 +1,7 @@
 {
   "name": "mod-jxf-fancy-details",
-  "version": "0.3.0",
-  "description": "Prompt and tool timers, per-reply usage prefixes and a usage footer.",
-  "author": { "name": "John Feminella" },
-  "repository": { "type": "git", "url": "git+https://github.com/fj/mod-jxf-fancy-details.git" },
-  "type": "module",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "node --test 'test/**/*.spec.ts'",
     "test:claude-code": "node scripts/test-claude-code.ts",
