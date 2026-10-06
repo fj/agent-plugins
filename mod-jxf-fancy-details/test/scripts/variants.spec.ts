@@ -4,11 +4,12 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { after, before, test } from 'node:test'
 
-import { readPluginManifest } from '../../scripts/plugin-manifest.ts'
 import { buildVariant, VARIANTS, type Variant } from '../../scripts/variants.ts'
 
 const VERSION = '0.3.20261005120000'
 const REPOSITORY = 'https://github.com/fj/agent-plugins'
+const DESCRIPTION = 'Prompt and tool timers, per-reply usage prefixes and a usage footer.'
+const AUTHOR = { name: 'John Feminella' }
 const byHarness = (harness: string) => VARIANTS.find((variant) => variant.harness === harness)!
 const readJson = async (path: string) => JSON.parse(await readFile(path, 'utf8'))
 
@@ -23,8 +24,6 @@ before(async () => {
 after(() => rm(scratch, { recursive: true, force: true }))
 
 test('every variant has an npm manifest named for its package with the shared fields', async () => {
-  const { description, author } = await readPluginManifest()
-
   for (const variant of VARIANTS) {
     const manifest = await readJson(join(outOf(variant), 'package.json'))
 
@@ -36,13 +35,12 @@ test('every variant has an npm manifest named for its package with the shared fi
         author: manifest.author,
         repository: manifest.repository,
       },
-      { name: variant.package, version: VERSION, description, author, repository: REPOSITORY },
+      { name: variant.package, version: VERSION, description: DESCRIPTION, author: AUTHOR, repository: REPOSITORY },
     )
   }
 })
 
 test('the Claude Code plugin manifest keeps the shared plugin name and fields', async () => {
-  const { name, description, author } = await readPluginManifest()
   const variant = byHarness('claude')
   const manifest = await readJson(join(outOf(variant), variant.manifest))
 
@@ -54,7 +52,7 @@ test('the Claude Code plugin manifest keeps the shared plugin name and fields', 
       author: manifest.author,
       repository: manifest.repository,
     },
-    { name, version: VERSION, description, author, repository: REPOSITORY },
+    { name: 'mod-jxf-fancy-details', version: VERSION, description: DESCRIPTION, author: AUTHOR, repository: REPOSITORY },
   )
 })
 
