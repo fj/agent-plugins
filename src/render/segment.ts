@@ -9,6 +9,7 @@ export type Role =
   | 'cost'
   | 'model'
   | 'path'
+  | 'branch'
   | 'meter'
 
 export type Segment = { text: string; role: Role }
