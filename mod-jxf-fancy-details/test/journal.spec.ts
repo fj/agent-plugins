@@ -3,6 +3,7 @@ import { test } from 'node:test'
 
 import { localDayKey } from '../src/core/daily.ts'
 import { applyRecord, EMPTY_JOURNAL, foldJournal, isJournalRecord, type JournalRecord } from '../src/core/journal.ts'
+import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
 
 const T0 = new Date(2026, 9, 3, 23, 59, 50).getTime()
@@ -87,6 +88,24 @@ test('a step that ends without a message block still counts as the first reply',
 
   assert.equal(ledger.prompts.p?.firstReplyAt, T0 + 900)
   assert.equal(ledger.seq, 0)
+})
+
+test('a step that ends without usage closes it and its messages but adds nothing', () => {
+  const journal = foldJournal(
+    [
+      { kind: 'prompt', id: 'p', at: T0 },
+      { kind: 'step', id: 's', at: T0, model: 'claude-opus-5-5' },
+      { kind: 'message', id: 's:0', at: T0 + 100 },
+      { kind: 'stepEnd', id: 's', at: T0 + 300 },
+    ],
+    price,
+  )
+
+  assert.equal(journal.ledger.steps.s?.endedAt, T0 + 300)
+  assert.equal(journal.ledger.steps.s?.usage, undefined)
+  assert.equal(journal.ledger.marks['s:0']?.endedAt, T0 + 300)
+  assert.deepEqual(journal.ledger.totals, ZERO_TOTALS)
+  assert.deepEqual(journal.days, {})
 })
 
 test('an unknown model prices as a lower bound', () => {

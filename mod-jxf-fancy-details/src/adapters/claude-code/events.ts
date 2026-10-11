@@ -205,31 +205,33 @@ export function trackEvents(on: On, config: Config): void {
 
     const texts = new Map<number, string>()
     const stream = next(e)
+    let usage: TokenUsage | undefined
 
-    for await (const chunk of stream) {
-      if (chunk.kind === 'text' && chunk.text !== '') {
-        const seen = texts.get(chunk.index)
+    try {
+      for await (const chunk of stream) {
+        if (chunk.kind === 'text' && chunk.text !== '') {
+          const seen = texts.get(chunk.index)
 
-        if (seen === undefined) {
-          await record($, config, { kind: 'message', id: `${stepId}:${chunk.index}`, at: await $.clock.now() })
+          if (seen === undefined) {
+            await record($, config, { kind: 'message', id: `${stepId}:${chunk.index}`, at: await $.clock.now() })
+          }
+
+          texts.set(chunk.index, appendKeyText(seen ?? '', chunk.text))
         }
 
-        texts.set(chunk.index, appendKeyText(seen ?? '', chunk.text))
+        yield chunk
       }
 
-      yield chunk
+      const result = await stream.result
+      await update($, rowsAtom, rows =>
+        [...texts].reduce((all, [index, text]) => noteText(all, `${stepId}:${index}`, text), rows),
+      )
+      usage = result.usage === null ? undefined : toTokenUsage(result.usage)
+
+      return result
+    } finally {
+      await record($, config, { kind: 'stepEnd', id: stepId, at: await $.clock.now(), usage })
     }
-
-    const result = await stream.result
-    await update($, rowsAtom, rows =>
-      [...texts].reduce((all, [index, text]) => noteText(all, `${stepId}:${index}`, text), rows),
-    )
-
-    if (result.usage !== null) {
-      await record($, config, { kind: 'stepEnd', id: stepId, at: await $.clock.now(), usage: toTokenUsage(result.usage) })
-    }
-
-    return result
   })
 
   on('tool.call', async ($, e, next) => {
