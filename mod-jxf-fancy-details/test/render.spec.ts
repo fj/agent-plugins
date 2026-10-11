@@ -99,12 +99,32 @@ test('the message prefix shows timing, turn, tokens and cost', () => {
   )
 })
 
-test('a prefix without a finished step shows live timing and the turn only', () => {
+test('a prefix without a step shows live timing and the turn only', () => {
   const mark = { id: 'm', kind: 'message' as const, turn: 1, seq: 1, startedAt: T0 }
 
   assert.equal(
     lineText(messagePrefix({ mark, now: T0 + 1500, usage: defaultUsageStrategy, display: CACHED })),
     '{2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}',
+  )
+})
+
+test('a prefix for a running step holds an ellipsis where its tokens will go', () => {
+  const mark = { id: 'm', kind: 'message' as const, turn: 1, seq: 1, startedAt: T0, stepId: 's' }
+  const step = { id: 's', turn: 1, startedAt: T0, model: 'claude-opus-5-5' }
+
+  assert.equal(
+    lineText(messagePrefix({ mark, step, now: T0 + 1500, usage: defaultUsageStrategy, display: CACHED })),
+    '{2026-10-03 04:20:37 Δ 1.5s} {turn 1.1: ⋯}',
+  )
+})
+
+test('a prefix for a step that ended without usage has no ellipsis', () => {
+  const mark = { id: 'm', kind: 'message' as const, turn: 1, seq: 1, startedAt: T0, stepId: 's' }
+  const step = { id: 's', turn: 1, startedAt: T0, endedAt: T0 + 900, model: 'claude-opus-5-5' }
+
+  assert.equal(
+    lineText(messagePrefix({ mark, step, now: T0 + 1500, usage: defaultUsageStrategy, display: CACHED })),
+    '{2026-10-03 04:20:37 Δ 0.9s} {turn 1.1}',
   )
 })
 

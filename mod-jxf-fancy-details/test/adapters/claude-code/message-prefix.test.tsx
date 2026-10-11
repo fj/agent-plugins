@@ -47,7 +47,7 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
 
   for (const ui of drawings) {
     const tree = await ui.drawn()
-    expect(shownRows(tree).slice(0, 2)).toEqual([' ', ' {turn 1.1}'])
+    expect(shownRows(tree).slice(0, 2)).toEqual([' ', ' {turn 1.1: ⋯}'])
     expect(shownText(tree)).not.toContain('$')
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
     expect(await ui.find({ type: 'Client', key: STEP_TIMER })).toBeDefined()
