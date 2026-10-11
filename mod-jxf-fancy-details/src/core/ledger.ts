@@ -136,6 +136,17 @@ export function finishStep(
   return markReply(done, at)
 }
 
+export function addAgentStep(
+  state: LedgerState,
+  model: string,
+  usage: TokenUsage,
+  price: Pricer,
+): { state: LedgerState; delta: Totals } {
+  const delta: Totals = { usage, cost: price(model, usage), activeMs: 0 }
+
+  return { state: { ...state, totals: addTotals(state.totals, delta) }, delta }
+}
+
 export function completeTurn(state: LedgerState, at: number): { state: LedgerState; delta: Totals } {
   const prompt = state.currentPromptId === undefined ? undefined : state.prompts[state.currentPromptId]
   const activeMs = prompt === undefined ? 0 : Math.max(0, at - prompt.submittedAt)

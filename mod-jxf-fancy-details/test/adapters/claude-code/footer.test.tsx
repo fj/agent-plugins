@@ -185,7 +185,35 @@ test('a missing day folder starts today at zero', async ($, on) => {
   expect(await footerText($)).toContain('today $0.00')
 })
 
-test('subagent turns add nothing to the session', async ($, on) => {
+test('subagent steps add their tokens and cost to the session and today', async ($, on) => {
+  const w = world(on, { files: FILES })
+  await start($)
+  await submit($, 'go')
+  w.scripts.push(textReply('agent work'))
+  for await (const _chunk of $.turn.step({ turnId: 'turn-a', index: 0, model: MODEL, messageCount: 1, agentId: 'agent-1' })) {
+    void _chunk
+  }
+
+  const text = await footerText($)
+  expect(text).toContain('session $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
+  expect(text).toContain('today 1m 00s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
+  const own = JSON.parse(w.files.get(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`) ?? '{}')
+  expect(own.usage.output).toBe(300)
+})
+
+test('a subagent step without usage adds nothing', async ($, on) => {
+  const w = world(on)
+  await submit($, 'go')
+  w.scripts.push(textReply('agent work', null))
+  for await (const _chunk of $.turn.step({ turnId: 'turn-a', index: 0, model: MODEL, messageCount: 1, agentId: 'agent-1' })) {
+    void _chunk
+  }
+
+  expect(await footerText($)).toContain('session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0')
+  expect(w.files.has(`${TODAY_DIR}/claude-code-${SESSION_ID}.json`)).toBe(false)
+})
+
+test('subagent turns add no active time to the session', async ($, on) => {
   const w = world(on)
   await submit($, 'go')
   await w.clock.advance(TURN_MS)

@@ -17,7 +17,7 @@ export type OtherSessions = { day: DayKey; totals: Totals }
 
 export const NO_OTHER_SESSIONS: OtherSessions = { day: '', totals: ZERO_TOTALS }
 
-const PERSISTED_KINDS = new Set<JournalRecord['kind']>(['stepEnd', 'turnEnd'])
+const PERSISTED_KINDS = new Set<JournalRecord['kind']>(['stepEnd', 'turnEnd', 'agentStep'])
 
 export function isPersistedRecord(record: JournalRecord): boolean {
   return PERSISTED_KINDS.has(record.kind)

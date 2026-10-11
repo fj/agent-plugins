@@ -1,4 +1,5 @@
 import { expect, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 
 import {
   appendReply,
@@ -230,12 +231,9 @@ test('a model without public pricing shows a lower bound', async ($, on) => {
   expect(shownText(await ui.drawn())).toContain('{Δ$0.00+ / Σ$0.00+}')
 })
 
-test('subagent steps stay out of the ledger', async ($, on) => {
-  const w = world(on)
-  await submit($, 'plan it')
-  w.scripts.push(textReply(REPLY))
+async function subagentStep($: Engine): Promise<void> {
   for await (const _chunk of $.turn.step({
-    turnId: 'turn-1',
+    turnId: 'turn-a',
     index: 0,
     model: MODEL,
     messageCount: 1,
@@ -243,9 +241,28 @@ test('subagent steps stay out of the ledger', async ($, on) => {
   })) {
     void _chunk
   }
+}
+
+test('subagent steps get no reply row', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY))
+  await subagentStep($)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW })
   expect(shownText(await ui.drawn())).not.toContain('turn')
+})
+
+test('subagent tokens count toward the session totals of the next reply', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply('agent work'))
+  await subagentStep($)
+  w.scripts.push(textReply(REPLY))
+  await step($, 'turn-1', 0)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW })
+  expect(shownText(await ui.drawn())).toContain('{turn 1.1: ↑ (Δ1.2k + ⟲5.0k) / Σ12.4k · ↓ Δ300 / Σ600}')
 })
 
 test('a reply row keeps its prefix when the host draws other text for it', async ($, on) => {

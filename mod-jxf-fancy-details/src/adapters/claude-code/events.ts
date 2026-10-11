@@ -197,7 +197,13 @@ export function trackEvents(on: On, config: Config): void {
 
   on('turn.step', async function* ($, e, next) {
     if (e.agentId !== undefined) {
-      return yield* next(e)
+      const result = yield* next(e)
+
+      if (result.usage !== null) {
+        await record($, config, { kind: 'agentStep', at: await $.clock.now(), model: e.model, usage: toTokenUsage(result.usage) })
+      }
+
+      return result
     }
 
     const stepId = `${e.turnId}:${e.index}`
