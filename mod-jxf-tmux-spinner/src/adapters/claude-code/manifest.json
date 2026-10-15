@@ -1,0 +1,3 @@
+{
+  "hooks": "./src/adapters/claude-code/hooks.json"
+}

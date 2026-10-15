@@ -1,0 +1,12 @@
+#!/bin/sh
+# Prints the badge for an agent state: tmux-spinner <busy|waiting|done>
+
+case "$1" in
+  busy)
+    set -- ◐ ◓ ◑ ◒
+    shift $(( $(date +%s) % $# ))
+    printf '%s' "$1"
+    ;;
+  waiting) printf '#[fg=yellow,bold]?#[default]' ;;
+  done) printf '#[fg=green]✓#[default]' ;;
+esac
