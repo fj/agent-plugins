@@ -11,6 +11,8 @@ export type ModelInfo = { id: string; provider: string }
 
 const ANTHROPIC_PROVIDER = 'anthropic'
 
+const CLAUDE_BRIDGE_PROVIDER = 'claude-bridge'
+
 const optionalString = (value: unknown) => (typeof value === 'string' ? value : undefined)
 
 const optionalBoolean = (value: unknown) => (typeof value === 'boolean' ? value : undefined)
@@ -61,6 +63,10 @@ export function subscriptionName(
 ): string {
   if (config.subscriptionStrategy !== undefined) {
     return config.subscriptionStrategy
+  }
+
+  if (model?.provider === CLAUDE_BRIDGE_PROVIDER) {
+    return 'anthropic'
   }
 
   return model?.provider === ANTHROPIC_PROVIDER && isUsingOAuth(model) ? 'anthropic' : 'null'
