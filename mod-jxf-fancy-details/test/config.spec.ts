@@ -3,13 +3,15 @@ import { test } from 'node:test'
 
 import { footerLayout, parseConfig, subscriptionName, tokenDisplay } from '../src/config/config.ts'
 
-test('the subscription meter follows the provider and OAuth, unless the config overrides it', () => {
+test('the subscription meter follows the provider and OAuth, or the Claude bridge, unless the config overrides it', () => {
   const anthropic = { id: 'claude-opus-5-5', provider: 'anthropic' }
 
   assert.equal(subscriptionName({}, anthropic, () => true), 'anthropic')
   assert.equal(subscriptionName({}, anthropic, () => false), 'null')
   assert.equal(subscriptionName({}, { id: 'gpt', provider: 'azure' }, () => true), 'null')
   assert.equal(subscriptionName({}, undefined, () => true), 'null')
+  assert.equal(subscriptionName({}, { id: 'claude-opus-5-5', provider: 'claude-bridge' }, () => false), 'anthropic')
+  assert.equal(subscriptionName({ subscriptionStrategy: 'null' }, { id: 'claude-opus-5-5', provider: 'claude-bridge' }, () => false), 'null')
   assert.equal(subscriptionName({ subscriptionStrategy: 'anthropic' }, undefined, () => false), 'anthropic')
 })
 
