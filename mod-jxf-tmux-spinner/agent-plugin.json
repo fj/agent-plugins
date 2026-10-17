@@ -1,0 +1,9 @@
+{
+  "name": "mod-jxf-tmux-spinner",
+  "description": "Marks the tmux window of an agent as busy, waiting for you, or done.",
+  "version": "0.1",
+  "author": { "name": "John Feminella" },
+  "harnesses": ["claude", "pi"],
+  "build": "node scripts/build.ts",
+  "test": "node --test 'test/**/*.spec.ts' && node scripts/test-claude-code.ts"
+}
