@@ -3,18 +3,26 @@ import { expect, mock, test, type Engine } from 'claude-code/testing'
 
 const PANE = '%3'
 const TMUX = '/tmp/tmux-1000/default,1,0'
+const SESSION_ID = 's1'
 
 type State = string | undefined
 
 function world($: Engine, on: On, env: Record<string, string> = { TMUX, TMUX_PANE: PANE }) {
-  const w = { states: [] as State[], statesInTool: [] as State[], dialog: undefined as 'permission' | 'elicitation' | undefined }
+  const w = {
+    states: [] as State[],
+    identities: [] as string[][],
+    statesInTool: [] as State[],
+    dialog: undefined as 'permission' | 'elicitation' | undefined,
+  }
 
   mock.env(on, env)
+  on('session.id', () => ({ value: SESSION_ID }))
   on('process.run', (_$, e) => {
     const isUnset = e.argv.includes('-wu')
     expect(e.argv.slice(0, 2)).toEqual(['tmux', 'set-option'])
     expect(e.argv[e.argv.indexOf('-t') + 1]).toBe(PANE)
-    w.states.push(isUnset ? undefined : e.argv.at(-1))
+    if (e.argv.includes('@agent_state')) w.states.push(isUnset ? undefined : e.argv.at(-1))
+    else w.identities.push(e.argv)
 
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
@@ -109,4 +117,14 @@ test('the state is cleared when a session starts and ends', async ($, on) => {
   await $.session.start({ source: 'startup', cwd: '/work' } as never)
   await $.session.end({ reason: 'other', sessionId: 's1' } as never)
   expect(w.states).toEqual([undefined, undefined])
+})
+
+test('a session names its harness and id until it ends', async ($, on) => {
+  const w = world($, on)
+  await $.session.start({ source: 'startup', cwd: '/work' } as never)
+  await $.session.end({ reason: 'other', sessionId: SESSION_ID } as never)
+  expect(w.identities).toEqual([
+    ['tmux', 'set-option', '-w', '-t', PANE, '@agent_harness', 'claude', ';', 'set-option', '-w', '-t', PANE, '@agent_session', SESSION_ID],
+    ['tmux', 'set-option', '-wu', '-t', PANE, '@agent_harness', ';', 'set-option', '-wu', '-t', PANE, '@agent_session'],
+  ])
 })

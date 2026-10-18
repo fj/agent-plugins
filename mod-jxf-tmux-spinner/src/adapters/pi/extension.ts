@@ -1,7 +1,9 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 
 import { stateAfterAnswer, type AgentState } from '../../core/state.ts'
-import { stateArgv } from '../../core/tmux.ts'
+import { identityArgv, stateArgv, type Identity } from '../../core/tmux.ts'
+
+const HARNESS = 'pi'
 
 export type SpinnerDeps = {
   pane: string | undefined
@@ -35,13 +37,16 @@ export function modJxfTmuxSpinner({ pane, run }: SpinnerDeps): (pi: ExtensionAPI
     let answer = ''
 
     const show = (state: AgentState | undefined) => run(stateArgv(pane, state))
+    const announce = (identity: Identity | undefined) => run(identityArgv(pane, identity))
 
-    pi.on('session_start', async () => {
+    pi.on('session_start', async (_event, ctx) => {
       await show(undefined)
+      await announce({ harness: HARNESS, session: ctx.sessionManager.getSessionFile() ?? '' })
     })
 
     pi.on('session_shutdown', async () => {
       await show(undefined)
+      await announce(undefined)
     })
 
     pi.on('agent_start', async () => {

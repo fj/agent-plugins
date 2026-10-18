@@ -1,29 +1,37 @@
 import type { EngineInterface, Register } from 'claude-code'
 
 import { stateAfterAnswer, type AgentState } from '../../core/state.ts'
-import { stateArgv, tmuxPane } from '../../core/tmux.ts'
+import { identityArgv, stateArgv, tmuxPane } from '../../core/tmux.ts'
 
+const HARNESS = 'claude'
 const QUESTION_TOOLS = ['AskUserQuestion', 'ExitPlanMode']
 
 let isWaiting = false
 
-async function show($: EngineInterface, state: AgentState | undefined): Promise<void> {
-  isWaiting = state === 'waiting'
+async function runInPane($: EngineInterface, argvFor: (pane: string) => string[]): Promise<void> {
   const pane = tmuxPane(await $.env.get('TMUX'), await $.env.get('TMUX_PANE'))
 
   if (pane !== undefined) {
-    await $.process.run(stateArgv(pane, state))
+    await $.process.run(argvFor(pane))
   }
+}
+
+async function show($: EngineInterface, state: AgentState | undefined): Promise<void> {
+  isWaiting = state === 'waiting'
+  await runInPane($, pane => stateArgv(pane, state))
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await show($, undefined)
+    const session = await $.session.id()
+    await runInPane($, pane => identityArgv(pane, { harness: HARNESS, session }))
     return next(e)
   })
 
   on('session.end', async ($, e, next) => {
     await show($, undefined)
+    await runInPane($, pane => identityArgv(pane, undefined))
     return next(e)
   })
 
