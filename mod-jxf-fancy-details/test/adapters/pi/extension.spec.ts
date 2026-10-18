@@ -4,6 +4,7 @@ import { afterEach, beforeEach, mock, test } from 'node:test'
 import type { ContextUsage } from '@earendil-works/pi-coding-agent'
 
 import { CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
@@ -141,9 +142,12 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
 
   s.advance(1500)
   assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
+  const streamingTimer = paintTimer({ text: '{2026-10-03 04:20:37 Δ 1.5s}', isLive: true }, T0 + 1500)
+  assert.ok(s.pi.render(step, WIDTH)?.[1]?.startsWith(` ${streamingTimer} `))
 
   await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage: USAGE } })
   assert.match(s.shown(step), /\{turn 1\.1: ↑ \(Δ15\.4k \+ ⟲61\.1k\) \/ Σ76\.5k · ↓ Δ3\.2k \/ Σ3\.2k\} \{Δ\$0\.\d\d \/ Σ\$0\.\d\d\}$/)
+  assert.ok(!s.pi.render(step, WIDTH)?.[1]?.startsWith(` ${streamingTimer}`))
 
   const row = new FakeToolRow('call-1') as ToolRow
 
@@ -157,6 +161,20 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
 
   await s.emit('tool_execution_start', { toolCallId: 'call-1/1', toolName: 'read', args: {} })
   assert.equal(s.ours().filter(entry => (entry.data as { id?: string }).id === 'call-1/1').length, 0)
+})
+
+test('a step that never ends stops shimmering when the run settles', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  await submit(s)
+  await s.emit('message_start', { message: { role: 'assistant', model: 'claude-opus-5-5' } })
+  const step = s.ours().find(entry => (entry.data as { kind: string }).kind === 'step')!
+  const streamingTimer = paintTimer({ text: '{2026-10-03 04:20:37 Δ 0.0s}', isLive: true }, T0)
+
+  assert.ok(s.pi.render(step, WIDTH)?.[1]?.startsWith(` ${streamingTimer} `))
+  await s.emit('agent_settled')
+  assert.ok(!s.pi.render(step, WIDTH)?.[1]?.startsWith(` ${streamingTimer}`))
 })
 
 test('settling a run records the active time, writes today, and stops the frame timer', async () => {

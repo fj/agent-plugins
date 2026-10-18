@@ -7,6 +7,7 @@ import {
   MODEL,
   PLUGIN,
   runTool,
+  shownColors,
   shownRows,
   shownText,
   step,
@@ -20,6 +21,7 @@ import {
 const REPLY = 'Here is the plan.'
 const ROW = { text: REPLY, isFirstOfReply: true }
 const STEP_MS = 3000
+const STEP_TIMER = 'step-timer-turn-1:0'
 const OTHER_MODEL_USAGE = {
   input_tokens: 100,
   output_tokens: 10,
@@ -45,9 +47,10 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
 
   for (const ui of drawings) {
     const tree = await ui.drawn()
-    expect(shownRows(tree).slice(0, 2)).toEqual([' ', '{2026-10-03 04:20:37 Δ 0.0s} {turn 1.1}'])
+    expect(shownRows(tree).slice(0, 2)).toEqual([' ', ' {turn 1.1}'])
     expect(shownText(tree)).not.toContain('$')
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
+    expect(await ui.find({ type: 'Client', key: STEP_TIMER })).toBeDefined()
   }
 
   await w.clock.advance(STEP_MS)
@@ -56,11 +59,40 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
   }
 
   for (const ui of drawings) {
+    expect(await ui.find({ type: 'Client' })).toBeUndefined()
     const text = shownText(await ui.drawn())
     expect(text).toContain('{2026-10-03 04:20:37 Δ 3.0s}')
     expect(text).toContain('{turn 1.1: ↑ (Δ1.2k + ⟲5.0k) / Σ6.2k · ↓ Δ300 / Σ300}')
     expect(text).toMatch(/\{Δ\$0\.\d\d \/ Σ\$0\.\d\d\}/)
   }
+})
+
+test('a streaming step shimmers its header timer', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY))
+
+  const stream = $.turn.step({ turnId: 'turn-1', index: 0, model: MODEL, messageCount: 1 })
+  await stream.next()
+  await appendReply($, 'reply-1', REPLY)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW, requestId: 'reply-1' })
+  const timer = await ui.drawn({ in: STEP_TIMER })
+  expect(shownText(timer)).toBe('{2026-10-03 04:20:37 Δ 0.0s}')
+  expect(new Set(shownColors(timer)).size).toBeGreaterThan(1)
+})
+
+test('a step that never reports usage stops shimmering when the turn completes', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY, null))
+  await step($, 'turn-1', 0)
+  await appendReply($, 'reply-1', REPLY)
+  await $.turn.complete({ turnId: 'turn-1', answer: REPLY, durationMs: STEP_MS, isAborted: false, reason: 'answer' })
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW, requestId: 'reply-1' })
+  expect(await ui.find({ type: 'Client' })).toBeUndefined()
+  expect(shownText(await ui.drawn())).toContain('{turn 1.1}')
 })
 
 test('the turn counter shows one input count when cached input is off', { options: { showCachedInput: false } }, async ($, on) => {
