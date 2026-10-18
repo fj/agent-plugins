@@ -12,14 +12,14 @@ test('an untitled session leaves the band to the others', async ($, on) => {
   expect(shownText(await ui.drawn())).toBe(`AbovePrompt ${ENGINE_TEXT}`)
 })
 
-test('the title sits at the bottom left with the others drawn to its right', async ($, on) => {
+test('the title sits right-aligned below the others, just above the prompt', async ($, on) => {
   const w = world(on, { files: { [SIDECAR]: sidecar('Fix auth refresh') } })
   await startSession($)
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AbovePrompt', props: BAND })
   const band = await ui.find({ key: 'session-title' })
 
-  expect(band?.props).toMatchObject({ width: BAND.bodyColumns })
-  expect(shownText(await ui.drawn())).toBe(`Fix auth refreshAbovePrompt ${ENGINE_TEXT}`)
+  expect(band?.props).toMatchObject({ width: BAND.bodyColumns, flexDirection: 'column' })
+  expect(shownText(await ui.drawn())).toBe(`AbovePrompt ${ENGINE_TEXT}Fix auth refresh`)
   expect(await ui.find({ type: 'Text', text: 'Fix auth refresh' })).toBeDefined()
 })
 

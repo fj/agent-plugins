@@ -11,8 +11,6 @@ export const PROGRESS_KEY = 'session-title-progress'
 
 const bandAtom = atom({ plugin: 'mod-jxf-session-title', key: 'band' } as const, { kind: 'idle' })
 
-const GAP_COLUMNS = 2
-
 type ShownBand = Exclude<SessionTitleBand, { kind: 'idle' }>
 
 async function bandNode($: EngineInterface, e: RenderInput, band: ShownBand): Promise<RenderNode> {
@@ -55,13 +53,9 @@ export function drawBand(on: On): void {
     const drawn = await next(e)
 
     return (
-      <Box key={BAND_KEY} width={e.props.bodyColumns} alignItems="flex-end">
-        <Box flexShrink={1} marginRight={GAP_COLUMNS}>
-          {shown}
-        </Box>
-        <Box flexGrow={1} justifyContent="flex-end">
-          {drawn}
-        </Box>
+      <Box key={BAND_KEY} width={e.props.bodyColumns} flexDirection="column">
+        <Box>{drawn}</Box>
+        <Box justifyContent="flex-end">{shown}</Box>
       </Box>
     )
   })

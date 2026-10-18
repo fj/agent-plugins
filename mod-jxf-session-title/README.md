@@ -1,6 +1,6 @@
 # mod-jxf-session-title
 
-A Claude Code and [pi](https://pi.dev) plugin that names a session from its first prompt. It asks a small model for a 3–6 word title and shows the title above the prompt: at the right in pi, at the bottom left of the band in Claude Code.
+A Claude Code and [pi](https://pi.dev) plugin that names a session from its first prompt. It asks a small model for a 3–6 word title and shows the title right-aligned above the prompt.
 
 While it waits, the band shows:
 
@@ -38,4 +38,4 @@ pi reads them from `~/.pi/agent/mod-jxf-session-title.json`. Claude Code reads t
 - If you leave a session while its title is being made, the title goes to that session's sidecar only. The session takes it as its name when you go back to it.
 - Claude Code takes a new title only from a hook, so its own session name changes at the next prompt. The band shows the title at once.
 - On resume, Claude Code keeps a name it already has, such as one set with `/rename`.
-- If `mod-jxf-fancy-details` draws its footer above the prompt, the two share the band: the title on the left, the footer rows on the right.
+- If `mod-jxf-fancy-details` draws its footer above the prompt, the two share the band: the title on the row just above the prompt.
