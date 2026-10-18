@@ -13,7 +13,10 @@ export const STALE = 'this extension instance is stale after runtime replacement
 
 export const plainTheme = { fg: (_color: string, text: string) => text }
 
-export const truncate = (text: string, maxWidth: number) => [...text].slice(0, maxWidth).join('')
+export const fit = {
+  truncate: (text: string, maxWidth: number) => [...text].slice(0, maxWidth).join(''),
+  width: (text: string) => [...text].length,
+}
 
 export function memoryFiles(initial: Record<string, string> = {}): Files & { all: Map<string, string> } {
   const all = new Map(Object.entries(initial))
@@ -156,7 +159,7 @@ export function fakeCtx(options: CtxOptions = {}) {
       const line = component?.render(width)[0]
       component?.dispose?.()
 
-      return line
+      return line?.trimStart()
     },
   }
 }

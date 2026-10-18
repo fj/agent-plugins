@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { parseConfig, type TitleConfig } from '../../../src/config/config.ts'
 import { modJxfSessionTitle } from '../../../src/adapters/pi/extension.ts'
 import { DEFAULT_MODEL } from '../../../src/adapters/pi/config.ts'
-import { fakeCtx, fakePi, memoryFiles, SIDECAR_FILE, truncate, type CtxOptions, type SessionNames } from './fakes.ts'
+import { fakeCtx, fakePi, memoryFiles, SIDECAR_FILE, fit, type CtxOptions, type SessionNames } from './fakes.ts'
 
 const T0 = Date.UTC(2026, 9, 18, 4)
 const ELAPSED_MS = 2345
@@ -29,7 +29,7 @@ async function setup(options: SetupOptions = {}) {
     modJxfSessionTitle({
       configPath: '/agent/mod-jxf-session-title.json',
       files,
-      truncate,
+      fit,
       readConfig: () => ({ ...parseConfig(null, DEFAULT_MODEL), ...options.config }),
       now: () => now,
       newId: () => 'id-1',
@@ -70,7 +70,7 @@ test('the first prompt is titled by haiku on the current provider', async () => 
   assert.equal(s.calls[0]?.prompt, fenced('fix the auth token refresh'))
   assert.equal(s.calls[0]?.options.maxTokens, 64)
   assert.equal(s.pi.name(), 'Fix auth refresh')
-  assert.equal(s.shownLine(), ' Fix auth refresh')
+  assert.equal(s.shownLine(), 'Fix auth refresh ')
   assert.deepEqual(JSON.parse(s.files.all.get(SIDECAR_FILE)!), {
     title: 'Fix auth refresh',
     model: 'claude-bridge/claude-haiku-5-5',
@@ -84,12 +84,12 @@ test('the line shows a spinner, the model and the elapsed time while it asks', a
   await s.pi.emit('before_agent_start', firstPrompt(), s.ctx)
   s.advance(ELAPSED_MS)
 
-  assert.match(s.shownLine()!, /^ \S asking claude-bridge\/claude-haiku-5-5 to summarize prompt for session title \[2\.3s\]$/)
+  assert.match(s.shownLine()!, /^ *\S asking claude-bridge\/claude-haiku-5-5 to summarize prompt for session title \[2\.3s\] $/)
   assert.equal(s.shownLine(30)?.length, 30)
 
   reply.resolve({ text: 'Fix auth refresh' })
   await s.pi.emit('session_info_changed', { name: 'Fix auth refresh' }, s.ctx)
-  assert.equal(s.shownLine(), ' Fix auth refresh')
+  assert.equal(s.shownLine(), 'Fix auth refresh ')
 })
 
 test('a second prompt while the first is still being titled asks only once', async () => {
@@ -168,7 +168,7 @@ test('a session start shows the name ahead of a different sidecar title', async 
   const sidecar = JSON.stringify({ title: 'From sidecar', model: 'm', generatedAt: '2026-10-18T04:00:00.000Z' })
   const s = await setup({ sessionName: 'My name', files: { [SIDECAR_FILE]: sidecar } })
 
-  assert.equal(s.shownLine(), ' My name')
+  assert.equal(s.shownLine(), 'My name ')
   assert.equal(s.pi.name(), 'My name')
 })
 
@@ -177,7 +177,7 @@ test('a session with a sidecar title but no name takes the title as its name', a
   const s = await setup({ files: { [SIDECAR_FILE]: sidecar } })
 
   assert.equal(s.pi.name(), 'Saved after leaving')
-  assert.equal(s.shownLine(), ' Saved after leaving')
+  assert.equal(s.shownLine(), 'Saved after leaving ')
   assert.deepEqual(s.calls, [])
 })
 
@@ -185,7 +185,7 @@ test('a rename shows the new name', async () => {
   const s = await setup()
   await s.pi.emit('session_info_changed', { name: 'Renamed' }, s.ctx)
 
-  assert.equal(s.shownLine(), ' Renamed')
+  assert.equal(s.shownLine(), 'Renamed ')
 })
 
 test('a session with no file is titled but writes no sidecar', async () => {
@@ -232,7 +232,7 @@ test('a new session titles its first prompt while the old one is still pending',
   await next.pi.emit('before_agent_start', firstPrompt('write the docs'), next.ctx)
 
   assert.equal(next.pi.name(), 'Second session')
-  assert.equal(next.shownLine(), ' Second session')
+  assert.equal(next.shownLine(), 'Second session ')
 })
 
 test('a session that starts unannounced is still titled', async () => {

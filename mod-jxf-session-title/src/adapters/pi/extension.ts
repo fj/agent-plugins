@@ -5,12 +5,12 @@ import type { Files } from '../../core/sidecar.ts'
 import { COMMAND, COMMAND_DESCRIPTION, titler } from '../../core/titler.ts'
 import { readConfig } from './config.ts'
 import { piHarness } from './harness.ts'
-import type { Truncate } from './widget.ts'
+import type { TextFit } from './widget.ts'
 
 export type SessionTitleDeps = {
   configPath: string
   files: Files
-  truncate: Truncate
+  fit: TextFit
   readConfig?: (path: string) => TitleConfig
   now?: () => number
   newId?: () => string
@@ -26,7 +26,7 @@ export function modJxfSessionTitle(deps: SessionTitleDeps): (pi: ExtensionAPI) =
     let isActive = true
     const titles = titler(() => config)
     const harness = (ctx: ExtensionContext) =>
-      piHarness(pi, ctx, { config, files: deps.files, truncate: deps.truncate, now, newId, isActive: () => isActive })
+      piHarness(pi, ctx, { config, files: deps.files, fit: deps.fit, now, newId, isActive: () => isActive })
 
     pi.registerCommand(COMMAND, {
       description: COMMAND_DESCRIPTION,

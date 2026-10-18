@@ -1,6 +1,6 @@
 # mod-jxf-session-title
 
-A Claude Code and [pi](https://pi.dev) plugin that names a session from its first prompt. It asks a small model for a 3–6 word title and shows the title at the bottom left of the band above the prompt.
+A Claude Code and [pi](https://pi.dev) plugin that names a session from its first prompt. It asks a small model for a 3–6 word title and shows the title above the prompt: at the right in pi, at the bottom left of the band in Claude Code.
 
 While it waits, the band shows:
 

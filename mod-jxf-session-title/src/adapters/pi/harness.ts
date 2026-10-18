@@ -4,14 +4,14 @@ import type { TitleConfig } from '../../config/config.ts'
 import { modelLabel, resolveModelSpec } from '../../core/model.ts'
 import { sidecarStore, type Files } from '../../core/sidecar.ts'
 import { WARNING_PREFIX, type ModelChoice, type TitleHarness } from '../../core/titler.ts'
-import { progressWidget, titleWidget, type Truncate } from './widget.ts'
+import { progressWidget, titleWidget, type TextFit } from './widget.ts'
 
 export const WIDGET_KEY = 'mod-jxf-session-title'
 
 export type PiHarnessEnv = {
   config: TitleConfig
   files: Files
-  truncate: Truncate
+  fit: TextFit
   now: () => number
   newId: () => string
   isActive: () => boolean
@@ -47,7 +47,7 @@ function chooseModel(ctx: ExtensionContext, spec: string): ModelChoice {
 }
 
 export function piHarness(pi: ExtensionAPI, ctx: ExtensionContext, env: PiHarnessEnv): TitleHarness {
-  const { config, files, truncate, now, newId, isActive } = env
+  const { config, files, fit, now, newId, isActive } = env
   const sessionFile = ctx.sessionManager.getSessionFile()
   const hasUI = () => isActive() && ctx.hasUI
 
@@ -82,12 +82,12 @@ export function piHarness(pi: ExtensionAPI, ctx: ExtensionContext, env: PiHarnes
     },
     async showAsking(modelLabel, startedAt) {
       if (hasUI()) {
-        ctx.ui.setWidget(WIDGET_KEY, (tui, theme) => progressWidget(tui, theme, truncate, { modelLabel, startedAt, now }))
+        ctx.ui.setWidget(WIDGET_KEY, (tui, theme) => progressWidget(tui, theme, fit, { modelLabel, startedAt, now }))
       }
     },
     async showTitle(title) {
       if (hasUI()) {
-        ctx.ui.setWidget(WIDGET_KEY, title === undefined ? undefined : (_tui, theme) => titleWidget(title, theme, truncate))
+        ctx.ui.setWidget(WIDGET_KEY, title === undefined ? undefined : (_tui, theme) => titleWidget(title, theme, fit))
       }
     },
     async warn(message) {

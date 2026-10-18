@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
 import { getAgentDir } from '@earendil-works/pi-coding-agent'
-import { truncateToWidth } from '@earendil-works/pi-tui'
+import { truncateToWidth, visibleWidth } from '@earendil-works/pi-tui'
 
 import { CONFIG_FILE } from './config.ts'
 import { modJxfSessionTitle } from './extension.ts'
@@ -16,5 +16,8 @@ export default modJxfSessionTitle({
       await writeFile(path, text)
     },
   },
-  truncate: (text, maxWidth) => truncateToWidth(text, maxWidth),
+  fit: {
+    truncate: (text, maxWidth) => truncateToWidth(text, maxWidth),
+    width: visibleWidth,
+  },
 })
