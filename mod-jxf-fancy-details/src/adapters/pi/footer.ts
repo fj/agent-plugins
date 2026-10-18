@@ -3,7 +3,8 @@ import type { ContextFill } from '../../render/context.ts'
 import { footer, type FooterLayout } from '../../render/footer.ts'
 import { hasPulse } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
-import { alignRight, paintLine } from './paint.ts'
+import { besideRight } from './columns.ts'
+import { paintLine } from './paint.ts'
 import type { Scene } from './views.ts'
 
 export type FooterScene = Scene & {
@@ -27,11 +28,10 @@ const MIN_PATH_WIDTH = 16
 const PATH_WIDTH_SHARE = 0.25
 const CONTROL_CHARS = /[\r\n\t]+/g
 
-function statusLine(data: FooterData): string | undefined {
+function statusItems(data: FooterData): string[] {
   const statuses = [...data.getExtensionStatuses().values()].map(text => text.replace(CONTROL_CHARS, ' ').trim())
-  const shown = statuses.filter(text => text !== '')
 
-  return shown.length === 0 ? undefined : shown.join(' ')
+  return statuses.filter(text => text !== '')
 }
 
 export function footerLines(scene: FooterScene, data: FooterData, width: number): string[] {
@@ -51,9 +51,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     layout: scene.layout(),
   })
   scene.showPulse(lines.some(hasPulse))
-  const statuses = statusLine(data)
   const now = scene.now()
-  const main = lines.map(line => alignRight(paintLine(line, now), width, scene.measure))
 
-  return statuses === undefined ? main : [scene.measure.truncateToWidth(statuses, width), ...main]
+  return besideRight(statusItems(data), lines.map(line => paintLine(line, now)), width, scene.measure)
 }
