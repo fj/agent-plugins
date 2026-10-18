@@ -1,4 +1,5 @@
-import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
+import { DONE_TIMER_COLOR } from '../../render/palette.ts'
+import { roleColor } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
 import { shimmer } from '../../render/shimmer.ts'
 import type { TimerView } from '../../render/timer.ts'
@@ -25,8 +26,8 @@ export function paint(text: string, hex: string | undefined): string {
   return `\x1b[38;2;${r};${g};${b}m${text}${RESET_FOREGROUND}`
 }
 
-export function paintLine(line: Line): string {
-  return line.map(part => paint(part.text, PALETTE[part.role])).join('')
+export function paintLine(line: Line, nowMs?: number): string {
+  return line.map(part => paint(part.text, roleColor(part.role, nowMs))).join('')
 }
 
 export function paintTimer(view: TimerView, now: number): string {

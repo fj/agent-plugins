@@ -35,6 +35,7 @@ export type FancyLedger = {
   marks: Readonly<Record<string, FancyMark>>
   currentPromptId?: string
   currentStepId?: string
+  cachedAt?: number
   totals: FancyTotals
 }
 
@@ -53,6 +54,18 @@ export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: s
 
 export type FancyContextFill = { tokens?: number; window: number }
 
+export type FancyCacheEnv = {
+  disable?: string
+  force5m?: string
+  ttl?: string
+  enable1h?: string
+  enable1hBedrock?: string
+}
+
+export type FancyCacheSource = { env: FancyCacheEnv; setting: string | null; isBedrock: boolean; isSubscriber: boolean }
+
+export type FancyRoute = { provider: string; billing: string; cache: FancyCacheSource }
+
 declare module 'claude-code' {
   interface PluginState {
     'mod-jxf-fancy-details': {
@@ -62,6 +75,7 @@ declare module 'claude-code' {
       rateLimits: readonly FancyQuotaWindow[]
       context: FancyContextFill | null
       branch: string | null
+      route: FancyRoute | null
     }
   }
 }

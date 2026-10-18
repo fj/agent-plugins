@@ -1,6 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
+import type { ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../../core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../../core/rows.ts'
@@ -10,6 +11,7 @@ import type { Config } from './config.ts'
 import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
 import { branchFrom, SHOW_BRANCH } from './git.ts'
 import { isUserOrigin } from './origin.ts'
+import { claudeCodeBilling, claudeCodeProvider, type CloudFlags } from './provider.ts'
 
 const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
 const othersAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'others' } as const, NO_OTHER_SESSIONS)
@@ -17,6 +19,7 @@ const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const,
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
+const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
 
 const POLL_MS = 30_000
 const GIT_TIMEOUT_MS = 2000
@@ -76,6 +79,44 @@ async function refreshBranch($: EngineInterface): Promise<void> {
   await update($, branchAtom, () => branch)
 }
 
+async function cloudFlags($: EngineInterface): Promise<CloudFlags> {
+  return {
+    bedrock: await $.env.get('CLAUDE_CODE_USE_BEDROCK'),
+    vertex: await $.env.get('CLAUDE_CODE_USE_VERTEX'),
+    foundry: await $.env.get('CLAUDE_CODE_USE_FOUNDRY'),
+    anthropicAws: await $.env.get('CLAUDE_CODE_USE_ANTHROPIC_AWS'),
+    anthropicGoogleCloud: await $.env.get('CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD'),
+    mantle: await $.env.get('CLAUDE_CODE_USE_MANTLE'),
+    gateway: await $.env.get('CLAUDE_CODE_USE_GATEWAY'),
+  }
+}
+
+async function cacheEnv($: EngineInterface): Promise<ClaudeCodeCacheEnv> {
+  return {
+    disable: await $.env.get('DISABLE_PROMPT_CACHING'),
+    force5m: await $.env.get('FORCE_PROMPT_CACHING_5M'),
+    ttl: await $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL'),
+    enable1h: await $.env.get('ENABLE_PROMPT_CACHING_1H'),
+    enable1hBedrock: await $.env.get('ENABLE_PROMPT_CACHING_1H_BEDROCK'),
+  }
+}
+
+async function refreshRoute($: EngineInterface): Promise<void> {
+  const provider = claudeCodeProvider(await cloudFlags($))
+  const credential = await $.session.authorize().catch(() => null)
+  const billing = claudeCodeBilling(provider, credential?.kind)
+  const settings = await $.settings.read().catch(() => undefined)
+  const setting = settings?.promptCacheTtl
+  const cache = {
+    env: await cacheEnv($),
+    setting: typeof setting === 'string' ? setting : null,
+    isBedrock: provider === 'bedrock',
+    isSubscriber: billing === 'subscription',
+  }
+
+  await update($, routeAtom, () => ({ provider, billing, cache }))
+}
+
 async function refreshPolled($: EngineInterface): Promise<void> {
   await Promise.all([refreshOthers($), refreshBranch($)])
 }
@@ -97,6 +138,7 @@ async function refreshUsage($: EngineInterface): Promise<void> {
 export function trackEvents(on: On, config: Config): void {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    await refreshRoute($)
     await refreshUsage($)
     await refreshPolled($)
     $.clock.every(POLL_MS, () => void refreshPolled($))

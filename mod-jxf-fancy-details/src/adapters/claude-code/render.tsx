@@ -1,18 +1,22 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
+import { cacheRemainingMs, claudeCodeCacheTtlMs } from '../../core/cache.ts'
 import { EMPTY_JOURNAL } from '../../core/journal.ts'
 import { isStreaming, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
+import { modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
+import { hasPulse } from '../../render/pulse.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
-import { blankLine, lineNodes, rightColumn } from './draw.tsx'
+import { blankLine, lineNodes, rightColumn, type LiveLine } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
+import type { PulseProps } from './pulse.tsx'
 import type { TimerProps } from './timer.tsx'
 
 const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
@@ -21,6 +25,7 @@ const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const,
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
+const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '
@@ -45,6 +50,20 @@ async function timerNode($: EngineInterface, e: RenderInput, { key, startedAt, e
   return <Text color={PALETTE.time}>{timerView(startedAt, now).text}</Text>
 }
 
+function liveLine($: EngineInterface, e: RenderInput): LiveLine | undefined {
+  if (e.surface !== 'terminal' && e.surface !== 'desktop') {
+    return undefined
+  }
+
+  const { Client } = $.ui.resolve(e)
+
+  return (line, index) => {
+    const props: PulseProps = { line }
+
+    return hasPulse(line) ? <Client key={`footer-pulse-${index}`} module="./pulse.tsx" props={props} /> : undefined
+  }
+}
+
 const reported = new Set<string>()
 
 function reportMiss($: EngineInterface, e: RenderInput, isDebug: boolean): void {
@@ -60,17 +79,21 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const rateLimits = await read($, rateLimitsAtom)
   const context = await read($, contextAtom)
   const branch = await read($, branchAtom)
-  const windows = config.subscription.read({ windows: rateLimits })
+  const route = await read($, routeAtom)
+  const reading = config.subscription.read({ windows: rateLimits })
+  const ttl = route === null ? undefined : claudeCodeCacheTtlMs({ ...route.cache, isUsingOverage: reading?.isUsingOverage ?? false })
+  const now = await $.clock.now()
 
   return {
-    model: await $.session.model(),
+    model: modelLabel(route?.provider ?? '', route?.billing ?? '', await $.session.model()),
     cwd: await $.session.cwd(),
     branch: branch ?? undefined,
     home: (await $.env.get('HOME')) ?? '',
     session: ledger.totals,
-    today: todayTotals(days, others, await $.clock.now()),
-    quota: windows === null ? [] : config.subscription.render(windows),
+    today: todayTotals(days, others, now),
+    quota: reading === null ? [] : config.subscription.render(reading),
     context: context ?? undefined,
+    cacheRemainingMs: cacheRemainingMs(ledger.cachedAt, ttl, now),
     usage: config.usage,
     display: config.display,
     maxPathWidth: MAX_PATH_WIDTH,
@@ -190,7 +213,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))])}
+        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, liveLine($, e))}
       </Box>
     )
   })
@@ -209,7 +232,7 @@ export function drawSites(on: On, config: Config): void {
         <Box flexGrow={1} flexShrink={1}>
           {drawn}
         </Box>
-        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 })}
+        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, liveLine($, e))}
       </Box>
     )
   })

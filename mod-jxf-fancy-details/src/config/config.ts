@@ -7,11 +7,13 @@ export type DisplayConfig = { showCachedInput?: boolean }
 
 export type FancyConfig = { usageStrategy?: string; subscriptionStrategy?: string } & FooterConfig & DisplayConfig
 
-export type ModelInfo = { id: string; provider: string }
+export type PromptCacheTiers = { short?: number; long?: number }
+
+export type ModelInfo = { id: string; provider: string; promptCache?: PromptCacheTiers }
 
 const ANTHROPIC_PROVIDER = 'anthropic'
 
-const CLAUDE_BRIDGE_PROVIDER = 'claude-bridge'
+export const CLAUDE_BRIDGE_PROVIDER = 'claude-bridge'
 
 const optionalString = (value: unknown) => (typeof value === 'string' ? value : undefined)
 

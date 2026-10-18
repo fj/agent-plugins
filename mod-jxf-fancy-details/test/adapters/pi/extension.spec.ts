@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
-import type { ContextUsage } from '@earendil-works/pi-coding-agent'
-
 import { CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
-import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './fakes.ts'
+import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type CtxOptions, type FakeEntry } from './fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
 const WIDTH = 200
@@ -31,13 +29,11 @@ class FakeToolRow {
   }
 }
 
-type SetupOptions = {
+type SetupOptions = CtxOptions & {
   branch?: FakeEntry[]
-  mode?: string
-  provider?: string
   others?: number
   config?: FancyConfig
-  context?: ContextUsage
+  env?: Record<string, string>
 }
 
 function setup(options: SetupOptions = {}) {
@@ -58,6 +54,7 @@ function setup(options: SetupOptions = {}) {
     toolRows: FakeToolRow.prototype,
     readConfig: () => options.config ?? {},
     now: () => clock,
+    env: options.env ?? {},
     newId: () => `id${(ids += 1)}`,
   })(pi.api)
 
@@ -66,11 +63,12 @@ function setup(options: SetupOptions = {}) {
     clock += ms
     mock.timers.tick(ms)
   }
-  const footerLines = (data = footerData()) => footer()?.(tui, {}, data).render(WIDTH).map(plain)
+  const paintedFooter = (data = footerData()) => footer()?.(tui, {}, data).render(WIDTH)
+  const footerLines = (data = footerData()) => paintedFooter(data)?.map(plain)
   const ours = () => pi.branch.filter(entry => entry.customType === CUSTOM_TYPE)
   const shown = (entry: FakeEntry) => plain(pi.render(entry, WIDTH)?.join('\n') ?? '')
 
-  return { pi, ctx, widgets, footerLines, writes, tui, emit, advance, ours, shown, setContext }
+  return { pi, ctx, widgets, footerLines, paintedFooter, writes, tui, emit, advance, ours, shown, setContext }
 }
 
 async function submit(s: ReturnType<typeof setup>, text = 'hello') {
@@ -214,7 +212,7 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.equal(status, 'lens ok')
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
-  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
   assert.match(session!, /^ +session \$0\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(today!, /^ +today \$10\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
@@ -226,7 +224,95 @@ test('the footer head leaves out the branch outside a git repository', async () 
 
   const [head] = s.footerLines(footerData({}, null))!
 
-  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
+})
+
+test('the footer head names the provider before the model', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines(footerData({}, null))!
+
+  assert.match(head!, /^ +claude-bridge\/claude-opus-5-5 · /)
+})
+
+const PROMPT_CACHE = { short: 300, long: 3600 }
+
+async function startCached(s: ReturnType<typeof setup>) {
+  await s.emit('session_start', { reason: 'startup' })
+  await step(s, USAGE)
+}
+
+async function step(s: ReturnType<typeof setup>, usage: typeof USAGE) {
+  await submit(s)
+  await s.emit('message_start', { message: { role: 'assistant', model: 'claude-opus-5-5' } })
+  await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage } })
+}
+
+const sessionLine = (s: ReturnType<typeof setup>) => s.footerLines(footerData({}, null))![1]!
+
+test('the footer counts down the prompt cache after a step that used it', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await s.emit('session_start', { reason: 'startup' })
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+
+  await step(s, USAGE)
+  assert.match(sessionLine(s), /↓3\.2k ⌛5m$/)
+
+  s.advance(2 * 60_000)
+  assert.match(sessionLine(s), /⌛3m$/)
+
+  s.advance(3 * 60_000)
+  assert.match(sessionLine(s), /⌛0m$/)
+})
+
+test('a step that leaves the cache alone does not restart the countdown', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await startCached(s)
+  s.advance(2 * 60_000)
+  await step(s, { ...USAGE, cacheRead: 0, cacheWrite: 0 })
+
+  assert.match(sessionLine(s), /⌛3m$/)
+})
+
+test('the footer uses the long cache tier when pi keeps the cache long', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE, env: { PI_CACHE_RETENTION: 'long' } })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛60m$/)
+})
+
+test('the footer leaves out the cache for a model with no known cache lifetime', async () => {
+  const s = setup()
+
+  await startCached(s)
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+})
+
+test('the footer drops the cache time on a switch to a model with no known cache lifetime', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await startCached(s)
+  await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
+
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+})
+
+test('the footer counts down the claude-bridge cache as a subscriber cache', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛60m$/)
+})
+
+test('the claude-bridge cache follows the Claude Code cache variables', async () => {
+  const s = setup({ provider: 'claude-bridge', env: { FORCE_PROMPT_CACHING_5M: '1' } })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛5m$/)
 })
 
 test('the footer follows the config for one totals line, cached input and the context window', async () => {
@@ -358,7 +444,7 @@ test('switching to a model without a subscription drops the meter', async () => 
   await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
   assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
-  assert.match(s.footerLines()![0]!, /gpt-5 · /)
+  assert.match(s.footerLines()![0]!, /^ +azure\/gpt-5 · /)
 })
 
 test('tool calls made by another tool are not timed', async () => {
@@ -401,4 +487,94 @@ test('the footer shows the context window size until the fill is known, then fol
 
   s.setContext({ tokens: 50_000, contextWindow: 200_000, percent: 25 })
   assert.match(s.footerLines()!.at(-1)!, /^ +ctx ▕██ +▏ 50\.0k \/ 200\.0k$/)
+})
+
+const OVERAGE_HEADERS = {
+  'anthropic-ratelimit-unified-5h-utilization': '1.0',
+  'anthropic-ratelimit-unified-7d-utilization': '0.42',
+  'anthropic-ratelimit-unified-status': 'rejected',
+  'anthropic-ratelimit-unified-overage-status': 'allowed',
+}
+
+const MARK_COLOR = /\x1b\[38;2;([\d;]+)m \(!\)/
+
+const markColor = (s: ReturnType<typeof setup>) => MARK_COLOR.exec(s.paintedFooter()!.at(-1)!)?.[1]
+
+function ticks(s: ReturnType<typeof setup>) {
+  const before = s.tui.renders()
+
+  s.advance(FRAME_MS * 3)
+
+  return s.tui.renders() - before
+}
+
+async function startPulsing(options: SetupOptions = {}) {
+  const s = setup(options)
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+  s.footerLines()
+
+  return s
+}
+
+test('the footer marks the full window while extra usage serves the requests, and drops the mark after', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+  assert.match(s.footerLines()!.at(-1)!, /5h ▕████████▏ 100% \(!\)  7d ▕.*▏ 42%$/)
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  assert.doesNotMatch(s.footerLines()!.at(-1)!, /\(!\)/)
+})
+
+test('the extra usage mark pulses while the agent is idle', async () => {
+  const s = await startPulsing()
+  const before = markColor(s)
+
+  assert.ok(before)
+  assert.equal(ticks(s), 3)
+  assert.notEqual(markColor(s), before)
+})
+
+test('the pulse stops once the plan serves again', async () => {
+  const s = await startPulsing()
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  s.footerLines()
+  assert.equal(ticks(s), 0)
+})
+
+test('the pulse stops on a switch to a model without a subscription', async () => {
+  const s = await startPulsing()
+
+  await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
+  s.footerLines()
+  assert.equal(ticks(s), 0)
+})
+
+test('the pulse stops when the session shuts down', async () => {
+  const s = await startPulsing()
+
+  await s.emit('session_shutdown', { reason: 'quit' })
+  assert.equal(ticks(s), 0)
+})
+
+test('nothing pulses while the footer hides the subscription meters', async () => {
+  const s = await startPulsing({ config: { showSubscription: false } })
+
+  assert.equal(ticks(s), 0)
+})
+
+test('the claude-bridge cache drops to five minutes while extra usage is on, and back to an hour after', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await startCached(s)
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+
+  assert.match(sessionLine(s), /⌛5m$/)
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  assert.match(sessionLine(s), /⌛60m$/)
 })

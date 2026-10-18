@@ -1,11 +1,13 @@
 import { expect, test } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import type { Engine, Mounted } from 'claude-code/testing'
 
+import { PALETTE } from '../../../src/render/palette.ts'
 import {
   CWD,
   dayDirOf,
   LIVE_SURFACES,
   MODEL,
+  MODEL_LABEL,
   runTool,
   PLUGIN,
   SESSION_ID,
@@ -46,7 +48,7 @@ test('the footer shows model and path, session, and today on separate lines besi
     const drawn = await ui.drawn()
     expect(shownText(drawn)).toStartWith('focus  ')
     expect(shownRows(drawn)).toEqual([
-      `${MODEL} · ~/src/projects/fancy`,
+      `${MODEL_LABEL} · ~/src/projects/fancy`,
       'session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0',
       'today 1m 00s · $1.25 ↑(Δ1.0k + ⟲ 0)/1.0k ↓1.0k',
       'ctx 200.0k',
@@ -66,7 +68,7 @@ test('the footer shows model and path, session, and today on separate lines besi
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const text = shownText(await ui.drawn())
-  expect(text).toStartWith(MODEL)
+  expect(text).toStartWith(MODEL_LABEL)
   expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
   expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
 })
@@ -262,7 +264,7 @@ test(
     await measure($, [FIVE_HOUR])
 
     const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-    expect(shownRows(await ui.drawn())).toEqual([`${MODEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
+    expect(shownRows(await ui.drawn())).toEqual([`${MODEL_LABEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
   },
 )
 
@@ -273,7 +275,7 @@ test('the footer head shows the git branch of the session directory after the pa
   await start($)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-  expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
+  expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL_LABEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
   expect(w.gitCwds).toEqual([CWD])
 })
 
@@ -295,4 +297,179 @@ test('the footer branch follows a checkout by a tool call and one made outside t
   w.branch = 'topic/y'
   await w.clock.advance(POLL_MS)
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} topic/y`)
+})
+
+async function footerRows($: Engine): Promise<string[]> {
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const rows = shownRows(await ui.drawn())
+  await ui.unmount()
+
+  return rows
+}
+
+test('the footer head names an API key login', async ($, on) => {
+  world(on, { credential: { handle: 'handle-1', kind: 'api-key' } })
+  await start($)
+
+  expect((await footerRows($))[0]).toStartWith(`anthropic/api/${MODEL} · `)
+})
+
+const CLOUD_ENV = [
+  ['CLAUDE_CODE_USE_BEDROCK', 'bedrock'],
+  ['CLAUDE_CODE_USE_VERTEX', 'vertex'],
+  ['CLAUDE_CODE_USE_FOUNDRY', 'azure'],
+  ['CLAUDE_CODE_USE_ANTHROPIC_AWS', 'aws'],
+  ['CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD', 'gcp'],
+  ['CLAUDE_CODE_USE_MANTLE', 'mantle'],
+  ['CLAUDE_CODE_USE_GATEWAY', 'gateway'],
+] as const
+
+for (const [name, provider] of CLOUD_ENV) {
+  test(`the footer head names ${provider} when ${name} is on`, async ($, on) => {
+    world(on, { env: { [name]: '1' }, credential: null })
+    await start($)
+
+    expect((await footerRows($))[0]).toStartWith(`${provider}/api/${MODEL} · `)
+  })
+}
+
+const MINUTE_MS = 60_000
+
+async function cachedTurn($: Engine, w: ReturnType<typeof world>): Promise<void> {
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+}
+
+const sessionRow = async ($: Engine) => (await footerRows($))[1]
+
+test('the session row counts down a subscriber cache after a step that used it', async ($, on) => {
+  const w = world(on)
+  await start($)
+  expect(await sessionRow($)).not.toContain('⌛')
+
+  await cachedTurn($, w)
+  expect(await sessionRow($)).toEndWith('↓300 ⌛60m')
+
+  await w.clock.advance(30 * MINUTE_MS)
+  expect(await sessionRow($)).toEndWith('⌛30m')
+})
+
+test('an API key keeps the cache five minutes', async ($, on) => {
+  const w = world(on, { credential: { handle: 'handle-1', kind: 'api-key' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+})
+
+test('the cache TTL setting overrides the default for a cloud provider', async ($, on) => {
+  const w = world(on, { env: { CLAUDE_CODE_USE_FOUNDRY: '1' }, credential: null, settings: { promptCacheTtl: '1h' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛60m')
+})
+
+test('the cache TTL variable overrides the cache TTL setting', async ($, on) => {
+  const w = world(on, { env: { CLAUDE_CODE_PROMPT_CACHE_TTL: '5m' }, settings: { promptCacheTtl: '1h' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+})
+
+test('Bedrock keeps the cache an hour when its enable-1h variable is on', async ($, on) => {
+  const env = { CLAUDE_CODE_USE_BEDROCK: '1', ENABLE_PROMPT_CACHING_1H_BEDROCK: '1' }
+  const w = world(on, { env, credential: null })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛60m')
+})
+
+test('the session row leaves out the cache with prompt caching off', async ($, on) => {
+  const w = world(on, { env: { DISABLE_PROMPT_CACHING: '1' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).not.toContain('⌛')
+})
+
+const FULL_FIVE_HOUR = [
+  { kind: 'five_hour', percentUsed: 100 },
+  { kind: 'seven_day', percentUsed: 42 },
+]
+const FRAME_MS = 100
+const OVERAGE_MARK = /^ \(!\)$/
+
+async function pulseKey(ui: Pick<Mounted, 'find'>) {
+  return (await ui.find({ type: 'Client' }))?.key
+}
+
+test('the meter row pulses a mark beside the full window while extra usage is on', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const key = await pulseKey(ui)
+    expect(key).toBeDefined()
+
+    const mark = async () => (await ui.find({ in: key, text: OVERAGE_MARK }))?.props.color
+    const before = await mark()
+    expect(before).toBeDefined()
+
+    await ui.advance(FRAME_MS * 3)
+    expect(await mark()).not.toBe(before)
+    await ui.unmount()
+  }
+})
+
+test('the meter row draws a steady mark on a surface that cannot animate', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'vscode', component: 'SessionMode', props: { modes: [] } })
+  const color = async () => (await ui.find({ text: OVERAGE_MARK }))?.props.color
+  expect(await pulseKey(ui)).toBeUndefined()
+  expect(await color()).toBe(PALETTE.overage)
+
+  await w.clock.advance(FRAME_MS * 3)
+  expect(await color()).toBe(PALETTE.overage)
+  await ui.unmount()
+})
+
+test('the meter row has no mark or pulse while the plan serves the requests', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [FIVE_HOUR])
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await pulseKey(ui)).toBeUndefined()
+  expect(shownText(await ui.drawn())).not.toContain('(!)')
+  await ui.unmount()
+})
+
+test('the meter row drops the mark once the plan serves the requests again', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+  await measure($, [FIVE_HOUR])
+
+  expect(await footerText($)).not.toContain('(!)')
+})
+
+test('a subscriber cache drops to five minutes while extra usage is on, and back to an hour after', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+  await measure($, FULL_FIVE_HOUR)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+
+  await measure($, [FIVE_HOUR])
+  expect(await sessionRow($)).toEndWith('⌛60m')
 })

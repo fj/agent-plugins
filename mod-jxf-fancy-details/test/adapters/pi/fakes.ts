@@ -53,7 +53,15 @@ export function fakePi() {
   }
 }
 
-export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?: string; oauth?: boolean; context?: ContextUsage } = {}) {
+export type CtxOptions = {
+  mode?: string
+  provider?: string
+  oauth?: boolean
+  context?: ContextUsage
+  promptCache?: { short?: number; long?: number }
+}
+
+export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const widgets = new Map<string, Factory | undefined>()
   let footer: Factory | undefined
   let context = options.context
@@ -68,7 +76,7 @@ export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?
   const ctx = {
     mode: options.mode ?? 'tui',
     cwd: '/home/j/src/projects/demo',
-    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic' },
+    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', promptCache: options.promptCache },
     modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
     getContextUsage: () => context,
     sessionManager: { getSessionId: () => 'sess-1', getBranch: () => branch, getEntries: () => branch },

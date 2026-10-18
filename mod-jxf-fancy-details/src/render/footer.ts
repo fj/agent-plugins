@@ -1,6 +1,6 @@
 import type { Totals } from '../core/totals.ts'
 import { contextMeter, type ContextFill } from './context.ts'
-import { formatDuration, formatUsd, shortenPath } from './format.ts'
+import { formatDuration, formatRemaining, formatUsd, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
 import type { TokenDisplay, UsageLines } from './usage-lines.ts'
 
@@ -15,6 +15,7 @@ export type FooterInput = {
   today: Totals
   quota: Line
   context?: ContextFill
+  cacheRemainingMs?: number
   usage: UsageLines
   display: TokenDisplay
   maxPathWidth: number
@@ -24,6 +25,7 @@ export type FooterInput = {
 const ZERO_DURATION = formatDuration(0)
 const GROUP_GAP = seg('  ')
 const BRANCH_SYMBOL = '\ue0a0'
+const CACHE_SYMBOL = '\u231b'
 
 function timeSegments(activeMs: number): Line {
   const duration = formatDuration(activeMs)
@@ -31,18 +33,30 @@ function timeSegments(activeMs: number): Line {
   return duration === ZERO_DURATION ? [] : [seg(duration, 'time'), seg(' · ', 'muted')]
 }
 
-function totalsLine(label: string, totals: Totals, { usage, display }: FooterInput): Line {
+function cacheSegments(remainingMs: number | undefined): Line {
+  if (remainingMs === undefined) {
+    return []
+  }
+
+  return [seg(` ${CACHE_SYMBOL}`, 'muted'), seg(formatRemaining(remainingMs), remainingMs > 0 ? 'cache' : 'muted')]
+}
+
+function totalsLine(label: string, totals: Totals, { usage, display }: FooterInput, suffix: Line = []): Line {
   return [
     seg(`${label} `, 'muted'),
     ...timeSegments(totals.activeMs),
     seg(formatUsd(totals.cost), 'cost'),
     seg(' '),
     ...usage.totalTokens(totals.usage, display),
+    ...suffix,
   ]
 }
 
 function totalsLines(input: FooterInput): Line[] {
-  const lines = [totalsLine('session', input.session, input), totalsLine('today', input.today, input)]
+  const lines = [
+    totalsLine('session', input.session, input, cacheSegments(input.cacheRemainingMs)),
+    totalsLine('today', input.today, input),
+  ]
 
   return input.layout.isTotalsCombined ? [join(lines, GROUP_GAP)] : lines
 }

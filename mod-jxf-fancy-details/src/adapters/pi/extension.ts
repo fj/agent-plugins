@@ -1,14 +1,17 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
 import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
+import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
-import type { QuotaWindow } from '../../core/quota.ts'
+import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
 import type { ContextFill } from '../../render/context.ts'
+import { modelLabel } from '../../render/format.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
+import { cacheTtlMs, type Env } from './cache.ts'
 import { readConfig } from './config.ts'
 import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
@@ -33,6 +36,7 @@ export type FancyDeps = {
   readConfig?: (path: string) => FancyConfig
   now?: () => number
   newId?: () => string
+  env?: Env
 }
 
 type Entry = { type: string; customType?: string; data?: unknown; message?: unknown }
@@ -61,13 +65,14 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
   const now = deps.now ?? Date.now
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const loadConfig = deps.readConfig ?? readConfig
+  const env = deps.env ?? process.env
 
   return pi => {
     let ctx: ExtensionContext | undefined
     let config: FancyConfig = {}
     let usage: UsageStrategy = usageStrategy(undefined)
     let subscription: SubscriptionStrategy = subscriptionStrategy(undefined)
-    let windows: readonly QuotaWindow[] | null = null
+    let reading: QuotaReading | null = null
     let model: ModelInfo | undefined
     let tui: Renderable | undefined
     let running = false
@@ -76,19 +81,24 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let openStepId: string | undefined
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
 
+    const isUsingOverage = () => reading?.isUsingOverage ?? false
+    const pulse = ticker(FRAME_MS, () => tui?.requestRender())
+
     const scene: FooterScene = {
       ledger: () => tracker.ledger(),
       now,
       usage: () => usage,
       display: () => tokenDisplay(config),
       measure: deps.measure,
-      model: () => model?.id ?? 'no model',
+      model: () => (model === undefined ? 'no model' : modelLabel(model.provider, model.id)),
       cwd: () => ctx?.cwd ?? '',
       home: deps.home,
       today: () => tracker.today(now()),
-      quota: () => (windows === null ? [] : subscription.render(windows)),
+      quota: () => (reading === null ? [] : subscription.render(reading)),
       context: () => contextFill(ctx?.getContextUsage()),
+      cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env, isUsingOverage()), now()),
       layout: () => footerLayout(config),
+      showPulse: isPulsing => (isPulsing ? pulse.start() : pulse.stop()),
     }
 
     const frames = ticker(FRAME_MS, () => {
@@ -179,6 +189,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       flushPrompt()
       frames.stop()
       refresher.stop()
+      pulse.stop()
       unpatchToolRows?.()
       unpatchToolRows = undefined
       running = false
@@ -221,8 +232,9 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     pi.on('model_select', async (event, context) => {
       ctx = context
       model = event.model
-      windows = null
+      reading = null
       chooseStrategies()
+      tui?.requestRender()
     })
 
     pi.on('agent_start', async () => {
@@ -273,7 +285,8 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     })
 
     pi.on('after_provider_response', async event => {
-      windows = subscription.read({ headers: event.headers }) ?? windows
+      reading = subscription.read({ headers: event.headers }) ?? reading
+      tui?.requestRender()
     })
 
     pi.on('agent_settled', async () => {
