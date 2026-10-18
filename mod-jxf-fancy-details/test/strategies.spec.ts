@@ -160,6 +160,31 @@ test('anthropic strategy renders a labeled meter per window', () => {
   assert.equal(lineText(line), '5h ▕████    ▏ 50%  7d ▕█       ▏ 13%')
 })
 
+test('anthropic strategy marks the full plan windows while extra usage is on', () => {
+  const windows = [
+    { kind: 'five_hour', percentUsed: 100 },
+    { kind: 'seven_day', percentUsed: 60 },
+  ]
+  const line = anthropicSubscriptionStrategy.render({ windows, isUsingOverage: true })
+
+  assert.equal(lineText(line), '5h ▕████████▏ 100% (!)  7d ▕████▊   ▏ 60%')
+  assert.deepEqual(
+    line.filter(part => part.role === 'overage').map(part => part.text),
+    [' (!)'],
+  )
+})
+
+test('anthropic strategy marks every plan window when extra usage is on but none reads full', () => {
+  const windows = [
+    { kind: 'five_hour', percentUsed: 99 },
+    { kind: 'seven_day', percentUsed: 60 },
+    { kind: 'seven_day_opus', percentUsed: 10 },
+  ]
+  const line = anthropicSubscriptionStrategy.render({ windows, isUsingOverage: true })
+
+  assert.equal(lineText(line), '5h ▕███████▉▏ 99% (!)  7d ▕████▊   ▏ 60% (!)  7d opus ▕▊       ▏ 10%')
+})
+
 test('null strategy reads and renders nothing', () => {
   assert.equal(nullSubscriptionStrategy.read({ windows: [{ kind: 'five_hour', percentUsed: 1 }] }), null)
   assert.deepEqual(nullSubscriptionStrategy.render({ windows: [], isUsingOverage: false }), [])

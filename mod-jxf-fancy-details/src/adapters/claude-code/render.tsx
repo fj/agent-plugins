@@ -10,11 +10,13 @@ import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts
 import { modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
+import { hasPulse } from '../../render/pulse.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
-import { blankLine, lineNodes, rightColumn } from './draw.tsx'
+import { blankLine, lineNodes, rightColumn, type LiveLine } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
+import type { PulseProps } from './pulse.tsx'
 import type { TimerProps } from './timer.tsx'
 
 const journalAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'journal' } as const, EMPTY_JOURNAL)
@@ -46,6 +48,20 @@ async function timerNode($: EngineInterface, e: RenderInput, { key, startedAt, e
   }
 
   return <Text color={PALETTE.time}>{timerView(startedAt, now).text}</Text>
+}
+
+function liveLine($: EngineInterface, e: RenderInput): LiveLine | undefined {
+  if (e.surface !== 'terminal' && e.surface !== 'desktop') {
+    return undefined
+  }
+
+  const { Client } = $.ui.resolve(e)
+
+  return (line, index) => {
+    const props: PulseProps = { line }
+
+    return hasPulse(line) ? <Client key={`footer-pulse-${index}`} module="./pulse.tsx" props={props} /> : undefined
+  }
 }
 
 const reported = new Set<string>()
@@ -197,7 +213,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))])}
+        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, liveLine($, e))}
       </Box>
     )
   })
@@ -216,7 +232,7 @@ export function drawSites(on: On, config: Config): void {
         <Box flexGrow={1} flexShrink={1}>
           {drawn}
         </Box>
-        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 })}
+        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, liveLine($, e))}
       </Box>
     )
   })

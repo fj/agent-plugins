@@ -63,11 +63,12 @@ function setup(options: SetupOptions = {}) {
     clock += ms
     mock.timers.tick(ms)
   }
-  const footerLines = (data = footerData()) => footer()?.(tui, {}, data).render(WIDTH).map(plain)
+  const paintedFooter = (data = footerData()) => footer()?.(tui, {}, data).render(WIDTH)
+  const footerLines = (data = footerData()) => paintedFooter(data)?.map(plain)
   const ours = () => pi.branch.filter(entry => entry.customType === CUSTOM_TYPE)
   const shown = (entry: FakeEntry) => plain(pi.render(entry, WIDTH)?.join('\n') ?? '')
 
-  return { pi, ctx, widgets, footerLines, writes, tui, emit, advance, ours, shown, setContext }
+  return { pi, ctx, widgets, footerLines, paintedFooter, writes, tui, emit, advance, ours, shown, setContext }
 }
 
 async function submit(s: ReturnType<typeof setup>, text = 'hello') {
@@ -494,6 +495,77 @@ const OVERAGE_HEADERS = {
   'anthropic-ratelimit-unified-status': 'rejected',
   'anthropic-ratelimit-unified-overage-status': 'allowed',
 }
+
+const MARK_COLOR = /\x1b\[38;2;([\d;]+)m \(!\)/
+
+const markColor = (s: ReturnType<typeof setup>) => MARK_COLOR.exec(s.paintedFooter()!.at(-1)!)?.[1]
+
+function ticks(s: ReturnType<typeof setup>) {
+  const before = s.tui.renders()
+
+  s.advance(FRAME_MS * 3)
+
+  return s.tui.renders() - before
+}
+
+async function startPulsing(options: SetupOptions = {}) {
+  const s = setup(options)
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+  s.footerLines()
+
+  return s
+}
+
+test('the footer marks the full window while extra usage serves the requests, and drops the mark after', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+  assert.match(s.footerLines()!.at(-1)!, /5h ▕████████▏ 100% \(!\)  7d ▕.*▏ 42%$/)
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  assert.doesNotMatch(s.footerLines()!.at(-1)!, /\(!\)/)
+})
+
+test('the extra usage mark pulses while the agent is idle', async () => {
+  const s = await startPulsing()
+  const before = markColor(s)
+
+  assert.ok(before)
+  assert.equal(ticks(s), 3)
+  assert.notEqual(markColor(s), before)
+})
+
+test('the pulse stops once the plan serves again', async () => {
+  const s = await startPulsing()
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  s.footerLines()
+  assert.equal(ticks(s), 0)
+})
+
+test('the pulse stops on a switch to a model without a subscription', async () => {
+  const s = await startPulsing()
+
+  await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
+  s.footerLines()
+  assert.equal(ticks(s), 0)
+})
+
+test('the pulse stops when the session shuts down', async () => {
+  const s = await startPulsing()
+
+  await s.emit('session_shutdown', { reason: 'quit' })
+  assert.equal(ticks(s), 0)
+})
+
+test('nothing pulses while the footer hides the subscription meters', async () => {
+  const s = await startPulsing({ config: { showSubscription: false } })
+
+  assert.equal(ticks(s), 0)
+})
 
 test('the claude-bridge cache drops to five minutes while extra usage is on, and back to an hour after', async () => {
   const s = setup({ provider: 'claude-bridge' })

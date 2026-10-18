@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
-import type { Engine } from 'claude-code/testing'
+import type { Engine, Mounted } from 'claude-code/testing'
 
+import { PALETTE } from '../../../src/render/palette.ts'
 import {
   CWD,
   dayDirOf,
@@ -399,6 +400,67 @@ const FULL_FIVE_HOUR = [
   { kind: 'five_hour', percentUsed: 100 },
   { kind: 'seven_day', percentUsed: 42 },
 ]
+const FRAME_MS = 100
+const OVERAGE_MARK = /^ \(!\)$/
+
+async function pulseKey(ui: Pick<Mounted, 'find'>) {
+  return (await ui.find({ type: 'Client' }))?.key
+}
+
+test('the meter row pulses a mark beside the full window while extra usage is on', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const key = await pulseKey(ui)
+    expect(key).toBeDefined()
+
+    const mark = async () => (await ui.find({ in: key, text: OVERAGE_MARK }))?.props.color
+    const before = await mark()
+    expect(before).toBeDefined()
+
+    await ui.advance(FRAME_MS * 3)
+    expect(await mark()).not.toBe(before)
+    await ui.unmount()
+  }
+})
+
+test('the meter row draws a steady mark on a surface that cannot animate', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'vscode', component: 'SessionMode', props: { modes: [] } })
+  const color = async () => (await ui.find({ text: OVERAGE_MARK }))?.props.color
+  expect(await pulseKey(ui)).toBeUndefined()
+  expect(await color()).toBe(PALETTE.overage)
+
+  await w.clock.advance(FRAME_MS * 3)
+  expect(await color()).toBe(PALETTE.overage)
+  await ui.unmount()
+})
+
+test('the meter row has no mark or pulse while the plan serves the requests', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, [FIVE_HOUR])
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await pulseKey(ui)).toBeUndefined()
+  expect(shownText(await ui.drawn())).not.toContain('(!)')
+  await ui.unmount()
+})
+
+test('the meter row drops the mark once the plan serves the requests again', async ($, on) => {
+  world(on)
+  await start($)
+  await measure($, FULL_FIVE_HOUR)
+  await measure($, [FIVE_HOUR])
+
+  expect(await footerText($)).not.toContain('(!)')
+})
 
 test('a subscriber cache drops to five minutes while extra usage is on, and back to an hour after', async ($, on) => {
   const w = world(on)

@@ -82,6 +82,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
+    const pulse = ticker(FRAME_MS, () => tui?.requestRender())
 
     const scene: FooterScene = {
       ledger: () => tracker.ledger(),
@@ -97,6 +98,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       context: () => contextFill(ctx?.getContextUsage()),
       cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env, isUsingOverage()), now()),
       layout: () => footerLayout(config),
+      showPulse: isPulsing => (isPulsing ? pulse.start() : pulse.stop()),
     }
 
     const frames = ticker(FRAME_MS, () => {
@@ -187,6 +189,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       flushPrompt()
       frames.stop()
       refresher.stop()
+      pulse.stop()
       unpatchToolRows?.()
       unpatchToolRows = undefined
       running = false
@@ -231,6 +234,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       model = event.model
       reading = null
       chooseStrategies()
+      tui?.requestRender()
     })
 
     pi.on('agent_start', async () => {
@@ -282,6 +286,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
 
     pi.on('after_provider_response', async event => {
       reading = subscription.read({ headers: event.headers }) ?? reading
+      tui?.requestRender()
     })
 
     pi.on('agent_settled', async () => {

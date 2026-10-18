@@ -13,6 +13,7 @@ export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   path: '#8fc7ff',
   branch: '#f5a3c7',
   meter: '#f0c674',
+  overage: '#ff4d4d',
 }
 
 export const DONE_TIMER_COLOR = '#8a8a8a'

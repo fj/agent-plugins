@@ -1,6 +1,7 @@
 import type { Totals } from '../../core/totals.ts'
 import type { ContextFill } from '../../render/context.ts'
 import { footer, type FooterLayout } from '../../render/footer.ts'
+import { hasPulse } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
 import { alignRight, paintLine } from './paint.ts'
 import type { Scene } from './views.ts'
@@ -14,6 +15,7 @@ export type FooterScene = Scene & {
   context(): ContextFill | undefined
   cacheRemainingMs(): number | undefined
   layout(): FooterLayout
+  showPulse(isPulsing: boolean): void
 }
 
 export type FooterData = {
@@ -48,8 +50,10 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),
     layout: scene.layout(),
   })
+  scene.showPulse(lines.some(hasPulse))
   const statuses = statusLine(data)
-  const main = lines.map(line => alignRight(paintLine(line), width, scene.measure))
+  const now = scene.now()
+  const main = lines.map(line => alignRight(paintLine(line, now), width, scene.measure))
 
   return statuses === undefined ? main : [scene.measure.truncateToWidth(statuses, width), ...main]
 }
