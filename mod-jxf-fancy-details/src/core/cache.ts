@@ -22,9 +22,10 @@ export type ClaudeCodeCacheSource = {
   setting?: unknown
   isBedrock: boolean
   isSubscriber: boolean
+  isUsingOverage: boolean
 }
 
-export function claudeCodeCacheTtlMs({ env, setting, isBedrock, isSubscriber }: ClaudeCodeCacheSource): number | undefined {
+export function claudeCodeCacheTtlMs({ env, setting, isBedrock, isSubscriber, isUsingOverage }: ClaudeCodeCacheSource): number | undefined {
   if (isEnvSet(env.disable)) {
     return undefined
   }
@@ -41,7 +42,7 @@ export function claudeCodeCacheTtlMs({ env, setting, isBedrock, isSubscriber }: 
 
   const isLongEnabled = isEnvSet(env.enable1h) || (isBedrock && isEnvSet(env.enable1hBedrock))
 
-  return isLongEnabled || isSubscriber ? LONG_TTL_MS : SHORT_TTL_MS
+  return isLongEnabled || (isSubscriber && !isUsingOverage) ? LONG_TTL_MS : SHORT_TTL_MS
 }
 
 export function cacheRemainingMs(cachedAt: number | undefined, ttlMs: number | undefined, now: number): number | undefined {

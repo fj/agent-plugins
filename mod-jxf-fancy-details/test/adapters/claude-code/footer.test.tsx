@@ -394,3 +394,20 @@ test('the session row leaves out the cache with prompt caching off', async ($, o
 
   expect(await sessionRow($)).not.toContain('⌛')
 })
+
+const FULL_FIVE_HOUR = [
+  { kind: 'five_hour', percentUsed: 100 },
+  { kind: 'seven_day', percentUsed: 42 },
+]
+
+test('a subscriber cache drops to five minutes while extra usage is on, and back to an hour after', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+  await measure($, FULL_FIVE_HOUR)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+
+  await measure($, [FIVE_HOUR])
+  expect(await sessionRow($)).toEndWith('⌛60m')
+})

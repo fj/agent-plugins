@@ -73,7 +73,7 @@ test('unknown strategy names fall back to the defaults', () => {
 test('anthropic strategy prefers host windows', () => {
   const windows = [{ kind: 'five_hour', percentUsed: 42 }]
 
-  assert.deepEqual(anthropicSubscriptionStrategy.read({ windows, headers: {} }), windows)
+  assert.deepEqual(anthropicSubscriptionStrategy.read({ windows, headers: {} }), { windows, isUsingOverage: false })
 })
 
 test('anthropic strategy reads unified rate-limit headers', () => {
@@ -85,25 +85,84 @@ test('anthropic strategy reads unified rate-limit headers', () => {
     },
   })
 
-  assert.deepEqual(read, [{ kind: '5h', percentUsed: 42, resetsAt: new Date(1800000000 * 1000).toISOString() }])
+  assert.deepEqual(read, {
+    windows: [{ kind: '5h', percentUsed: 42, resetsAt: new Date(1800000000 * 1000).toISOString() }],
+    isUsingOverage: false,
+  })
 })
+
+const REJECTED_5H = {
+  'anthropic-ratelimit-unified-5h-utilization': '1.0',
+  'anthropic-ratelimit-unified-7d-utilization': '0.6',
+  'anthropic-ratelimit-unified-status': 'rejected',
+}
 
 test('anthropic strategy reads nothing off a subscription', () => {
   assert.equal(anthropicSubscriptionStrategy.read({ windows: [], headers: { 'content-type': 'x' } }), null)
 })
 
+test('anthropic strategy reads extra usage off a rejected status that overage still serves', () => {
+  for (const overage of ['allowed', 'allowed_warning']) {
+    const headers = { ...REJECTED_5H, 'anthropic-ratelimit-unified-overage-status': overage }
+
+    assert.equal(anthropicSubscriptionStrategy.read({ headers })?.isUsingOverage, true, overage)
+  }
+})
+
+test('anthropic strategy reads no extra usage while the plan allows or overage refuses', () => {
+  const allowed = { ...REJECTED_5H, 'anthropic-ratelimit-unified-status': 'allowed' }
+  const refused = { ...REJECTED_5H, 'anthropic-ratelimit-unified-overage-status': 'rejected' }
+
+  assert.equal(anthropicSubscriptionStrategy.read({ headers: allowed })?.isUsingOverage, false)
+  assert.equal(anthropicSubscriptionStrategy.read({ headers: refused })?.isUsingOverage, false)
+})
+
+test('anthropic strategy reads no extra usage off a rejected status with no overage status', () => {
+  assert.equal(anthropicSubscriptionStrategy.read({ headers: REJECTED_5H })?.isUsingOverage, false)
+})
+
+test('anthropic strategy reads the overage headers in any letter case', () => {
+  const headers = {
+    'anthropic-ratelimit-unified-5h-utilization': '1.0',
+    'Anthropic-Ratelimit-Unified-Status': 'rejected',
+    'Anthropic-Ratelimit-Unified-Overage-Status': 'allowed',
+  }
+
+  assert.equal(anthropicSubscriptionStrategy.read({ headers })?.isUsingOverage, true)
+})
+
+test('anthropic strategy takes extra usage from host windows over the headers', () => {
+  const headers = { ...REJECTED_5H, 'anthropic-ratelimit-unified-overage-status': 'allowed' }
+  const windows = [{ kind: 'five_hour', percentUsed: 42 }]
+
+  assert.equal(anthropicSubscriptionStrategy.read({ windows, headers })?.isUsingOverage, false)
+})
+
+test('anthropic strategy reads extra usage off a full plan-wide host window only', () => {
+  const read = (kind: string, percentUsed: number) =>
+    anthropicSubscriptionStrategy.read({ windows: [{ kind, percentUsed }] })?.isUsingOverage
+
+  assert.equal(read('five_hour', 100), true)
+  assert.equal(read('seven_day', 100.5), true)
+  assert.equal(read('five_hour', 99.9), false)
+  assert.equal(read('seven_day_opus', 100), false)
+})
+
 test('anthropic strategy renders a labeled meter per window', () => {
-  const line = anthropicSubscriptionStrategy.render([
-    { kind: 'five_hour', percentUsed: 50 },
-    { kind: 'seven_day', percentUsed: 12.6 },
-  ])
+  const line = anthropicSubscriptionStrategy.render({
+    windows: [
+      { kind: 'five_hour', percentUsed: 50 },
+      { kind: 'seven_day', percentUsed: 12.6 },
+    ],
+    isUsingOverage: false,
+  })
 
   assert.equal(lineText(line), '5h ▕████    ▏ 50%  7d ▕█       ▏ 13%')
 })
 
 test('null strategy reads and renders nothing', () => {
   assert.equal(nullSubscriptionStrategy.read({ windows: [{ kind: 'five_hour', percentUsed: 1 }] }), null)
-  assert.deepEqual(nullSubscriptionStrategy.render([]), [])
+  assert.deepEqual(nullSubscriptionStrategy.render({ windows: [], isUsingOverage: false }), [])
 })
 
 test('a non-Anthropic model behind a provider prefix is still a lower bound', () => {

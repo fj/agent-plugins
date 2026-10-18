@@ -54,7 +54,17 @@ export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: s
 
 export type FancyContextFill = { tokens?: number; window: number }
 
-export type FancyRoute = { provider: string; billing: string; cacheTtlMs: number | null }
+export type FancyCacheEnv = {
+  disable?: string
+  force5m?: string
+  ttl?: string
+  enable1h?: string
+  enable1hBedrock?: string
+}
+
+export type FancyCacheSource = { env: FancyCacheEnv; setting: string | null; isBedrock: boolean; isSubscriber: boolean }
+
+export type FancyRoute = { provider: string; billing: string; cache: FancyCacheSource }
 
 declare module 'claude-code' {
   interface PluginState {

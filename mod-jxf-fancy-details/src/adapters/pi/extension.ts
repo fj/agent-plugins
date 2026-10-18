@@ -4,7 +4,7 @@ import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type Mo
 import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
-import type { QuotaWindow } from '../../core/quota.ts'
+import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
 import type { ContextFill } from '../../render/context.ts'
@@ -72,7 +72,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let config: FancyConfig = {}
     let usage: UsageStrategy = usageStrategy(undefined)
     let subscription: SubscriptionStrategy = subscriptionStrategy(undefined)
-    let windows: readonly QuotaWindow[] | null = null
+    let reading: QuotaReading | null = null
     let model: ModelInfo | undefined
     let tui: Renderable | undefined
     let running = false
@@ -80,6 +80,8 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let unpatchToolRows: (() => void) | undefined
     let openStepId: string | undefined
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
+
+    const isUsingOverage = () => reading?.isUsingOverage ?? false
 
     const scene: FooterScene = {
       ledger: () => tracker.ledger(),
@@ -91,9 +93,9 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       cwd: () => ctx?.cwd ?? '',
       home: deps.home,
       today: () => tracker.today(now()),
-      quota: () => (windows === null ? [] : subscription.render(windows)),
+      quota: () => (reading === null ? [] : subscription.render(reading)),
       context: () => contextFill(ctx?.getContextUsage()),
-      cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env), now()),
+      cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env, isUsingOverage()), now()),
       layout: () => footerLayout(config),
     }
 
@@ -227,7 +229,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     pi.on('model_select', async (event, context) => {
       ctx = context
       model = event.model
-      windows = null
+      reading = null
       chooseStrategies()
     })
 
@@ -279,7 +281,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     })
 
     pi.on('after_provider_response', async event => {
-      windows = subscription.read({ headers: event.headers }) ?? windows
+      reading = subscription.read({ headers: event.headers }) ?? reading
     })
 
     pi.on('agent_settled', async () => {

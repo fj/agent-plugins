@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
-import { claudeCodeCacheTtlMs, type ClaudeCodeCacheEnv } from '../../core/cache.ts'
+import type { ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../../core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../../core/rows.ts'
@@ -106,14 +106,15 @@ async function refreshRoute($: EngineInterface): Promise<void> {
   const credential = await $.session.authorize().catch(() => null)
   const billing = claudeCodeBilling(provider, credential?.kind)
   const settings = await $.settings.read().catch(() => undefined)
-  const cacheTtlMs = claudeCodeCacheTtlMs({
+  const setting = settings?.promptCacheTtl
+  const cache = {
     env: await cacheEnv($),
-    setting: settings?.promptCacheTtl,
+    setting: typeof setting === 'string' ? setting : null,
     isBedrock: provider === 'bedrock',
     isSubscriber: billing === 'subscription',
-  })
+  }
 
-  await update($, routeAtom, () => ({ provider, billing, cacheTtlMs: cacheTtlMs ?? null }))
+  await update($, routeAtom, () => ({ provider, billing, cache }))
 }
 
 async function refreshPolled($: EngineInterface): Promise<void> {

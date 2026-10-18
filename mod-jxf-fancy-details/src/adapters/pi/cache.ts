@@ -12,7 +12,7 @@ export function piCacheTtlMs(tiers: PromptCacheTiers | undefined, retention: str
   return seconds === undefined ? undefined : seconds * MS_PER_SECOND
 }
 
-export function cacheTtlMs(model: ModelInfo | undefined, env: Env): number | undefined {
+export function cacheTtlMs(model: ModelInfo | undefined, env: Env, isUsingOverage: boolean): number | undefined {
   if (model?.provider !== CLAUDE_BRIDGE_PROVIDER) {
     return piCacheTtlMs(model?.promptCache, env.PI_CACHE_RETENTION)
   }
@@ -26,5 +26,6 @@ export function cacheTtlMs(model: ModelInfo | undefined, env: Env): number | und
     },
     isBedrock: false,
     isSubscriber: true,
+    isUsingOverage,
   })
 }

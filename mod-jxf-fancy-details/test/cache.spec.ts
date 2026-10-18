@@ -3,12 +3,23 @@ import { test } from 'node:test'
 
 import { cacheRemainingMs, claudeCodeCacheTtlMs, LONG_TTL_MS, SHORT_TTL_MS } from '../src/core/cache.ts'
 
-const API_USER = { env: {}, isBedrock: false, isSubscriber: false }
+const API_USER = { env: {}, isBedrock: false, isSubscriber: false, isUsingOverage: false }
 const SUBSCRIBER = { ...API_USER, isSubscriber: true }
 
 test('Claude Code keeps the cache an hour for a subscriber and five minutes otherwise', () => {
   assert.equal(claudeCodeCacheTtlMs(SUBSCRIBER), LONG_TTL_MS)
   assert.equal(claudeCodeCacheTtlMs(API_USER), SHORT_TTL_MS)
+})
+
+test('Claude Code keeps a subscriber cache five minutes while extra usage is on', () => {
+  assert.equal(claudeCodeCacheTtlMs({ ...SUBSCRIBER, isUsingOverage: true }), SHORT_TTL_MS)
+})
+
+test('Claude Code cache overrides still apply while extra usage is on', () => {
+  const overage = { ...SUBSCRIBER, isUsingOverage: true }
+
+  assert.equal(claudeCodeCacheTtlMs({ ...overage, env: { enable1h: '1' } }), LONG_TTL_MS)
+  assert.equal(claudeCodeCacheTtlMs({ ...overage, setting: '1h' }), LONG_TTL_MS)
 })
 
 test('Claude Code has no cache lifetime with prompt caching off, whatever else is set', () => {

@@ -487,3 +487,22 @@ test('the footer shows the context window size until the fill is known, then fol
   s.setContext({ tokens: 50_000, contextWindow: 200_000, percent: 25 })
   assert.match(s.footerLines()!.at(-1)!, /^ +ctx ▕██ +▏ 50\.0k \/ 200\.0k$/)
 })
+
+const OVERAGE_HEADERS = {
+  'anthropic-ratelimit-unified-5h-utilization': '1.0',
+  'anthropic-ratelimit-unified-7d-utilization': '0.42',
+  'anthropic-ratelimit-unified-status': 'rejected',
+  'anthropic-ratelimit-unified-overage-status': 'allowed',
+}
+
+test('the claude-bridge cache drops to five minutes while extra usage is on, and back to an hour after', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await startCached(s)
+  await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
+
+  assert.match(sessionLine(s), /⌛5m$/)
+
+  await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
+  assert.match(sessionLine(s), /⌛60m$/)
+})
