@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
-import type { ContextUsage } from '@earendil-works/pi-coding-agent'
-
 import { CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
-import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type FakeEntry } from './fakes.ts'
+import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type CtxOptions, type FakeEntry } from './fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
 const WIDTH = 200
@@ -31,13 +29,10 @@ class FakeToolRow {
   }
 }
 
-type SetupOptions = {
+type SetupOptions = CtxOptions & {
   branch?: FakeEntry[]
-  mode?: string
-  provider?: string
   others?: number
   config?: FancyConfig
-  context?: ContextUsage
 }
 
 function setup(options: SetupOptions = {}) {
@@ -214,7 +209,7 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   assert.equal(status, 'lens ok')
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
-  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
   assert.match(session!, /^ +session \$0\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(today!, /^ +today \$10\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
@@ -226,7 +221,17 @@ test('the footer head leaves out the branch outside a git repository', async () 
 
   const [head] = s.footerLines(footerData({}, null))!
 
-  assert.match(head!, /^ +claude-opus-5-5 · ~\/src\/projects\/demo$/)
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
+})
+
+test('the footer head names the provider before the model', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines(footerData({}, null))!
+
+  assert.match(head!, /^ +claude-bridge\/claude-opus-5-5 · /)
 })
 
 test('the footer follows the config for one totals line, cached input and the context window', async () => {
@@ -358,7 +363,7 @@ test('switching to a model without a subscription drops the meter', async () => 
   await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
   assert.doesNotMatch(s.footerLines()!.join('\n'), /5h/)
-  assert.match(s.footerLines()![0]!, /gpt-5 · /)
+  assert.match(s.footerLines()![0]!, /^ +azure\/gpt-5 · /)
 })
 
 test('tool calls made by another tool are not timed', async () => {

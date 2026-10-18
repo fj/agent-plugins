@@ -59,3 +59,7 @@ export function shortenPath(path: string, home: string, maxWidth: number): strin
 
   return `${head}/…/${tail.join('/')}`
 }
+
+export function modelLabel(...parts: readonly string[]): string {
+  return parts.filter(part => part !== '').join('/')
+}

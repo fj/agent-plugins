@@ -7,6 +7,7 @@ import type { QuotaWindow } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
 import type { ContextFill } from '../../render/context.ts'
+import { modelLabel } from '../../render/format.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 import { readConfig } from './config.ts'
@@ -82,7 +83,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       usage: () => usage,
       display: () => tokenDisplay(config),
       measure: deps.measure,
-      model: () => model?.id ?? 'no model',
+      model: () => (model === undefined ? 'no model' : modelLabel(model.provider, model.id)),
       cwd: () => ctx?.cwd ?? '',
       home: deps.home,
       today: () => tracker.today(now()),

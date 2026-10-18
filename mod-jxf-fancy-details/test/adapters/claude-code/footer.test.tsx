@@ -6,6 +6,7 @@ import {
   dayDirOf,
   LIVE_SURFACES,
   MODEL,
+  MODEL_LABEL,
   runTool,
   PLUGIN,
   SESSION_ID,
@@ -46,7 +47,7 @@ test('the footer shows model and path, session, and today on separate lines besi
     const drawn = await ui.drawn()
     expect(shownText(drawn)).toStartWith('focus  ')
     expect(shownRows(drawn)).toEqual([
-      `${MODEL} · ~/src/projects/fancy`,
+      `${MODEL_LABEL} · ~/src/projects/fancy`,
       'session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0',
       'today 1m 00s · $1.25 ↑(Δ1.0k + ⟲ 0)/1.0k ↓1.0k',
       'ctx 200.0k',
@@ -66,7 +67,7 @@ test('the footer shows model and path, session, and today on separate lines besi
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const text = shownText(await ui.drawn())
-  expect(text).toStartWith(MODEL)
+  expect(text).toStartWith(MODEL_LABEL)
   expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
   expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
 })
@@ -262,7 +263,7 @@ test(
     await measure($, [FIVE_HOUR])
 
     const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-    expect(shownRows(await ui.drawn())).toEqual([`${MODEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
+    expect(shownRows(await ui.drawn())).toEqual([`${MODEL_LABEL} · ~/src/projects/fancy`, 'session $0.00 ↑0 ↓0  today $0.00 ↑0 ↓0'])
   },
 )
 
@@ -273,7 +274,7 @@ test('the footer head shows the git branch of the session directory after the pa
   await start($)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-  expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
+  expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL_LABEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
   expect(w.gitCwds).toEqual([CWD])
 })
 
@@ -296,3 +297,37 @@ test('the footer branch follows a checkout by a tool call and one made outside t
   await w.clock.advance(POLL_MS)
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} topic/y`)
 })
+
+async function footerRows($: Engine): Promise<string[]> {
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const rows = shownRows(await ui.drawn())
+  await ui.unmount()
+
+  return rows
+}
+
+test('the footer head names an API key login', async ($, on) => {
+  world(on, { credential: { handle: 'handle-1', kind: 'api-key' } })
+  await start($)
+
+  expect((await footerRows($))[0]).toStartWith(`anthropic/api/${MODEL} · `)
+})
+
+const CLOUD_ENV = [
+  ['CLAUDE_CODE_USE_BEDROCK', 'bedrock'],
+  ['CLAUDE_CODE_USE_VERTEX', 'vertex'],
+  ['CLAUDE_CODE_USE_FOUNDRY', 'azure'],
+  ['CLAUDE_CODE_USE_ANTHROPIC_AWS', 'aws'],
+  ['CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD', 'gcp'],
+  ['CLAUDE_CODE_USE_MANTLE', 'mantle'],
+  ['CLAUDE_CODE_USE_GATEWAY', 'gateway'],
+] as const
+
+for (const [name, provider] of CLOUD_ENV) {
+  test(`the footer head names ${provider} when ${name} is on`, async ($, on) => {
+    world(on, { env: { [name]: '1' }, credential: null })
+    await start($)
+
+    expect((await footerRows($))[0]).toStartWith(`${provider}/api/${MODEL} · `)
+  })
+}

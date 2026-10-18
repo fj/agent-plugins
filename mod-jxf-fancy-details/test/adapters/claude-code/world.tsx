@@ -1,4 +1,4 @@
-import type { On, SessionRateLimit, TurnStepChunk, TurnUsage } from 'claude-code'
+import type { On, SessionAuthorization, SessionRateLimit, TurnStepChunk, TurnUsage } from 'claude-code'
 import { mock, type Engine, type MockClock } from 'claude-code/testing'
 
 export const PLUGIN = 'mod-jxf-fancy-details'
@@ -6,6 +6,8 @@ export const HOME = '/home/tester'
 export const CWD = `${HOME}/src/projects/fancy`
 export const SESSION_ID = 'session-1'
 export const MODEL = 'claude-opus-5-5'
+export const MODEL_LABEL = `anthropic/subscription/${MODEL}`
+export const SUBSCRIPTION: SessionAuthorization = { handle: 'handle-1', kind: 'bearer' }
 export const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
 export const dayDirOf = (day: string) => `${HOME}/.local/state/mod-jxf-fancy-details/days/${day}`
 export const TODAY_DIR = dayDirOf('2026-10-03')
@@ -45,11 +47,21 @@ export type WorldOptions = {
   isToolFailing?: boolean
   isWriteFailing?: boolean
   branch?: string | null
+  env?: Readonly<Record<string, string>>
+  credential?: SessionAuthorization
 }
 
 export function world(
   on: On,
-  { files = {}, turns = 0, isToolFailing = false, isWriteFailing = false, branch = null }: WorldOptions = {},
+  {
+    files = {},
+    turns = 0,
+    isToolFailing = false,
+    isWriteFailing = false,
+    branch = null,
+    env = {},
+    credential = SUBSCRIPTION,
+  }: WorldOptions = {},
 ): World {
   const w: World = {
     clock: mock.clock(on, { now: T0 }),
@@ -61,7 +73,9 @@ export function world(
     branch,
     gitCwds: [],
   }
-  mock.env(on, { HOME })
+  mock.env(on, { HOME, ...env })
+
+  on('session.authorize', () => ({ value: credential }))
 
   on('session.id', () => ({ value: SESSION_ID }))
   on('session.model', () => ({ value: MODEL }))

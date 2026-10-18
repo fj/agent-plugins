@@ -6,6 +6,7 @@ import { isStreaming, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
+import { modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
 import { seg } from '../../render/segment.ts'
@@ -21,6 +22,7 @@ const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const,
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
+const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '
@@ -60,10 +62,11 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const rateLimits = await read($, rateLimitsAtom)
   const context = await read($, contextAtom)
   const branch = await read($, branchAtom)
+  const route = await read($, routeAtom)
   const windows = config.subscription.read({ windows: rateLimits })
 
   return {
-    model: await $.session.model(),
+    model: modelLabel(route?.provider ?? '', route?.billing ?? '', await $.session.model()),
     cwd: await $.session.cwd(),
     branch: branch ?? undefined,
     home: (await $.env.get('HOME')) ?? '',

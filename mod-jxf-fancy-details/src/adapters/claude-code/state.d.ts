@@ -53,6 +53,8 @@ export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: s
 
 export type FancyContextFill = { tokens?: number; window: number }
 
+export type FancyRoute = { provider: string; billing: string }
+
 declare module 'claude-code' {
   interface PluginState {
     'mod-jxf-fancy-details': {
@@ -62,6 +64,7 @@ declare module 'claude-code' {
       rateLimits: readonly FancyQuotaWindow[]
       context: FancyContextFill | null
       branch: string | null
+      route: FancyRoute | null
     }
   }
 }

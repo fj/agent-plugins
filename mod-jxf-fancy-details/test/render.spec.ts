@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { footer } from '../src/render/footer.ts'
-import { formatDuration, formatTokens, formatUsd, shortenPath } from '../src/render/format.ts'
+import { formatDuration, formatTokens, formatUsd, modelLabel, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
 import { lineText } from '../src/render/segment.ts'
@@ -27,6 +27,11 @@ test('tokens and dollars use compact units', () => {
   assert.equal(formatTokens(15_400), '15.4k')
   assert.equal(formatTokens(1_250_000), '1.3M')
   assert.equal(formatUsd({ usd: 12.345, isLowerBound: false }), '$12.35')
+})
+
+test('a model label joins its nonempty parts with slashes', () => {
+  assert.equal(modelLabel('anthropic', 'subscription', 'claude-opus-5-5'), 'anthropic/subscription/claude-opus-5-5')
+  assert.equal(modelLabel('', '', 'claude-opus-5-5'), 'claude-opus-5-5')
 })
 
 test('long paths keep the head and tail around an ellipsis', () => {

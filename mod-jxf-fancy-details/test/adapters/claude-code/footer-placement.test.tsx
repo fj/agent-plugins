@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
-import { CWD, ENGINE_TEXT, LIVE_SURFACES, MODEL, PLUGIN, shownRows, shownText, submit, world } from './world.tsx'
+import { CWD, ENGINE_TEXT, LIVE_SURFACES, MODEL_LABEL, PLUGIN, shownRows, shownText, submit, world } from './world.tsx'
 
 const ABOVE = { options: { footerPlacement: 'abovePrompt', showCachedInput: false } }
 const BELOW = { options: { footerPlacement: 'belowPrompt', showCachedInput: false } }
@@ -14,7 +14,7 @@ const BAND = {
   scroll: { offset: 0, bodyRows: 20 },
   view: {},
 }
-const HEAD = `${MODEL} · ~/src/projects/fancy`
+const HEAD = `${MODEL_LABEL} · ~/src/projects/fancy`
 const TOTALS = ['session $0.00 ↑0 ↓0', 'today $0.00 ↑0 ↓0']
 const METERS = 'ctx 200.0k'
 

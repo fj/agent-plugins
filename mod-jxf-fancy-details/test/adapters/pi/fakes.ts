@@ -53,7 +53,14 @@ export function fakePi() {
   }
 }
 
-export function fakeCtx(branch: FakeEntry[], options: { mode?: string; provider?: string; oauth?: boolean; context?: ContextUsage } = {}) {
+export type CtxOptions = {
+  mode?: string
+  provider?: string
+  oauth?: boolean
+  context?: ContextUsage
+}
+
+export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const widgets = new Map<string, Factory | undefined>()
   let footer: Factory | undefined
   let context = options.context
