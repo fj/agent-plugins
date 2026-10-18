@@ -1,6 +1,7 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
+import { cacheRemainingMs } from '../../core/cache.ts'
 import { EMPTY_JOURNAL } from '../../core/journal.ts'
 import { isStreaming, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
@@ -64,6 +65,7 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const branch = await read($, branchAtom)
   const route = await read($, routeAtom)
   const windows = config.subscription.read({ windows: rateLimits })
+  const now = await $.clock.now()
 
   return {
     model: modelLabel(route?.provider ?? '', route?.billing ?? '', await $.session.model()),
@@ -71,9 +73,10 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
     branch: branch ?? undefined,
     home: (await $.env.get('HOME')) ?? '',
     session: ledger.totals,
-    today: todayTotals(days, others, await $.clock.now()),
+    today: todayTotals(days, others, now),
     quota: windows === null ? [] : config.subscription.render(windows),
     context: context ?? undefined,
+    cacheRemainingMs: cacheRemainingMs(ledger.cachedAt, route?.cacheTtlMs ?? undefined, now),
     usage: config.usage,
     display: config.display,
     maxPathWidth: MAX_PATH_WIDTH,

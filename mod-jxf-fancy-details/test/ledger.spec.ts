@@ -61,6 +61,28 @@ test('completing a step prices it and snapshots the session totals', () => {
   assert.ok((s.steps.s1?.cost?.usd ?? 0) > 0)
 })
 
+const NO_CACHE = { ...USAGE, cacheRead: 0, cacheWrite: 0 }
+
+test('the cache was last used when the latest step that read or wrote it started', () => {
+  let s = startStep(EMPTY_LEDGER, 's1', 10, 'claude-opus-5-5')
+  s = completeStep(s, 's1', USAGE, 100, price)
+  s = startStep(s, 's2', 110, 'claude-opus-5-5')
+  s = completeStep(s, 's2', { ...NO_CACHE, cacheWrite: 90 }, 200, price)
+  s = startStep(s, 's3', 210, 'claude-opus-5-5')
+  s = completeStep(s, 's3', NO_CACHE, 300, price)
+
+  assert.equal(s.cachedAt, 110)
+})
+
+test('a step that ends after a later one does not move the cache use back', () => {
+  let s = startStep(EMPTY_LEDGER, 's1', 10, 'claude-opus-5-5')
+  s = startStep(s, 's2', 110, 'claude-opus-5-5')
+  s = completeStep(s, 's2', USAGE, 200, price)
+  s = completeStep(s, 's1', USAGE, 300, price)
+
+  assert.equal(s.cachedAt, 110)
+})
+
 test('completing an unknown step changes nothing', () => {
   const s = submitPrompt(EMPTY_LEDGER, 'p1', 0)
 

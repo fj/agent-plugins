@@ -39,6 +39,7 @@ export type LedgerState = {
   marks: Readonly<Record<string, Mark>>
   currentPromptId?: string
   currentStepId?: string
+  cachedAt?: number
   totals: Totals
 }
 
@@ -91,6 +92,8 @@ export function endMark(state: LedgerState, id: string, at: number): LedgerState
   return mark === undefined ? state : { ...state, marks: { ...state.marks, [id]: { ...mark, endedAt: at } } }
 }
 
+const usesCache = (usage: TokenUsage) => usage.cacheRead + usage.cacheWrite > 0
+
 export function completeStep(
   state: LedgerState,
   id: string,
@@ -107,8 +110,9 @@ export function completeStep(
   const cost = price(step.model, usage)
   const totals = addTotals(state.totals, { usage, cost, activeMs: 0 })
   const done: Step = { ...step, endedAt: at, usage, cost, totals }
+  const next = { ...state, totals, steps: { ...state.steps, [id]: done } }
 
-  return { ...state, totals, steps: { ...state.steps, [id]: done } }
+  return usesCache(usage) ? { ...next, cachedAt: Math.max(state.cachedAt ?? step.startedAt, step.startedAt) } : next
 }
 
 export function finishStep(

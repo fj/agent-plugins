@@ -58,6 +58,7 @@ export type CtxOptions = {
   provider?: string
   oauth?: boolean
   context?: ContextUsage
+  promptCache?: { short?: number; long?: number }
 }
 
 export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
@@ -75,7 +76,7 @@ export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const ctx = {
     mode: options.mode ?? 'tui',
     cwd: '/home/j/src/projects/demo',
-    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic' },
+    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', promptCache: options.promptCache },
     modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
     getContextUsage: () => context,
     sessionManager: { getSessionId: () => 'sess-1', getBranch: () => branch, getEntries: () => branch },

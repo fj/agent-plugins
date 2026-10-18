@@ -1,6 +1,7 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
 import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
+import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaWindow } from '../../core/quota.ts'
@@ -10,6 +11,7 @@ import type { ContextFill } from '../../render/context.ts'
 import { modelLabel } from '../../render/format.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
+import { cacheTtlMs, type Env } from './cache.ts'
 import { readConfig } from './config.ts'
 import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
@@ -34,6 +36,7 @@ export type FancyDeps = {
   readConfig?: (path: string) => FancyConfig
   now?: () => number
   newId?: () => string
+  env?: Env
 }
 
 type Entry = { type: string; customType?: string; data?: unknown; message?: unknown }
@@ -62,6 +65,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
   const now = deps.now ?? Date.now
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const loadConfig = deps.readConfig ?? readConfig
+  const env = deps.env ?? process.env
 
   return pi => {
     let ctx: ExtensionContext | undefined
@@ -89,6 +93,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       today: () => tracker.today(now()),
       quota: () => (windows === null ? [] : subscription.render(windows)),
       context: () => contextFill(ctx?.getContextUsage()),
+      cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env), now()),
       layout: () => footerLayout(config),
     }
 

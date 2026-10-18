@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { footer } from '../src/render/footer.ts'
-import { formatDuration, formatTokens, formatUsd, modelLabel, shortenPath } from '../src/render/format.ts'
+import { formatDuration, formatRemaining, formatTokens, formatUsd, modelLabel, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
 import { lineText } from '../src/render/segment.ts'
@@ -20,6 +20,14 @@ test('durations count tenths under a minute, then minutes and hours', () => {
   assert.equal(formatDuration(72_000), '1m 12s')
   assert.equal(formatDuration(3_725_000), '1h 02m')
   assert.equal(formatDuration(-5), '0.0s')
+})
+
+test('remaining cache time rounds up to whole minutes', () => {
+  assert.equal(formatRemaining(27 * 60_000), '27m')
+  assert.equal(formatRemaining(26 * 60_000 + 1), '27m')
+  assert.equal(formatRemaining(60_000), '1m')
+  assert.equal(formatRemaining(59_999), '<1m')
+  assert.equal(formatRemaining(0), '0m')
 })
 
 test('tokens and dollars use compact units', () => {
@@ -134,6 +142,28 @@ test('the footer splits total input into new and cached input when asked', () =>
   const lines = footer({ ...FOOTER_INPUT, session, display: CACHED })
 
   assert.equal(lineText(lines[1]!), 'session $0.00 ↑(Δ15.4k + ⟲ 61.1k)/76.5k ↓3.2k')
+})
+
+test('the footer ends the session line with the remaining cache time', () => {
+  const lines = footer({ ...FOOTER_INPUT, cacheRemainingMs: 27 * 60_000 })
+
+  assert.equal(lineText(lines[1]!), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛27m')
+  assert.equal(lines[1]!.at(-1)?.role, 'cache')
+  assert.equal(lineText(lines[2]!), 'today 1h 02m · $48.10+ ↑0 ↓0')
+})
+
+test('the footer keeps the cache time with the session when the totals share a line', () => {
+  const layout = { ...FOOTER_INPUT.layout, isTotalsCombined: true }
+  const [, totals] = footer({ ...FOOTER_INPUT, cacheRemainingMs: 27 * 60_000, layout })
+
+  assert.equal(lineText(totals!), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛27m  today 1h 02m · $48.10+ ↑0 ↓0')
+})
+
+test('the footer mutes a cache that has expired', () => {
+  const [, session] = footer({ ...FOOTER_INPUT, cacheRemainingMs: 0 })
+
+  assert.equal(lineText(session!), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛0m')
+  assert.equal(session!.at(-1)?.role, 'muted')
 })
 
 test('the footer leaves out a time that shows as zero', () => {

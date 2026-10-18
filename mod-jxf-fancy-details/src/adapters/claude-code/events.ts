@@ -1,6 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
+import { claudeCodeCacheTtlMs, type ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../../core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../../core/rows.ts'
@@ -90,12 +91,29 @@ async function cloudFlags($: EngineInterface): Promise<CloudFlags> {
   }
 }
 
+async function cacheEnv($: EngineInterface): Promise<ClaudeCodeCacheEnv> {
+  return {
+    disable: await $.env.get('DISABLE_PROMPT_CACHING'),
+    force5m: await $.env.get('FORCE_PROMPT_CACHING_5M'),
+    ttl: await $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL'),
+    enable1h: await $.env.get('ENABLE_PROMPT_CACHING_1H'),
+    enable1hBedrock: await $.env.get('ENABLE_PROMPT_CACHING_1H_BEDROCK'),
+  }
+}
+
 async function refreshRoute($: EngineInterface): Promise<void> {
   const provider = claudeCodeProvider(await cloudFlags($))
   const credential = await $.session.authorize().catch(() => null)
   const billing = claudeCodeBilling(provider, credential?.kind)
+  const settings = await $.settings.read().catch(() => undefined)
+  const cacheTtlMs = claudeCodeCacheTtlMs({
+    env: await cacheEnv($),
+    setting: settings?.promptCacheTtl,
+    isBedrock: provider === 'bedrock',
+    isSubscriber: billing === 'subscription',
+  })
 
-  await update($, routeAtom, () => ({ provider, billing }))
+  await update($, routeAtom, () => ({ provider, billing, cacheTtlMs: cacheTtlMs ?? null }))
 }
 
 async function refreshPolled($: EngineInterface): Promise<void> {

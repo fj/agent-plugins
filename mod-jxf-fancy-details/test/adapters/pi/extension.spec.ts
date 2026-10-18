@@ -33,6 +33,7 @@ type SetupOptions = CtxOptions & {
   branch?: FakeEntry[]
   others?: number
   config?: FancyConfig
+  env?: Record<string, string>
 }
 
 function setup(options: SetupOptions = {}) {
@@ -53,6 +54,7 @@ function setup(options: SetupOptions = {}) {
     toolRows: FakeToolRow.prototype,
     readConfig: () => options.config ?? {},
     now: () => clock,
+    env: options.env ?? {},
     newId: () => `id${(ids += 1)}`,
   })(pi.api)
 
@@ -232,6 +234,84 @@ test('the footer head names the provider before the model', async () => {
   const [head] = s.footerLines(footerData({}, null))!
 
   assert.match(head!, /^ +claude-bridge\/claude-opus-5-5 · /)
+})
+
+const PROMPT_CACHE = { short: 300, long: 3600 }
+
+async function startCached(s: ReturnType<typeof setup>) {
+  await s.emit('session_start', { reason: 'startup' })
+  await step(s, USAGE)
+}
+
+async function step(s: ReturnType<typeof setup>, usage: typeof USAGE) {
+  await submit(s)
+  await s.emit('message_start', { message: { role: 'assistant', model: 'claude-opus-5-5' } })
+  await s.emit('message_end', { message: { role: 'assistant', model: 'claude-opus-5-5', usage } })
+}
+
+const sessionLine = (s: ReturnType<typeof setup>) => s.footerLines(footerData({}, null))![1]!
+
+test('the footer counts down the prompt cache after a step that used it', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await s.emit('session_start', { reason: 'startup' })
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+
+  await step(s, USAGE)
+  assert.match(sessionLine(s), /↓3\.2k ⌛5m$/)
+
+  s.advance(2 * 60_000)
+  assert.match(sessionLine(s), /⌛3m$/)
+
+  s.advance(3 * 60_000)
+  assert.match(sessionLine(s), /⌛0m$/)
+})
+
+test('a step that leaves the cache alone does not restart the countdown', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await startCached(s)
+  s.advance(2 * 60_000)
+  await step(s, { ...USAGE, cacheRead: 0, cacheWrite: 0 })
+
+  assert.match(sessionLine(s), /⌛3m$/)
+})
+
+test('the footer uses the long cache tier when pi keeps the cache long', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE, env: { PI_CACHE_RETENTION: 'long' } })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛60m$/)
+})
+
+test('the footer leaves out the cache for a model with no known cache lifetime', async () => {
+  const s = setup()
+
+  await startCached(s)
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+})
+
+test('the footer drops the cache time on a switch to a model with no known cache lifetime', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await startCached(s)
+  await s.emit('model_select', { model: { id: 'gpt-5', provider: 'azure' }, source: 'set' })
+
+  assert.doesNotMatch(sessionLine(s), /⌛/)
+})
+
+test('the footer counts down the claude-bridge cache as a subscriber cache', async () => {
+  const s = setup({ provider: 'claude-bridge' })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛60m$/)
+})
+
+test('the claude-bridge cache follows the Claude Code cache variables', async () => {
+  const s = setup({ provider: 'claude-bridge', env: { FORCE_PROMPT_CACHING_5M: '1' } })
+
+  await startCached(s)
+  assert.match(sessionLine(s), /⌛5m$/)
 })
 
 test('the footer follows the config for one totals line, cached input and the context window', async () => {

@@ -12,6 +12,7 @@ export type FooterScene = Scene & {
   today(): Totals
   quota(): Line
   context(): ContextFill | undefined
+  cacheRemainingMs(): number | undefined
   layout(): FooterLayout
 }
 
@@ -41,6 +42,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     today: scene.today(),
     quota: scene.quota(),
     context: scene.context(),
+    cacheRemainingMs: scene.cacheRemainingMs(),
     usage: scene.usage(),
     display: scene.display(),
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),

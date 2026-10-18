@@ -331,3 +331,66 @@ for (const [name, provider] of CLOUD_ENV) {
     expect((await footerRows($))[0]).toStartWith(`${provider}/api/${MODEL} · `)
   })
 }
+
+const MINUTE_MS = 60_000
+
+async function cachedTurn($: Engine, w: ReturnType<typeof world>): Promise<void> {
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+}
+
+const sessionRow = async ($: Engine) => (await footerRows($))[1]
+
+test('the session row counts down a subscriber cache after a step that used it', async ($, on) => {
+  const w = world(on)
+  await start($)
+  expect(await sessionRow($)).not.toContain('⌛')
+
+  await cachedTurn($, w)
+  expect(await sessionRow($)).toEndWith('↓300 ⌛60m')
+
+  await w.clock.advance(30 * MINUTE_MS)
+  expect(await sessionRow($)).toEndWith('⌛30m')
+})
+
+test('an API key keeps the cache five minutes', async ($, on) => {
+  const w = world(on, { credential: { handle: 'handle-1', kind: 'api-key' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+})
+
+test('the cache TTL setting overrides the default for a cloud provider', async ($, on) => {
+  const w = world(on, { env: { CLAUDE_CODE_USE_FOUNDRY: '1' }, credential: null, settings: { promptCacheTtl: '1h' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛60m')
+})
+
+test('the cache TTL variable overrides the cache TTL setting', async ($, on) => {
+  const w = world(on, { env: { CLAUDE_CODE_PROMPT_CACHE_TTL: '5m' }, settings: { promptCacheTtl: '1h' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛5m')
+})
+
+test('Bedrock keeps the cache an hour when its enable-1h variable is on', async ($, on) => {
+  const env = { CLAUDE_CODE_USE_BEDROCK: '1', ENABLE_PROMPT_CACHING_1H_BEDROCK: '1' }
+  const w = world(on, { env, credential: null })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).toEndWith('⌛60m')
+})
+
+test('the session row leaves out the cache with prompt caching off', async ($, on) => {
+  const w = world(on, { env: { DISABLE_PROMPT_CACHING: '1' } })
+  await start($)
+  await cachedTurn($, w)
+
+  expect(await sessionRow($)).not.toContain('⌛')
+})

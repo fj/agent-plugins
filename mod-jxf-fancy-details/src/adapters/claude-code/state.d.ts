@@ -35,6 +35,7 @@ export type FancyLedger = {
   marks: Readonly<Record<string, FancyMark>>
   currentPromptId?: string
   currentStepId?: string
+  cachedAt?: number
   totals: FancyTotals
 }
 
@@ -53,7 +54,7 @@ export type FancyQuotaWindow = { kind: string; percentUsed: number; resetsAt?: s
 
 export type FancyContextFill = { tokens?: number; window: number }
 
-export type FancyRoute = { provider: string; billing: string }
+export type FancyRoute = { provider: string; billing: string; cacheTtlMs: number | null }
 
 declare module 'claude-code' {
   interface PluginState {

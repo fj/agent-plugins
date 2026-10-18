@@ -1,4 +1,4 @@
-import type { On, SessionAuthorization, SessionRateLimit, TurnStepChunk, TurnUsage } from 'claude-code'
+import type { On, SessionAuthorization, SessionRateLimit, Settings, TurnStepChunk, TurnUsage } from 'claude-code'
 import { mock, type Engine, type MockClock } from 'claude-code/testing'
 
 export const PLUGIN = 'mod-jxf-fancy-details'
@@ -49,6 +49,7 @@ export type WorldOptions = {
   branch?: string | null
   env?: Readonly<Record<string, string>>
   credential?: SessionAuthorization
+  settings?: Settings
 }
 
 export function world(
@@ -61,6 +62,7 @@ export function world(
     branch = null,
     env = {},
     credential = SUBSCRIPTION,
+    settings = {},
   }: WorldOptions = {},
 ): World {
   const w: World = {
@@ -76,6 +78,7 @@ export function world(
   mock.env(on, { HOME, ...env })
 
   on('session.authorize', () => ({ value: credential }))
+  on('settings.read', () => ({ value: settings }))
 
   on('session.id', () => ({ value: SESSION_ID }))
   on('session.model', () => ({ value: MODEL }))
