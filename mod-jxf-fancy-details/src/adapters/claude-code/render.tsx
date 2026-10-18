@@ -202,7 +202,15 @@ export function drawSites(on: On, config: Config): void {
 
     const { Box, Text } = $.ui.resolve(e)
     const rows = footerRows(await footerInput($, config))
+    const drawn = await next(e)
 
-    return rightColumn(Box, Text, rows, { key: 'footer-rows', width: e.props.bodyColumns })
+    return (
+      <Box key="footer-band" width={e.props.bodyColumns} alignItems="flex-end">
+        <Box flexGrow={1} flexShrink={1}>
+          {drawn}
+        </Box>
+        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 })}
+      </Box>
+    )
   })
 }

@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "keywords": ["pi-package"],
+  "pi": { "extensions": ["./src/adapters/pi"] },
+  "engines": { "node": ">=22.18" },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

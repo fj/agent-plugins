@@ -1,0 +1,5 @@
+{
+  "extends": "../../../src/adapters/claude-code/tsconfig.json",
+  "include": ["."],
+  "exclude": ["*.spec.ts"]
+}
