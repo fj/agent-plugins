@@ -141,3 +141,9 @@ export function markStep(state: LedgerState, markId: string): Step | undefined {
 
   return stepId === undefined ? undefined : state.steps[stepId]
 }
+
+export function isStreaming(state: LedgerState, step: Step | undefined): step is Step {
+  return (
+    step !== undefined && step.endedAt === undefined && step.id === state.currentStepId && state.currentPromptId !== undefined
+  )
+}

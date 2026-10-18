@@ -11,13 +11,19 @@ export function turnTag(mark: Pick<Mark, 'turn' | 'seq'>, tokens: Line = []): Li
   return braced([seg(`turn ${mark.turn}.${mark.seq}`, 'label'), ...tokens])
 }
 
-export function messagePrefix({ mark, step, now, usage, display }: PrefixInput): Line {
-  const startedAt = step?.startedAt ?? mark.startedAt
-  const elapsed = (step?.endedAt ?? now) - startedAt
-  const timing: Line = [seg(formatClock(startedAt), 'time'), seg(` Δ ${formatDuration(elapsed)}`, 'muted')]
+export function messageTags({ mark, step, usage, display }: Omit<PrefixInput, 'now'>): Line {
   const tokens =
     step?.usage && step.totals ? [seg(': ', 'muted'), ...usage.stepTokens(step.usage, step.totals.usage, display)] : []
   const cost = step?.cost && step.totals ? usage.stepCost(step.cost, step.totals.cost) : []
 
-  return join([braced(timing), turnTag(mark, tokens), braced(cost)], seg(' '))
+  return join([turnTag(mark, tokens), braced(cost)], seg(' '))
+}
+
+export function messagePrefix(input: PrefixInput): Line {
+  const { mark, step, now } = input
+  const startedAt = step?.startedAt ?? mark.startedAt
+  const elapsed = (step?.endedAt ?? now) - startedAt
+  const timing: Line = [seg(formatClock(startedAt), 'time'), seg(` Δ ${formatDuration(elapsed)}`, 'muted')]
+
+  return join([braced(timing), messageTags(input)], seg(' '))
 }
