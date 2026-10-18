@@ -51,7 +51,7 @@ test('the footer shows model and path, session, and today on separate lines besi
       `${MODEL_LABEL} · ~/src/projects/fancy`,
       'session $0.00 ↑(Δ0 + ⟲ 0)/0 ↓0',
       'today 1m 00s · $1.25 ↑(Δ1.0k + ⟲ 0)/1.0k ↓1.0k',
-      'ctx 200.0k',
+      'ctx ▕        ▏ 0 / 200.0k',
     ])
     await ui.unmount()
   }
@@ -71,6 +71,19 @@ test('the footer shows model and path, session, and today on separate lines besi
   expect(text).toStartWith(MODEL_LABEL)
   expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
   expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
+})
+
+test('the context meter fills from the last step until the engine measures the context', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0)
+
+  expect(await footerText($)).toEndWith('ctx ▕▎       ▏ 6.2k / 200.0k')
+
+  await $.session.measure({ context: { tokens: 50_000, window: 200_000, percent: 25 }, rateLimits: [], changed: ['context'] })
+  expect(await footerText($)).toEndWith('ctx ▕██      ▏ 50.0k / 200.0k')
 })
 
 test('the footer lines align to the right', async ($, on) => {
@@ -94,7 +107,7 @@ test('the footer shows subscription meters from the rate limits', async ($, on) 
     const rows = shownRows(await ui.drawn())
     expect(rows).toHaveLength(4)
     expect(rows.at(-1)).toStartWith('5h ▕')
-    expect(rows.at(-1)).toEndWith('42%  ctx 200.0k')
+    expect(rows.at(-1)).toEndWith('42%  ctx ▕        ▏ 0 / 200.0k')
     await ui.unmount()
   }
 })
@@ -105,7 +118,7 @@ test('the footer shows no meters off a subscription', async ($, on) => {
   await measure($, [])
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-  expect(shownText(await ui.drawn())).not.toContain('▕')
+  expect(shownText(await ui.drawn())).not.toContain('5h')
 })
 
 test('the null subscription strategy draws no meters', { options: { subscriptionStrategy: 'null' } }, async ($, on) => {

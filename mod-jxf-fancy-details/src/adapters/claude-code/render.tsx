@@ -3,7 +3,7 @@ import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
 import { cacheRemainingMs, claudeCodeCacheTtlMs } from '../../core/cache.ts'
 import { EMPTY_JOURNAL } from '../../core/journal.ts'
-import { isStreaming, markStep } from '../../core/ledger.ts'
+import { isStreaming, lastContextTokens, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
@@ -92,7 +92,7 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
     session: ledger.totals,
     today: todayTotals(days, others, now),
     quota: reading === null ? [] : config.subscription.render(reading),
-    context: context ?? undefined,
+    context: context === null ? undefined : { window: context.window, tokens: context.tokens ?? lastContextTokens(ledger) },
     cacheRemainingMs: cacheRemainingMs(ledger.cachedAt, ttl, now),
     usage: config.usage,
     display: config.display,

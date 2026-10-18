@@ -16,7 +16,7 @@ const BAND = {
 }
 const HEAD = `${MODEL_LABEL} · ~/src/projects/fancy`
 const TOTALS = ['session $0.00 ↑0 ↓0', 'today $0.00 ↑0 ↓0']
-const METERS = 'ctx 200.0k'
+const METERS = 'ctx ▕        ▏ 0 / 200.0k'
 
 async function start($: Engine): Promise<void> {
   await $.session.start({ cwd: CWD, surface: 'terminal', isInteractive: true })
