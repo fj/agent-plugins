@@ -21,7 +21,7 @@ async function filesWithUnrenderedReferences(dir: string): Promise<string[]> {
 }
 
 test('the repo has the expected plugins', () => {
-  assert.deepEqual(plugins.map(({ manifest }) => manifest.name).sort(), ['foundry-finder', 'jxf', 'mod-jxf-fancy-details', 'mod-jxf-tmux-spinner'])
+  assert.deepEqual(plugins.map(({ manifest }) => manifest.name).sort(), ['foundry-finder', 'jxf', 'mod-jxf-fancy-details', 'mod-jxf-session-title', 'mod-jxf-tmux-spinner'])
 })
 
 for (const plugin of plugins) {

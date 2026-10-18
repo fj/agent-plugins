@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test 'test/**/*.spec.ts'"
+    "test": "node --test 'test/**/*.spec.ts'",
+    "build": "node scripts/build.ts"
   },
   "engines": { "node": ">=22.18" }
 }
