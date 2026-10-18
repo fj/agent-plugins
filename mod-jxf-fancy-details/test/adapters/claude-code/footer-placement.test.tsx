@@ -74,11 +74,24 @@ test('above the prompt, the band draws the totals and meters right-aligned acros
 
   for (const surface of LIVE_SURFACES) {
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
+    const band = await ui.find({ key: 'footer-band' })
     const rows = await ui.find({ key: 'footer-rows' })
-    expect(rows?.props).toMatchObject({ alignItems: 'flex-end', width: BODY_COLUMNS })
+    expect(band?.props).toMatchObject({ alignItems: 'flex-end', width: BODY_COLUMNS })
+    expect(rows?.props).toMatchObject({ alignItems: 'flex-end', flexShrink: 0 })
     expect(shownRows(rows)).toEqual([...TOTALS, METERS])
     await ui.unmount()
   }
+})
+
+test('above the prompt, what other plugins draw in the band stays to the left of the rows', ABOVE, async ($, on) => {
+  world(on)
+  await start($)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AbovePrompt', props: BAND })
+  const band = (await ui.find({ key: 'footer-band' })) as { children?: readonly unknown[] } | undefined
+
+  expect(shownText(band?.children?.[0])).toBe(`AbovePrompt ${ENGINE_TEXT}`)
+  expect(shownRows(band?.children?.[1])).toEqual([...TOTALS, METERS])
 })
 
 test('above the prompt, the band yields to a survey', ABOVE, async ($, on) => {
