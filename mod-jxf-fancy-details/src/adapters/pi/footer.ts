@@ -29,7 +29,9 @@ const PATH_WIDTH_SHARE = 0.25
 const CONTROL_CHARS = /[\r\n\t]+/g
 
 function statusItems(data: FooterData): string[] {
-  const statuses = [...data.getExtensionStatuses().values()].map(text => text.replace(CONTROL_CHARS, ' ').trim())
+  const statuses = [...data.getExtensionStatuses()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, text]) => text.replace(CONTROL_CHARS, ' ').trim())
 
   return statuses.filter(text => text !== '')
 }

@@ -467,11 +467,11 @@ test('settling without a prompt records no turn', async () => {
   assert.equal(s.writes.length, 0)
 })
 
-test('the footer flattens multi-line statuses, drops blank ones, and omits a missing branch', async () => {
+test('the footer orders statuses by key, flattens multi-line ones, drops blank ones, and omits a missing branch', async () => {
   const s = setup()
 
   await s.emit('session_start', { reason: 'startup' })
-  const lines = s.footerLines(footerData({ a: 'one\ntwo', b: '  ', c: 'three' }, null))!
+  const lines = s.footerLines(footerData({ c: 'three', b: '  ', a: 'one\ntwo' }, null))!
 
   assert.match(lines[0]!, /^one two three +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
 })
