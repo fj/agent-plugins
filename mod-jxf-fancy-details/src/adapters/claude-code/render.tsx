@@ -2,12 +2,12 @@ import { atom, read } from 'claude-code'
 import type { EngineInterface, On, RenderInput, RenderNode } from 'claude-code'
 
 import { EMPTY_JOURNAL } from '../../core/journal.ts'
-import { markStep } from '../../core/ledger.ts'
+import { isStreaming, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
-import { messagePrefix, turnTag } from '../../render/prefix.ts'
+import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
@@ -129,18 +129,21 @@ export function drawSites(on: On, config: Config): void {
     }
 
     const { Box, Text } = $.ui.resolve(e)
-    const prefix = messagePrefix({
-      mark,
-      step: markStep(ledger, mark.id),
-      now: await $.clock.now(),
-      usage: config.usage,
-      display: config.display,
-    })
+    const step = markStep(ledger, mark.id)
+    const input: PrefixInput = { mark, step, now: await $.clock.now(), usage: config.usage, display: config.display }
+    const prefix = isStreaming(ledger, step) ? (
+      <Box>
+        {await timerNode($, e, { key: `step-timer-${step.id}`, startedAt: step.startedAt })}
+        <Text>{lineNodes(Text, [seg(' '), ...messageTags(input)])}</Text>
+      </Box>
+    ) : (
+      <Text>{lineNodes(Text, messagePrefix(input))}</Text>
+    )
 
     return (
       <Box flexDirection="column">
         {blankLine(Text)}
-        <Text>{lineNodes(Text, prefix)}</Text>
+        {prefix}
         {await next(e)}
       </Box>
     )
