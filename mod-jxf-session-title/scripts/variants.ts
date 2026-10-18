@@ -13,6 +13,7 @@ const REPOSITORY = 'https://github.com/fj/agent-plugins'
 export type Variant = { harness: string; adapter: string; manifest: string }
 
 export const VARIANTS: Variant[] = [
+  { harness: 'claude', adapter: 'claude-code', manifest: join('.claude-plugin', 'plugin.json') },
   { harness: 'pi', adapter: 'pi', manifest: NPM_MANIFEST },
 ]
 
