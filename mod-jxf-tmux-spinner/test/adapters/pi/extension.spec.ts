@@ -6,26 +6,31 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 import { modJxfTmuxSpinner } from '../../../src/adapters/pi/extension.ts'
 
 const PANE = '%3'
+const SESSION_FILE = '/sessions/s1.jsonl'
 
-type Handler = (event: object) => Promise<void>
+type Handler = (event: object, ctx: object) => Promise<void>
 
 function fakePi(pane: string | undefined) {
   const handlers = new Map<string, Handler>()
   const states: (string | undefined)[] = []
+  const identities: (readonly string[])[] = []
+  const ctx = { sessionManager: { getSessionFile: () => SESSION_FILE } }
   const api = { on: (name: string, handler: Handler) => void handlers.set(name, handler) }
 
   modJxfTmuxSpinner({
     pane,
     run: async argv => {
       assert.equal(argv[argv.indexOf('-t') + 1], PANE)
-      states.push(argv[1] === 'set-option' && argv[2] === '-wu' ? undefined : argv.at(-1))
+      if (argv.includes('@agent_state')) states.push(argv[2] === '-wu' ? undefined : argv.at(-1))
+      else identities.push(argv)
     },
   })(api as unknown as ExtensionAPI)
 
   return {
     states,
+    identities,
     handlerNames: () => [...handlers.keys()],
-    emit: (name: string, event: object = {}) => handlers.get(name)?.({ type: name, ...event }) ?? Promise.resolve(),
+    emit: (name: string, event: object = {}) => handlers.get(name)?.({ type: name, ...event }, ctx) ?? Promise.resolve(),
   }
 }
 
@@ -79,4 +84,14 @@ test('the state is cleared when a session starts and shuts down', async () => {
   await pi.emit('session_start')
   await pi.emit('session_shutdown')
   assert.deepEqual(pi.states, [undefined, undefined])
+})
+
+test('a session names its harness and file until it shuts down', async () => {
+  const pi = fakePi(PANE)
+  await pi.emit('session_start')
+  await pi.emit('session_shutdown')
+  assert.deepEqual(pi.identities, [
+    ['tmux', 'set-option', '-w', '-t', PANE, '@agent_harness', 'pi', ';', 'set-option', '-w', '-t', PANE, '@agent_session', SESSION_FILE],
+    ['tmux', 'set-option', '-wu', '-t', PANE, '@agent_harness', ';', 'set-option', '-wu', '-t', PANE, '@agent_session'],
+  ])
 })

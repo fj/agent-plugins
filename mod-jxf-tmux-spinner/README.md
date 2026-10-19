@@ -8,7 +8,9 @@ A Claude Code and [pi](https://pi.dev) plugin that marks the tmux window of an a
 | `?` (yellow) | The agent waits for you: a permission prompt, a question, or a reply that ends with `?`. |
 | `✓` (green) | The agent is done. |
 
-The plugin only sets the `@agent_state` window option. tmux draws the mark with `tmux/tmux-spinner` once a second. When you go to the window, tmux removes the `?` or `✓` mark.
+The plugin only sets the `@agent_state`, `@agent_harness` and `@agent_session` window options. tmux draws the mark with `tmux/tmux-spinner` once a second. When you go to the window, tmux removes the `?` or `✓` mark.
+
+For a popup when an agent finishes work, add [tmux-plugin-agent-toast](https://github.com/fj/tmux-plugin-agent-toast). It reads the same options.
 
 ## Set up tmux
 
