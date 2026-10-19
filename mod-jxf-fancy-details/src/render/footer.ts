@@ -8,6 +8,7 @@ export type FooterLayout = { isTotalsCombined: boolean; showsSubscription: boole
 
 export type FooterInput = {
   model: string
+  effort?: string
   cwd: string
   branch?: string
   home: string
@@ -72,9 +73,14 @@ function branchSegments(branch: string | undefined): Line {
   return branch === undefined ? [] : [seg(' · ', 'muted'), seg(`${BRANCH_SYMBOL} ${branch}`, 'branch')]
 }
 
+function effortSegments(effort: string | undefined): Line {
+  return effort === undefined ? [] : [seg(` (${effort})`, 'muted')]
+}
+
 export function footerHead(input: FooterInput): Line {
   return [
     seg(input.model, 'model'),
+    ...effortSegments(input.effort),
     seg(' · ', 'muted'),
     seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
     ...branchSegments(input.branch),

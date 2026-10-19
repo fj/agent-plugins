@@ -355,6 +355,37 @@ test('the footer head names an API key login', async ($, on) => {
   expect((await footerRows($))[0]).toStartWith(`anthropic/api/${MODEL} · `)
 })
 
+test('the footer head shows the effort of the last step after the model', async ($, on) => {
+  const w = world(on)
+  await start($)
+  expect((await footerRows($))[0]).toStartWith(`${MODEL_LABEL} · `)
+
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0, { effort: 'high' })
+  expect((await footerRows($))[0]).toStartWith(`${MODEL_LABEL} (high) · `)
+
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 1, { effort: 8000 })
+  expect((await footerRows($))[0]).toStartWith(`${MODEL_LABEL} (8.0k) · `)
+
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 2)
+  expect((await footerRows($))[0]).toStartWith(`${MODEL_LABEL} · `)
+})
+
+test('a subagent step leaves the footer effort alone', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await submit($, 'go')
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-1', 0, { effort: 'high' })
+
+  w.scripts.push(textReply('done'))
+  await step($, 'turn-a', 0, { effort: 'low', agentId: 'agent-1' })
+  expect((await footerRows($))[0]).toStartWith(`${MODEL_LABEL} (high) · `)
+})
+
 const CLOUD_ENV = [
   ['CLAUDE_CODE_USE_BEDROCK', 'bedrock'],
   ['CLAUDE_CODE_USE_VERTEX', 'vertex'],

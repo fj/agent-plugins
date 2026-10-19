@@ -1,4 +1,4 @@
-import type { On, SessionAuthorization, SessionRateLimit, Settings, TurnStepChunk, TurnUsage } from 'claude-code'
+import type { On, SessionAuthorization, SessionRateLimit, Settings, TurnStepChunk, TurnStepInput, TurnUsage } from 'claude-code'
 import { mock, type Engine, type MockClock } from 'claude-code/testing'
 
 export const PLUGIN = 'mod-jxf-fancy-details'
@@ -219,8 +219,10 @@ export function toolReply(id: string, usage: TurnUsage | null = USAGE): Script {
   return { chunks: [{ kind: 'tool', index: 0, id, name: 'Bash' }], usage }
 }
 
-export async function step($: Engine, turnId: string, index: number): Promise<void> {
-  for await (const _chunk of $.turn.step({ turnId, index, model: MODEL, messageCount: 1 })) {
+export type StepOptions = Pick<TurnStepInput, 'effort' | 'agentId'>
+
+export async function step($: Engine, turnId: string, index: number, options: StepOptions = {}): Promise<void> {
+  for await (const _chunk of $.turn.step({ turnId, index, model: MODEL, messageCount: 1, ...options })) {
     void _chunk
   }
 }

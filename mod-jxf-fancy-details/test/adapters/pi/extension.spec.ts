@@ -236,6 +236,41 @@ test('the footer head names the provider before the model', async () => {
   assert.match(head!, /^ +claude-bridge\/claude-opus-5-5 · /)
 })
 
+test('the footer head shows the thinking level after a reasoning model', async () => {
+  const s = setup({ reasoning: true })
+
+  s.pi.setThinkingLevel('high')
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines(footerData({}, null))!
+
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 \(high\) · /)
+})
+
+test('the footer head redraws with the new thinking level when it changes', async () => {
+  const s = setup({ reasoning: true })
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.footerLines()
+  const renders = s.tui.renders()
+  s.pi.setThinkingLevel('low')
+  await s.emit('thinking_level_select', { level: 'low', previousLevel: 'off' })
+
+  assert.equal(s.tui.renders(), renders + 1)
+  assert.match(s.footerLines()![0]!, /claude-opus-5-5 \(low\) · /)
+})
+
+test('the footer head leaves out the thinking level for a model without reasoning', async () => {
+  const s = setup({ reasoning: false })
+
+  s.pi.setThinkingLevel('high')
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines(footerData({}, null))!
+
+  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · /)
+})
+
 const PROMPT_CACHE = { short: 300, long: 3600 }
 
 async function startCached(s: ReturnType<typeof setup>) {

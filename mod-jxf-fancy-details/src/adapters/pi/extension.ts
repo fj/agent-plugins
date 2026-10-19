@@ -91,6 +91,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       display: () => tokenDisplay(config),
       measure: deps.measure,
       model: () => (model === undefined ? 'no model' : modelLabel(model.provider, model.id)),
+      effort: () => (model?.reasoning === true ? pi.getThinkingLevel() : undefined),
       cwd: () => ctx?.cwd ?? '',
       home: deps.home,
       today: () => tracker.today(now()),
@@ -234,6 +235,10 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       model = event.model
       reading = null
       chooseStrategies()
+      tui?.requestRender()
+    })
+
+    pi.on('thinking_level_select', async () => {
       tui?.requestRender()
     })
 

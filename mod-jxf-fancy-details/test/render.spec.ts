@@ -157,6 +157,13 @@ test('the footer head shows the git branch after the path when there is one', ()
   assert.equal(lineText(head!), 'claude-opus-5-5 · ~/src/…/mod-jxf-fancy-details · \ue0a0 topic/x')
   assert.equal(head!.at(-1)?.role, 'branch')
 })
+
+test('the footer head shows the effort after the model when there is one', () => {
+  const [head] = footer({ ...FOOTER_INPUT, effort: 'high' })
+
+  assert.equal(lineText(head!), 'claude-opus-5-5 (high) · ~/src/…/mod-jxf-fancy-details')
+  assert.equal(head![1]?.role, 'muted')
+})
 test('the footer splits total input into new and cached input when asked', () => {
   const session = { ...ZERO_TOTALS, usage: { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 } }
   const lines = footer({ ...FOOTER_INPUT, session, display: CACHED })
