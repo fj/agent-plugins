@@ -2,7 +2,7 @@ import type { Cost } from './cost.ts'
 import { addTotals, ZERO_TOTALS, type Totals } from './totals.ts'
 import type { TokenUsage } from './usage.ts'
 import { ZERO_COST } from './cost.ts'
-import { ZERO_USAGE } from './usage.ts'
+import { totalInput, ZERO_USAGE } from './usage.ts'
 
 export type Pricer = (model: string, usage: TokenUsage) => Cost
 
@@ -150,4 +150,16 @@ export function isStreaming(state: LedgerState, step: Step | undefined): step is
   return (
     step !== undefined && step.endedAt === undefined && step.id === state.currentStepId && state.currentPromptId !== undefined
   )
+}
+
+export function lastContextTokens(state: LedgerState): number {
+  let last: Step | undefined
+
+  for (const step of Object.values(state.steps)) {
+    if (step.usage !== undefined && (step.endedAt ?? 0) >= (last?.endedAt ?? 0)) {
+      last = step
+    }
+  }
+
+  return last?.usage === undefined ? 0 : totalInput(last.usage)
 }

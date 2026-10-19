@@ -7,6 +7,7 @@ import {
   completeTurn,
   EMPTY_LEDGER,
   endMark,
+  lastContextTokens,
   markStep,
   startStep,
   submitPrompt,
@@ -105,4 +106,18 @@ test('ending a mark sets its end time', () => {
 
   assert.equal(s.marks.t1?.endedAt, 25)
   assert.equal(endMark(s, 'missing', 1), s)
+})
+
+test('the context fill is the input of the step that completed last', () => {
+  let s = startStep(EMPTY_LEDGER, 's1', 10, 'claude-opus-5-5')
+  s = startStep(s, 's2', 20, 'claude-opus-5-5')
+  s = completeStep(s, 's2', { ...USAGE, cacheRead: 5000 }, 100, price)
+  s = completeStep(s, 's1', USAGE, 200, price)
+  s = startStep(s, 's3', 210, 'claude-opus-5-5')
+
+  assert.equal(lastContextTokens(s), 1100)
+})
+
+test('the context fill is zero before any step completes', () => {
+  assert.equal(lastContextTokens(startStep(EMPTY_LEDGER, 's1', 10, 'claude-opus-5-5')), 0)
 })

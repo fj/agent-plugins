@@ -207,12 +207,11 @@ test('the footer shows model, path, session, quota and today across sessions, ri
   await s.emit('session_start', { reason: 'startup' })
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
 
-  const [status, head, session, today, quota, ...rest] = s.footerLines(footerData({ lens: 'lens ok' }))!
+  const [head, session, today, quota, ...rest] = s.footerLines(footerData({ lens: 'lens ok' }))!
 
-  assert.equal(status, 'lens ok')
   assert.deepEqual(rest, [])
   assert.ok([head, session, today, quota].every(line => [...line!].length === WIDTH))
-  assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
+  assert.match(head!, /^lens ok +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo · \ue0a0 main$/)
   assert.match(session!, /^ +session \$0\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(today!, /^ +today \$10\.00 ↑\(Δ0 \+ ⟲ 0\)\/0 ↓0$/)
   assert.match(quota!, /^ +5h ▕.*▏ 42%$/)
@@ -468,15 +467,13 @@ test('settling without a prompt records no turn', async () => {
   assert.equal(s.writes.length, 0)
 })
 
-test('the footer flattens multi-line statuses, drops blank ones, and omits a missing branch', async () => {
+test('the footer orders statuses by key, flattens multi-line ones, drops blank ones, and omits a missing branch', async () => {
   const s = setup()
 
   await s.emit('session_start', { reason: 'startup' })
-  const lines = s.footerLines(footerData({ a: 'one\ntwo', b: '  ', c: 'three' }, null))!
+  const lines = s.footerLines(footerData({ c: 'three', b: '  ', a: 'one\ntwo' }, null))!
 
-  assert.equal(lines[0], 'one two three')
-  assert.ok(lines[1]!.startsWith(' '))
-  assert.doesNotMatch(lines[1]!, /\(/)
+  assert.match(lines[0]!, /^one two three +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
 })
 
 test('the footer shows the context window size until the fill is known, then follows the fill', async () => {
