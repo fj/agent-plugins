@@ -17,7 +17,7 @@ export type JournalRecord =
   | { kind: 'prompt'; id: string; at: number }
   | { kind: 'step'; id: string; at: number; model: string }
   | { kind: 'message'; id: string; at: number }
-  | { kind: 'stepEnd'; id: string; at: number; usage: TokenUsage }
+  | { kind: 'stepEnd'; id: string; at: number; usage?: TokenUsage }
   | { kind: 'tool'; id: string; at: number }
   | { kind: 'toolEnd'; id: string; at: number }
   | { kind: 'turnEnd'; at: number }
@@ -44,6 +44,11 @@ export function applyRecord({ ledger, days }: Journal, record: JournalRecord, pr
       return { ledger: addMark(ledger, record.id, 'message', record.at), days }
     case 'stepEnd': {
       const next = finishStep(ledger, record.id, record.usage, record.at, price)
+
+      if (record.usage === undefined) {
+        return { ledger: next, days }
+      }
+
       const cost = next.steps[record.id]?.cost ?? ZERO_COST
 
       return { ledger: next, days: addToDay(days, localDayKey(record.at), { usage: record.usage, cost, activeMs: 0 }) }

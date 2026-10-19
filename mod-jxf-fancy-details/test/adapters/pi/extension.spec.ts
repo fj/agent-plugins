@@ -139,7 +139,7 @@ test('the message prefix fills in tokens and cost when the step ends, and tools 
   const step = s.ours().find(entry => (entry.data as { kind: string }).kind === 'step')!
 
   s.advance(1500)
-  assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1}')
+  assert.equal(s.shown(step), '\n {2026-10-03 04:20:37 Δ 1.5s} {turn 1.1: ⋯}')
   const streamingTimer = paintTimer({ text: '{2026-10-03 04:20:37 Δ 1.5s}', isLive: true }, T0 + 1500)
   assert.ok(s.pi.render(step, WIDTH)?.[1]?.startsWith(` ${streamingTimer} `))
 

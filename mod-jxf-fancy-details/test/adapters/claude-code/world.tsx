@@ -14,7 +14,7 @@ export const TODAY_DIR = dayDirOf('2026-10-03')
 export const LIVE_SURFACES = ['terminal', 'desktop'] as const
 export const ENGINE_TEXT = 'drawn by the engine'
 
-export type Script = { chunks: TurnStepChunk[]; usage: TurnUsage | null }
+export type Script = { chunks: TurnStepChunk[]; usage: TurnUsage | null; isFailing?: boolean }
 
 export type World = {
   clock: MockClock
@@ -140,6 +140,10 @@ export function world(
 
     for (const chunk of script.chunks) {
       yield chunk
+    }
+
+    if (script.isFailing) {
+      throw new Error('the step failed')
     }
 
     const answer = script.chunks.map(chunk => (chunk.kind === 'text' ? chunk.text : '')).join('')

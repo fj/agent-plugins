@@ -47,7 +47,7 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
 
   for (const ui of drawings) {
     const tree = await ui.drawn()
-    expect(shownRows(tree).slice(0, 2)).toEqual([' ', ' {turn 1.1}'])
+    expect(shownRows(tree).slice(0, 2)).toEqual([' ', ' {turn 1.1: ⋯}'])
     expect(shownText(tree)).not.toContain('$')
     expect(await ui.find({ type: 'Text', text: ENGINE_TEXT })).toBeDefined()
     expect(await ui.find({ type: 'Client', key: STEP_TIMER })).toBeDefined()
@@ -65,6 +65,57 @@ test('the first row of a reply gets a prefix that fills in when usage arrives', 
     expect(text).toContain('{turn 1.1: ↑ (Δ1.2k + ⟲5.0k) / Σ6.2k · ↓ Δ300 / Σ300}')
     expect(text).toMatch(/\{Δ\$0\.\d\d \/ Σ\$0\.\d\d\}/)
   }
+})
+
+test('a step that fails stops its clock', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push({ ...textReply(REPLY), isFailing: true })
+  const stream = $.turn.step({ turnId: 'turn-1', index: 0, model: MODEL, messageCount: 1 })
+  await stream.next()
+  await w.clock.advance(STEP_MS)
+  const failure = stream.next().then(
+    () => undefined,
+    (error: unknown) => error,
+  )
+  expect(await failure).toBeInstanceOf(Error)
+  await appendReply($, 'reply-1', REPLY)
+  await w.clock.advance(STEP_MS)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW, requestId: 'reply-1' })
+  expect(shownRows(await ui.drawn())[1]).toEqual('{2026-10-03 04:20:37 Δ 3.0s} {turn 1.1}')
+})
+
+test('a step that ends without usage stops its clock', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY, null))
+  const stream = $.turn.step({ turnId: 'turn-1', index: 0, model: MODEL, messageCount: 1 })
+  await stream.next()
+  await w.clock.advance(STEP_MS)
+  for await (const _chunk of stream) {
+    void _chunk
+  }
+  await appendReply($, 'reply-1', REPLY)
+  await w.clock.advance(STEP_MS)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW, requestId: 'reply-1' })
+  expect(shownRows(await ui.drawn())[1]).toEqual('{2026-10-03 04:20:37 Δ 3.0s} {turn 1.1}')
+})
+
+test('a step its caller stops early stops its clock', async ($, on) => {
+  const w = world(on)
+  await submit($, 'plan it')
+  w.scripts.push(textReply(REPLY))
+  const stream = $.turn.step({ turnId: 'turn-1', index: 0, model: MODEL, messageCount: 1 })
+  await stream.next()
+  await w.clock.advance(STEP_MS)
+  await stream.return(undefined as never)
+  await appendReply($, 'reply-1', REPLY)
+  await w.clock.advance(STEP_MS)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'AssistantMessage', props: ROW, requestId: 'reply-1' })
+  expect(shownRows(await ui.drawn())[1]).toEqual('{2026-10-03 04:20:37 Δ 3.0s} {turn 1.1}')
 })
 
 test('a streaming step shimmers its header timer', async ($, on) => {

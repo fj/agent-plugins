@@ -115,16 +115,23 @@ export function completeStep(
   return usesCache(usage) ? { ...next, cachedAt: Math.max(state.cachedAt ?? step.startedAt, step.startedAt) } : next
 }
 
+function closeStep(state: LedgerState, id: string, at: number): LedgerState {
+  const step = state.steps[id]
+
+  return step === undefined ? state : { ...state, steps: { ...state.steps, [id]: { ...step, endedAt: at } } }
+}
+
 export function finishStep(
   state: LedgerState,
   id: string,
-  usage: TokenUsage,
+  usage: TokenUsage | undefined,
   at: number,
   price: Pricer,
 ): LedgerState {
   const isOpenMessage = (mark: Mark) => mark.stepId === id && mark.kind === 'message' && mark.endedAt === undefined
   const open = Object.values(state.marks).filter(isOpenMessage)
-  const done = open.reduce((next, mark) => endMark(next, mark.id, at), completeStep(state, id, usage, at, price))
+  const closed = usage === undefined ? closeStep(state, id, at) : completeStep(state, id, usage, at, price)
+  const done = open.reduce((next, mark) => endMark(next, mark.id, at), closed)
 
   return markReply(done, at)
 }
