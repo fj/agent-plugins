@@ -108,6 +108,22 @@ test('a step that ends without usage closes it and its messages but adds nothing
   assert.deepEqual(journal.days, {})
 })
 
+test('a subagent step adds its priced usage to the totals and the day but no step or mark', () => {
+  const { ledger, days } = foldJournal(
+    [
+      { kind: 'prompt', id: 'p', at: T0 },
+      { kind: 'agentStep', at: T0 + 100, model: 'claude-opus-5-5', usage: USAGE },
+    ],
+    price,
+  )
+  const cost = price('claude-opus-5-5', USAGE)
+
+  assert.deepEqual(ledger.totals, { usage: USAGE, cost, activeMs: 0 })
+  assert.deepEqual(days[localDayKey(T0)], { usage: USAGE, cost, activeMs: 0 })
+  assert.deepEqual([ledger.steps, ledger.marks, ledger.seq], [{}, {}, 0])
+  assert.ok(isJournalRecord({ kind: 'agentStep', at: 1 }))
+})
+
 test('an unknown model prices as a lower bound', () => {
   const journal = foldJournal(
     [

@@ -1,5 +1,6 @@
 import { addToDay, localDayKey, type SessionDays } from './daily.ts'
 import {
+  addAgentStep,
   addMark,
   completeTurn,
   EMPTY_LEDGER,
@@ -21,12 +22,13 @@ export type JournalRecord =
   | { kind: 'tool'; id: string; at: number }
   | { kind: 'toolEnd'; id: string; at: number }
   | { kind: 'turnEnd'; at: number }
+  | { kind: 'agentStep'; at: number; model: string; usage: TokenUsage }
 
 export type Journal = { ledger: LedgerState; days: SessionDays }
 
 export const EMPTY_JOURNAL: Journal = { ledger: EMPTY_LEDGER, days: {} }
 
-const RECORD_KINDS = new Set(['prompt', 'step', 'message', 'stepEnd', 'tool', 'toolEnd', 'turnEnd'])
+const RECORD_KINDS = new Set(['prompt', 'step', 'message', 'stepEnd', 'tool', 'toolEnd', 'turnEnd', 'agentStep'])
 
 export function isJournalRecord(value: unknown): value is JournalRecord {
   const record = value as JournalRecord | undefined
@@ -59,6 +61,11 @@ export function applyRecord({ ledger, days }: Journal, record: JournalRecord, pr
       return { ledger: endMark(ledger, record.id, record.at), days }
     case 'turnEnd': {
       const { state, delta } = completeTurn(ledger, record.at)
+
+      return { ledger: state, days: addToDay(days, localDayKey(record.at), delta) }
+    }
+    case 'agentStep': {
+      const { state, delta } = addAgentStep(ledger, record.model, record.usage, price)
 
       return { ledger: state, days: addToDay(days, localDayKey(record.at), delta) }
     }
