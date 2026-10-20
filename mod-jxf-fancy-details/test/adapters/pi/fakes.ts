@@ -11,6 +11,8 @@ type Factory = (tui: unknown, theme: unknown, data?: unknown) => Component
 export type FakeEntry = { type: string; customType?: string; data?: unknown; message?: unknown }
 
 const ANSI = /\x1b\[[0-9;]*m/g
+const ANSI_TOKEN = /(\x1b\[[0-9;]*m)/
+const RESET = '\x1b[0m'
 
 export const plain = (text: string) => text.replace(ANSI, '')
 
@@ -21,6 +23,50 @@ export const measure: TextWidth = {
 
     return chars.length <= maxWidth ? text : chars.slice(0, maxWidth).join('')
   },
+  wrapTextWithAnsi: (text, width) =>
+    carryStyles(
+      text
+        .split(' ')
+        .flatMap(word => splitWide(word, width))
+        .reduce<string[]>((lines, word) => {
+          const last = lines.at(-1)
+
+          return last !== undefined && plain(last).length + 1 + plain(word).length <= width
+            ? [...lines.slice(0, -1), `${last} ${word}`]
+            : [...lines, word]
+        }, []),
+    ),
+}
+
+function splitWide(word: string, width: number): string[] {
+  const pieces = ['']
+  let pieceWidth = 0
+
+  for (const token of word.split(ANSI_TOKEN).flatMap(part => (ANSI_TOKEN.test(part) ? [part] : [...part]))) {
+    if (!ANSI_TOKEN.test(token) && pieceWidth === width) {
+      pieces.push('')
+      pieceWidth = 0
+    }
+
+    pieces[pieces.length - 1] += token
+    pieceWidth += ANSI_TOKEN.test(token) ? 0 : 1
+  }
+
+  return pieces
+}
+
+function carryStyles(lines: readonly string[]): string[] {
+  let active = ''
+
+  return lines.map(line => {
+    const carried = `${active}${line}`
+
+    for (const [code] of line.matchAll(ANSI)) {
+      active = code === RESET ? '' : `${active}${code}`
+    }
+
+    return carried
+  })
 }
 
 export function fakePi() {

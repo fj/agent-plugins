@@ -1,45 +1,38 @@
-import { alignRight, type TextWidth } from './paint.ts'
+import { alignRight, endStyle, type TextWidth } from './paint.ts'
 
-const COLUMN_GAP = 2
-const ITEM_SEPARATOR = ' '
-
-function packLeft(items: readonly string[], rights: readonly string[], width: number, measure: TextWidth): string[] | undefined {
-  const lefts = rights.map(() => '')
-  const fits = (left: string, right: string) => measure.visibleWidth(left) + COLUMN_GAP + measure.visibleWidth(right) <= width
-  const extend = (left: string, item: string) => (left === '' ? item : `${left}${ITEM_SEPARATOR}${item}`)
-  let row = 0
-
-  for (const item of items) {
-    while (row < rights.length && !fits(extend(lefts[row]!, item), rights[row]!)) {
-      row += 1
-    }
-
-    if (row === rights.length) {
-      return undefined
-    }
-
-    lefts[row] = extend(lefts[row]!, item)
-  }
-
-  return lefts
-}
+export const COLUMN_GAP = 2
+export const MIN_LEFT_WIDTH = 16
 
 function spread(left: string, right: string, width: number, measure: TextWidth): string {
   if (left === '') {
     return alignRight(right, width, measure)
   }
 
+  if (right === '') {
+    return endStyle(left)
+  }
+
   const gap = width - measure.visibleWidth(left) - measure.visibleWidth(right)
 
-  return `${left}${' '.repeat(gap)}${right}`
+  return `${endStyle(left)}${' '.repeat(gap)}${right}`
 }
 
-export function besideRight(items: readonly string[], rights: readonly string[], width: number, measure: TextWidth): string[] {
-  const lefts = packLeft(items, rights, width, measure)
-  const aligned = (row: number, right: string) => spread(lefts?.[row] ?? '', right, width, measure)
-  const rows = rights.map((right, row) => aligned(row, right))
+export function besideRight(left: string, rights: readonly string[], width: number, measure: TextWidth): string[] {
+  const aligned = rights.map(right => alignRight(right, width, measure))
 
-  return lefts !== undefined || items.length === 0
-    ? rows
-    : [measure.truncateToWidth(items.join(ITEM_SEPARATOR), width), ...rows]
+  if (left === '') {
+    return aligned
+  }
+
+  const rightWidth = Math.max(0, ...rights.map(right => measure.visibleWidth(right)))
+  const leftWidth = width - rightWidth - COLUMN_GAP
+
+  if (leftWidth < MIN_LEFT_WIDTH) {
+    return [...measure.wrapTextWithAnsi(left, width), ...aligned]
+  }
+
+  const lefts = measure.wrapTextWithAnsi(left, leftWidth)
+  const rows = Math.max(lefts.length, rights.length)
+
+  return Array.from({ length: rows }, (_, row) => spread(lefts[row] ?? '', rights[row] ?? '', width, measure))
 }

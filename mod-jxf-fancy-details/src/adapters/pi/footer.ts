@@ -28,13 +28,14 @@ export type FooterData = {
 const MIN_PATH_WIDTH = 16
 const PATH_WIDTH_SHARE = 0.25
 const CONTROL_CHARS = /[\r\n\t]+/g
+const STATUS_SEPARATOR = ' '
 
-function statusItems(data: FooterData): string[] {
-  const statuses = [...data.getExtensionStatuses()]
+function statusText(data: FooterData): string {
+  return [...data.getExtensionStatuses()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, text]) => text.replace(CONTROL_CHARS, ' ').trim())
-
-  return statuses.filter(text => text !== '')
+    .filter(text => text !== '')
+    .join(STATUS_SEPARATOR)
 }
 
 export function footerLines(scene: FooterScene, data: FooterData, width: number): string[] {
@@ -57,5 +58,5 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
   scene.showPulse(lines.some(hasPulse))
   const now = scene.now()
 
-  return besideRight(statusItems(data), lines.map(line => paintLine(line, now)), width, scene.measure)
+  return besideRight(statusText(data), lines.map(line => paintLine(line, now)), width, scene.measure)
 }
