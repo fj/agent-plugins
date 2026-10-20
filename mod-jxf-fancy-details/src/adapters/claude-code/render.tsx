@@ -7,7 +7,7 @@ import { isStreaming, lastContextTokens, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
-import { modelLabel } from '../../render/format.ts'
+import { formatTokens, modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
 import { hasPulse } from '../../render/pulse.ts'
@@ -26,9 +26,12 @@ const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits'
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
 const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
+const effortAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'effort' } as const, null)
 
 const MAX_PATH_WIDTH = 32
 const MODE_SEPARATOR = ' & '
+
+const effortLabel = (effort: string | number | null) => (typeof effort === 'number' ? formatTokens(effort) : (effort ?? undefined))
 
 type Timing = { key: string; startedAt: number; endedAt?: number }
 
@@ -80,12 +83,14 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const context = await read($, contextAtom)
   const branch = await read($, branchAtom)
   const route = await read($, routeAtom)
+  const effort = await read($, effortAtom)
   const reading = config.subscription.read({ windows: rateLimits })
   const ttl = route === null ? undefined : claudeCodeCacheTtlMs({ ...route.cache, isUsingOverage: reading?.isUsingOverage ?? false })
   const now = await $.clock.now()
 
   return {
     model: modelLabel(route?.provider ?? '', route?.billing ?? '', await $.session.model()),
+    effort: effortLabel(effort),
     cwd: await $.session.cwd(),
     branch: branch ?? undefined,
     home: (await $.env.get('HOME')) ?? '',

@@ -20,6 +20,7 @@ const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits'
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
 const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
+const effortAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'effort' } as const, null)
 
 const POLL_MS = 30_000
 const GIT_TIMEOUT_MS = 2000
@@ -207,6 +208,7 @@ export function trackEvents(on: On, config: Config): void {
     }
 
     const stepId = `${e.turnId}:${e.index}`
+    await update($, effortAtom, () => e.effort ?? null)
     await record($, config, { kind: 'step', id: stepId, at: await $.clock.now(), model: e.model })
 
     const texts = new Map<number, string>()

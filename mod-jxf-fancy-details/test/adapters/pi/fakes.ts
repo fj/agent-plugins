@@ -27,7 +27,9 @@ export function fakePi() {
   const handlers = new Map<string, Handler[]>()
   const renderers = new Map<string, (entry: { data?: unknown }) => Component | undefined>()
   const branch: FakeEntry[] = []
+  let thinkingLevel = 'off'
   const api = {
+    getThinkingLevel: () => thinkingLevel,
     on(name: string, handler: Handler) {
       handlers.set(name, [...(handlers.get(name) ?? []), handler])
     },
@@ -42,6 +44,9 @@ export function fakePi() {
   return {
     api: api as unknown as ExtensionAPI,
     branch,
+    setThinkingLevel: (level: string) => {
+      thinkingLevel = level
+    },
     handlerNames: () => [...handlers.keys()],
     emit: async (name: string, event: object, ctx: ExtensionContext) => {
       for (const handler of handlers.get(name) ?? []) {
@@ -56,6 +61,7 @@ export function fakePi() {
 export type CtxOptions = {
   mode?: string
   provider?: string
+  reasoning?: boolean
   oauth?: boolean
   context?: ContextUsage
   promptCache?: { short?: number; long?: number }
@@ -76,7 +82,7 @@ export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const ctx = {
     mode: options.mode ?? 'tui',
     cwd: '/home/j/src/projects/demo',
-    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', promptCache: options.promptCache },
+    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', reasoning: options.reasoning, promptCache: options.promptCache },
     modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
     getContextUsage: () => context,
     sessionManager: { getSessionId: () => 'sess-1', getBranch: () => branch, getEntries: () => branch },

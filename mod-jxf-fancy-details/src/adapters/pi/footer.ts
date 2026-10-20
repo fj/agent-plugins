@@ -9,6 +9,7 @@ import type { Scene } from './views.ts'
 
 export type FooterScene = Scene & {
   model(): string
+  effort(): string | undefined
   cwd(): string
   home: string
   today(): Totals
@@ -39,6 +40,7 @@ function statusItems(data: FooterData): string[] {
 export function footerLines(scene: FooterScene, data: FooterData, width: number): string[] {
   const lines = footer({
     model: scene.model(),
+    effort: scene.effort(),
     cwd: scene.cwd(),
     branch: data.getGitBranch() ?? undefined,
     home: scene.home,

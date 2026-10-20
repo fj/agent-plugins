@@ -9,7 +9,7 @@ export type FancyConfig = { usageStrategy?: string; subscriptionStrategy?: strin
 
 export type PromptCacheTiers = { short?: number; long?: number }
 
-export type ModelInfo = { id: string; provider: string; promptCache?: PromptCacheTiers }
+export type ModelInfo = { id: string; provider: string; reasoning?: boolean; promptCache?: PromptCacheTiers }
 
 const ANTHROPIC_PROVIDER = 'anthropic'
 

@@ -76,6 +76,7 @@ declare module 'claude-code' {
       context: FancyContextFill | null
       branch: string | null
       route: FancyRoute | null
+      effort: string | number | null
     }
   }
 }
