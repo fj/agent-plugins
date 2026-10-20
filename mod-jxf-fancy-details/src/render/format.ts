@@ -43,6 +43,19 @@ export function formatUsd(cost: Cost): string {
   return `$${cost.usd.toFixed(CENTS_DIGITS)}${cost.isLowerBound ? '+' : ''}`
 }
 
+const withoutTrailingSlash = (path: string) => (path.length > 1 ? path.replace(/\/+$/, '') : path)
+
+export function isHomeOrAncestor(path: string, home: string): boolean {
+  if (home === '') {
+    return false
+  }
+
+  const dir = withoutTrailingSlash(path)
+  const homeDir = withoutTrailingSlash(home)
+
+  return dir === homeDir || dir === '/' || homeDir.startsWith(`${dir}/`)
+}
+
 export function shortenPath(path: string, home: string, maxWidth: number): string {
   const tilde = home !== '' && (path === home || path.startsWith(`${home}/`)) ? `~${path.slice(home.length)}` : path
 

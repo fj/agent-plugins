@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
 import { footer } from '../src/render/footer.ts'
-import { formatDuration, formatRemaining, formatTokens, formatUsd, modelLabel, shortenPath } from '../src/render/format.ts'
+import { formatDuration, formatRemaining, formatTokens, formatUsd, isHomeOrAncestor, modelLabel, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
 import { messagePrefix } from '../src/render/prefix.ts'
 import { lineText } from '../src/render/segment.ts'
@@ -40,6 +40,18 @@ test('tokens and dollars use compact units', () => {
 test('a model label joins its nonempty parts with slashes', () => {
   assert.equal(modelLabel('anthropic', 'subscription', 'claude-opus-5-5'), 'anthropic/subscription/claude-opus-5-5')
   assert.equal(modelLabel('', '', 'claude-opus-5-5'), 'claude-opus-5-5')
+})
+
+test('home and its ancestors count as home or an ancestor, with or without trailing slashes', () => {
+  for (const [path, home] of [['/home/j', '/home/j'], ['/home/j/', '/home/j'], ['/home/j', '/home/j/'], ['/home', '/home/j'], ['/home/', '/home/j'], ['/', '/home/j']]) {
+    assert.equal(isHomeOrAncestor(path!, home!), true, `${path} in ${home}`)
+  }
+})
+
+test('paths below or beside home, or any path without a home, are not home or an ancestor', () => {
+  for (const [path, home] of [['/home/j/src', '/home/j'], ['/home/jo', '/home/j'], ['/hom', '/home/j'], ['/tmp', '/home/j'], ['/', '']]) {
+    assert.equal(isHomeOrAncestor(path!, home!), false, `${path} in ${home}`)
+  }
 })
 
 test('long paths keep the head and tail around an ellipsis', () => {
@@ -164,6 +176,28 @@ test('the footer head shows the effort after the model when there is one', () =>
   assert.equal(lineText(head!), 'claude-opus-5-5 (high) · ~/src/…/mod-jxf-fancy-details')
   assert.equal(head![1]?.role, 'muted')
 })
+
+test('the footer head warns before the path when the path is home or one of its ancestors', () => {
+  const heads = {
+    '/home/j': 'claude-opus-5-5 · ⚠ ~',
+    '/home': 'claude-opus-5-5 · ⚠ /home',
+    '/': 'claude-opus-5-5 · ⚠ /',
+  }
+
+  for (const [cwd, text] of Object.entries(heads)) {
+    const [head] = footer({ ...FOOTER_INPUT, cwd })
+
+    assert.equal(lineText(head!), text, cwd)
+    assert.equal(head![2]?.role, 'warning', cwd)
+  }
+})
+
+test('the footer head does not warn below home', () => {
+  const [head] = footer({ ...FOOTER_INPUT, cwd: '/home/j/src' })
+
+  assert.equal(head!.some(part => part.role === 'warning'), false)
+})
+
 test('the footer splits total input into new and cached input when asked', () => {
   const session = { ...ZERO_TOTALS, usage: { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 } }
   const lines = footer({ ...FOOTER_INPUT, session, display: CACHED })
