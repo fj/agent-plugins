@@ -1,6 +1,7 @@
 import type { Totals } from '../core/totals.ts'
 import { contextMeter, type ContextFill } from './context.ts'
-import { formatDuration, formatRemaining, formatUsd, isHomeOrAncestor, shortenPath } from './format.ts'
+import { cacheCountdownSegment } from './countdown.ts'
+import { formatDuration, formatUsd, isHomeOrAncestor, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
 import type { TokenDisplay, UsageLines } from './usage-lines.ts'
 
@@ -40,7 +41,7 @@ function cacheSegments(remainingMs: number | undefined): Line {
     return []
   }
 
-  return [seg(` ${CACHE_SYMBOL}`, 'muted'), seg(formatRemaining(remainingMs), remainingMs > 0 ? 'cache' : 'muted')]
+  return [seg(` ${CACHE_SYMBOL}`, 'muted'), cacheCountdownSegment(remainingMs)]
 }
 
 function totalsLine(label: string, totals: Totals, { usage, display }: FooterInput, suffix: Line = []): Line {

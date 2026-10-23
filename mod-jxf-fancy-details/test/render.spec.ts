@@ -3,6 +3,7 @@ import { test } from 'node:test'
 
 import { addToDay, localDayKey, parseTotals, sessionFile } from '../src/core/daily.ts'
 import { ZERO_TOTALS } from '../src/core/totals.ts'
+import { countCacheDown, hasCacheCountdown } from '../src/render/countdown.ts'
 import { footer } from '../src/render/footer.ts'
 import { formatDuration, formatRemaining, formatTokens, formatUsd, isHomeOrAncestor, modelLabel, shortenPath } from '../src/render/format.ts'
 import { meterBar } from '../src/render/meter.ts'
@@ -213,7 +214,7 @@ test('the footer ends the session line with the remaining cache time', () => {
   const lines = footer({ ...FOOTER_INPUT, cacheRemainingMs: 27 * 60_000 })
 
   assert.equal(lineText(lines[1]!), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛27m 00s')
-  assert.equal(lines[1]!.at(-1)?.role, 'cache')
+  assert.equal(lines[1]!.at(-1)?.role, 'cacheCountdown')
   assert.equal(lineText(lines[2]!), 'today 1h 02m · $48.10+ ↑0 ↓0')
 })
 
@@ -222,6 +223,19 @@ test('the footer keeps the cache time with the session when the totals share a l
   const [, totals] = footer({ ...FOOTER_INPUT, cacheRemainingMs: 27 * 60_000, layout })
 
   assert.equal(lineText(totals!), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛27m 00s  today 1h 02m · $48.10+ ↑0 ↓0')
+})
+
+test('counting down redraws only the cache time and mutes it at zero', () => {
+  const [, session] = footer({ ...FOOTER_INPUT, cacheRemainingMs: 27 * 60_000 })
+
+  assert.equal(hasCacheCountdown(session!), true)
+  assert.equal(lineText(countCacheDown(session!, 26 * 60_000 + 5000)), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛26m 05s')
+
+  const expired = countCacheDown(session!, 0)
+
+  assert.equal(lineText(expired), 'session 1m 05s · $12.34 ↑0 ↓0 ⌛0s')
+  assert.equal(expired.at(-1)?.role, 'muted')
+  assert.equal(hasCacheCountdown(expired), false)
 })
 
 test('the footer mutes a cache that has expired', () => {

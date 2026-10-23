@@ -5,6 +5,7 @@ export type Role =
   | 'label'
   | 'input'
   | 'cache'
+  | 'cacheCountdown'
   | 'output'
   | 'cost'
   | 'model'

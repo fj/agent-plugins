@@ -6,6 +6,7 @@ import {
   CWD,
   dayDirOf,
   HOME,
+  liveRows,
   LIVE_SURFACES,
   MODEL,
   MODEL_LABEL,
@@ -69,7 +70,7 @@ test('the footer shows model and path, session, and today on separate lines besi
   expect(JSON.parse(own ?? '{}').activeMs).toBe(TURN_MS)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-  const text = shownText(await ui.drawn())
+  const text = (await liveRows(ui)).join('')
   expect(text).toStartWith(MODEL_LABEL)
   expect(text).toContain('session 4.0s · $0.01 ↑(Δ1.2k + ⟲ 5.0k)/6.2k ↓300')
   expect(text).toContain('today 1m 04s · $1.26 ↑(Δ2.2k + ⟲ 5.0k)/7.2k ↓1.3k')
@@ -355,7 +356,7 @@ test('the footer branch follows a checkout by a tool call and one made outside t
 
 async function footerRows($: Engine): Promise<string[]> {
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
-  const rows = shownRows(await ui.drawn())
+  const rows = await liveRows(ui)
   await ui.unmount()
 
   return rows
@@ -438,6 +439,77 @@ test('the session row counts down a subscriber cache after a step that used it',
 
   await w.clock.advance(30 * MINUTE_MS)
   expect(await sessionRow($)).toEndWith('⌛30m 00s')
+})
+
+const SECOND_MS = 1000
+const COUNTDOWN_KEY = 'footer-countdown-1'
+
+type DrawnRow = { children?: { props?: { color?: string } }[] }
+
+async function countdownColor(ui: Pick<Mounted, 'drawn'>) {
+  const row = (await ui.drawn({ in: COUNTDOWN_KEY })) as DrawnRow
+
+  return row.children?.at(-1)?.props?.color
+}
+
+test('the session row counts the cache down each second between redraws', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const sessionText = async () => (await liveRows(ui))[1]
+    expect(await ui.find({ type: 'Client', key: COUNTDOWN_KEY })).toBeDefined()
+    expect(await sessionText()).toEndWith('⌛60m 00s')
+    expect(await countdownColor(ui)).toBe(PALETTE.cache)
+
+    await ui.advance(SECOND_MS * 3)
+    expect(await sessionText()).toEndWith('⌛59m 57s')
+    await ui.unmount()
+  }
+})
+
+test('the session row restarts the countdown from each engine redraw', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  await ui.advance(SECOND_MS * 3)
+  await w.clock.advance(SECOND_MS * 3)
+  await ui.redraw()
+
+  expect((await liveRows(ui))[1]).toEndWith('⌛59m 57s')
+  await ui.unmount()
+})
+
+test('only the session row ticks, and not once the cache expires', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+
+  const live = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await live.find({ type: 'Client', key: COUNTDOWN_KEY })).toBeDefined()
+  expect(await live.find({ type: 'Client', key: 'footer-countdown-2' })).toBeUndefined()
+  await live.unmount()
+
+  await w.clock.advance(60 * MINUTE_MS)
+  const expired = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  expect(await expired.find({ type: 'Client' })).toBeUndefined()
+  expect(shownRows(await expired.drawn())[1]).toEndWith('⌛0s')
+  await expired.unmount()
+})
+
+test('the session row draws a steady cache time on a surface that cannot animate', async ($, on) => {
+  const w = world(on)
+  await start($)
+  await cachedTurn($, w)
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'vscode', component: 'SessionMode', props: { modes: [] } })
+  expect(await ui.find({ type: 'Client' })).toBeUndefined()
+  expect(shownRows(await ui.drawn())[1]).toEndWith('⌛60m 00s')
+  await ui.unmount()
 })
 
 test('an API key keeps the cache five minutes', async ($, on) => {
