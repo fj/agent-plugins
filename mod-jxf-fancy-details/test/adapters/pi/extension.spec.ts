@@ -293,13 +293,13 @@ test('the footer counts down the prompt cache after a step that used it', async 
   assert.doesNotMatch(sessionLine(s), /⌛/)
 
   await step(s, USAGE)
-  assert.match(sessionLine(s), /↓3\.2k ⌛5m$/)
+  assert.match(sessionLine(s), /↓3\.2k ⌛5m 00s$/)
 
   s.advance(2 * 60_000)
-  assert.match(sessionLine(s), /⌛3m$/)
+  assert.match(sessionLine(s), /⌛3m 00s$/)
 
   s.advance(3 * 60_000)
-  assert.match(sessionLine(s), /⌛0m$/)
+  assert.match(sessionLine(s), /⌛0s$/)
 })
 
 test('a step that leaves the cache alone does not restart the countdown', async () => {
@@ -309,14 +309,14 @@ test('a step that leaves the cache alone does not restart the countdown', async 
   s.advance(2 * 60_000)
   await step(s, { ...USAGE, cacheRead: 0, cacheWrite: 0 })
 
-  assert.match(sessionLine(s), /⌛3m$/)
+  assert.match(sessionLine(s), /⌛3m 00s$/)
 })
 
 test('the footer uses the long cache tier when pi keeps the cache long', async () => {
   const s = setup({ promptCache: PROMPT_CACHE, env: { PI_CACHE_RETENTION: 'long' } })
 
   await startCached(s)
-  assert.match(sessionLine(s), /⌛60m$/)
+  assert.match(sessionLine(s), /⌛60m 00s$/)
 })
 
 test('the footer leaves out the cache for a model with no known cache lifetime', async () => {
@@ -339,14 +339,14 @@ test('the footer counts down the claude-bridge cache as a subscriber cache', asy
   const s = setup({ provider: 'claude-bridge' })
 
   await startCached(s)
-  assert.match(sessionLine(s), /⌛60m$/)
+  assert.match(sessionLine(s), /⌛60m 00s$/)
 })
 
 test('the claude-bridge cache follows the Claude Code cache variables', async () => {
   const s = setup({ provider: 'claude-bridge', env: { FORCE_PROMPT_CACHING_5M: '1' } })
 
   await startCached(s)
-  assert.match(sessionLine(s), /⌛5m$/)
+  assert.match(sessionLine(s), /⌛5m 00s$/)
 })
 
 test('the footer follows the config for one totals line, cached input and the context window', async () => {
@@ -615,8 +615,8 @@ test('the claude-bridge cache drops to five minutes while extra usage is on, and
   await startCached(s)
   await s.emit('after_provider_response', { status: 200, headers: OVERAGE_HEADERS })
 
-  assert.match(sessionLine(s), /⌛5m$/)
+  assert.match(sessionLine(s), /⌛5m 00s$/)
 
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
-  assert.match(sessionLine(s), /⌛60m$/)
+  assert.match(sessionLine(s), /⌛60m 00s$/)
 })

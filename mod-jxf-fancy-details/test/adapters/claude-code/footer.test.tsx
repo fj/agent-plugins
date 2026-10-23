@@ -434,10 +434,10 @@ test('the session row counts down a subscriber cache after a step that used it',
   expect(await sessionRow($)).not.toContain('⌛')
 
   await cachedTurn($, w)
-  expect(await sessionRow($)).toEndWith('↓300 ⌛60m')
+  expect(await sessionRow($)).toEndWith('↓300 ⌛60m 00s')
 
   await w.clock.advance(30 * MINUTE_MS)
-  expect(await sessionRow($)).toEndWith('⌛30m')
+  expect(await sessionRow($)).toEndWith('⌛30m 00s')
 })
 
 test('an API key keeps the cache five minutes', async ($, on) => {
@@ -445,7 +445,7 @@ test('an API key keeps the cache five minutes', async ($, on) => {
   await start($)
   await cachedTurn($, w)
 
-  expect(await sessionRow($)).toEndWith('⌛5m')
+  expect(await sessionRow($)).toEndWith('⌛5m 00s')
 })
 
 test('the cache TTL setting overrides the default for a cloud provider', async ($, on) => {
@@ -453,7 +453,7 @@ test('the cache TTL setting overrides the default for a cloud provider', async (
   await start($)
   await cachedTurn($, w)
 
-  expect(await sessionRow($)).toEndWith('⌛60m')
+  expect(await sessionRow($)).toEndWith('⌛60m 00s')
 })
 
 test('the cache TTL variable overrides the cache TTL setting', async ($, on) => {
@@ -461,7 +461,7 @@ test('the cache TTL variable overrides the cache TTL setting', async ($, on) => 
   await start($)
   await cachedTurn($, w)
 
-  expect(await sessionRow($)).toEndWith('⌛5m')
+  expect(await sessionRow($)).toEndWith('⌛5m 00s')
 })
 
 test('Bedrock keeps the cache an hour when its enable-1h variable is on', async ($, on) => {
@@ -470,7 +470,7 @@ test('Bedrock keeps the cache an hour when its enable-1h variable is on', async 
   await start($)
   await cachedTurn($, w)
 
-  expect(await sessionRow($)).toEndWith('⌛60m')
+  expect(await sessionRow($)).toEndWith('⌛60m 00s')
 })
 
 test('the session row leaves out the cache with prompt caching off', async ($, on) => {
@@ -553,8 +553,8 @@ test('a subscriber cache drops to five minutes while extra usage is on, and back
   await cachedTurn($, w)
   await measure($, FULL_FIVE_HOUR)
 
-  expect(await sessionRow($)).toEndWith('⌛5m')
+  expect(await sessionRow($)).toEndWith('⌛5m 00s')
 
   await measure($, [FIVE_HOUR])
-  expect(await sessionRow($)).toEndWith('⌛60m')
+  expect(await sessionRow($)).toEndWith('⌛60m 00s')
 })
