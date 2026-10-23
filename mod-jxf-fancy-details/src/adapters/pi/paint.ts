@@ -1,5 +1,5 @@
 import { DONE_TIMER_COLOR } from '../../render/palette.ts'
-import { roleColor } from '../../render/pulse.ts'
+import { roleBackground, roleColor } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
 import { shimmer } from '../../render/shimmer.ts'
 import type { TimerView } from '../../render/timer.ts'
@@ -12,7 +12,10 @@ export type TextWidth = {
 
 const HEX_COLOR = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i
 const HEX_RADIX = 16
+const FOREGROUND_LAYER = 38
+const BACKGROUND_LAYER = 48
 const RESET_FOREGROUND = '\x1b[39m'
+const RESET_BACKGROUND = '\x1b[49m'
 const RESET_STYLE = '\x1b[0m'
 const CHAT_INDENT = ' '
 
@@ -20,7 +23,7 @@ export function endStyle(text: string): string {
   return `${text}${RESET_STYLE}`
 }
 
-export function paint(text: string, hex: string | undefined): string {
+function colorize(text: string, hex: string | undefined, layer: number, reset: string): string {
   const match = hex === undefined ? null : HEX_COLOR.exec(hex)
 
   if (match === null || text === '') {
@@ -29,11 +32,19 @@ export function paint(text: string, hex: string | undefined): string {
 
   const [r, g, b] = match.slice(1).map(channel => parseInt(channel, HEX_RADIX))
 
-  return `\x1b[38;2;${r};${g};${b}m${text}${RESET_FOREGROUND}`
+  return `\x1b[${layer};2;${r};${g};${b}m${text}${reset}`
+}
+
+export function paint(text: string, hex: string | undefined): string {
+  return colorize(text, hex, FOREGROUND_LAYER, RESET_FOREGROUND)
+}
+
+function paintBackground(text: string, hex: string | undefined): string {
+  return colorize(text, hex, BACKGROUND_LAYER, RESET_BACKGROUND)
 }
 
 export function paintLine(line: Line, nowMs?: number): string {
-  return line.map(part => paint(part.text, roleColor(part.role, nowMs))).join('')
+  return line.map(part => paintBackground(paint(part.text, roleColor(part.role, nowMs)), roleBackground(part.role, nowMs))).join('')
 }
 
 export function paintTimer(view: TimerView, now: number): string {
