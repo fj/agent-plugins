@@ -67,7 +67,7 @@ test('above the prompt, the mode line is one row with the head only', ABOVE, asy
   }
 })
 
-test('above the prompt, the band draws the totals and meters right-aligned across its width', ABOVE, async ($, on) => {
+test('above the prompt, the band grows across its row, drawing the totals and meters right-aligned without a width', ABOVE, async ($, on) => {
   world(on)
   await start($)
   await submit($, 'hello')
@@ -76,7 +76,8 @@ test('above the prompt, the band draws the totals and meters right-aligned acros
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'AbovePrompt', props: BAND })
     const band = await ui.find({ key: 'footer-band' })
     const rows = await ui.find({ key: 'footer-rows' })
-    expect(band?.props).toMatchObject({ alignItems: 'flex-end', width: BODY_COLUMNS })
+    expect(band?.props).toMatchObject({ alignItems: 'flex-end', flexGrow: 1 })
+    expect(band?.props).not.toHaveProperty('width')
     expect(rows?.props).toMatchObject({ alignItems: 'flex-end', flexShrink: 0 })
     expect(shownRows(rows)).toEqual([...TOTALS, METERS])
     await ui.unmount()
