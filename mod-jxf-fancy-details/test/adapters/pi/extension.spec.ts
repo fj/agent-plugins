@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
-import { CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { COUNTDOWN_MS, CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
@@ -63,12 +63,13 @@ function setup(options: SetupOptions = {}) {
     clock += ms
     mock.timers.tick(ms)
   }
-  const paintedFooter = (data = footerData()) => footer()?.(tui, {}, data).render(WIDTH)
+  const attachFooter = (data = footerData()) => footer()?.(tui, {}, data)
+  const paintedFooter = (data = footerData()) => attachFooter(data)?.render(WIDTH)
   const footerLines = (data = footerData()) => paintedFooter(data)?.map(plain)
   const ours = () => pi.branch.filter(entry => entry.customType === CUSTOM_TYPE)
   const shown = (entry: FakeEntry) => plain(pi.render(entry, WIDTH)?.join('\n') ?? '')
 
-  return { pi, ctx, widgets, footerLines, paintedFooter, writes, tui, emit, advance, ours, shown, setContext }
+  return { pi, ctx, widgets, attachFooter, footerLines, paintedFooter, writes, tui, emit, advance, ours, shown, setContext }
 }
 
 async function submit(s: ReturnType<typeof setup>, text = 'hello') {
@@ -300,6 +301,56 @@ test('the footer counts down the prompt cache after a step that used it', async 
 
   s.advance(3 * 60_000)
   assert.match(sessionLine(s), /⌛0s$/)
+})
+
+const MS_PER_SECOND = 1000
+
+async function idleCached(s: ReturnType<typeof setup>) {
+  await startCached(s)
+  await s.emit('agent_settled')
+  s.advance(FRAME_MS)
+  s.footerLines()
+}
+
+function countdownRenders(s: ReturnType<typeof setup>) {
+  const before = s.tui.renders()
+
+  s.advance(COUNTDOWN_MS * 3)
+
+  return s.tui.renders() - before
+}
+
+test('the idle footer redraws each second while the cache counts down', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await idleCached(s)
+  assert.equal(countdownRenders(s), 3)
+  assert.match(sessionLine(s), /⌛4m 57s$/)
+})
+
+test('the countdown redraws stop once the cache expires', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await idleCached(s)
+  s.advance(PROMPT_CACHE.short * MS_PER_SECOND)
+  s.footerLines()
+  assert.equal(countdownRenders(s), 0)
+})
+
+test('the countdown redraws stop when the session shuts down', async () => {
+  const s = setup({ promptCache: PROMPT_CACHE })
+
+  await idleCached(s)
+  await s.emit('session_shutdown', { reason: 'quit' })
+  s.attachFooter()
+  assert.equal(countdownRenders(s), 0)
+})
+
+test('the footer does not redraw each second without a cache', async () => {
+  const s = setup()
+
+  await idleCached(s)
+  assert.equal(countdownRenders(s), 0)
 })
 
 test('a step that leaves the cache alone does not restart the countdown', async () => {

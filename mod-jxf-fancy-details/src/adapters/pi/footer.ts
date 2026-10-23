@@ -18,6 +18,7 @@ export type FooterScene = Scene & {
   cacheRemainingMs(): number | undefined
   layout(): FooterLayout
   showPulse(isPulsing: boolean): void
+  showCountdown(isCounting: boolean): void
 }
 
 export type FooterData = {
@@ -39,6 +40,7 @@ function statusText(data: FooterData): string {
 }
 
 export function footerLines(scene: FooterScene, data: FooterData, width: number): string[] {
+  const cacheRemainingMs = scene.cacheRemainingMs()
   const lines = footer({
     model: scene.model(),
     effort: scene.effort(),
@@ -49,13 +51,14 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     today: scene.today(),
     quota: scene.quota(),
     context: scene.context(),
-    cacheRemainingMs: scene.cacheRemainingMs(),
+    cacheRemainingMs,
     usage: scene.usage(),
     display: scene.display(),
     maxPathWidth: Math.max(MIN_PATH_WIDTH, Math.floor(width * PATH_WIDTH_SHARE)),
     layout: scene.layout(),
   })
   scene.showPulse(lines.some(hasPulse))
+  scene.showCountdown((cacheRemainingMs ?? 0) > 0)
   const now = scene.now()
 
   return besideRight(statusText(data), lines.map(line => paintLine(line, now)), width, scene.measure)
