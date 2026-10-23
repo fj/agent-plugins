@@ -1,6 +1,6 @@
 import type { Totals } from '../core/totals.ts'
 import { contextMeter, type ContextFill } from './context.ts'
-import { formatDuration, formatRemaining, formatUsd, shortenPath } from './format.ts'
+import { formatDuration, formatRemaining, formatUsd, isHomeOrAncestor, shortenPath } from './format.ts'
 import { join, seg, type Line } from './segment.ts'
 import type { TokenDisplay, UsageLines } from './usage-lines.ts'
 
@@ -27,6 +27,7 @@ const ZERO_DURATION = formatDuration(0)
 const GROUP_GAP = seg('  ')
 const BRANCH_SYMBOL = '\ue0a0'
 const CACHE_SYMBOL = '\u231b'
+const WARNING_SYMBOL = '\u26a0'
 
 function timeSegments(activeMs: number): Line {
   const duration = formatDuration(activeMs)
@@ -77,11 +78,16 @@ function effortSegments(effort: string | undefined): Line {
   return effort === undefined ? [] : [seg(` (${effort})`, 'muted')]
 }
 
+function warningSegments(cwd: string, home: string): Line {
+  return isHomeOrAncestor(cwd, home) ? [seg(`${WARNING_SYMBOL} `, 'warning')] : []
+}
+
 export function footerHead(input: FooterInput): Line {
   return [
     seg(input.model, 'model'),
     ...effortSegments(input.effort),
     seg(' · ', 'muted'),
+    ...warningSegments(input.cwd, input.home),
     seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
     ...branchSegments(input.branch),
   ]

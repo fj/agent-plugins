@@ -5,12 +5,14 @@ import { PALETTE } from '../../../src/render/palette.ts'
 import {
   CWD,
   dayDirOf,
+  HOME,
   LIVE_SURFACES,
   MODEL,
   MODEL_LABEL,
   runTool,
   PLUGIN,
   SESSION_ID,
+  shownColors,
   shownColumn,
   shownRows,
   shownText,
@@ -310,6 +312,17 @@ test(
 )
 
 const BRANCH_GLYPH = ''
+
+test('the footer head warns in the warning color when the session directory is home', async ($, on) => {
+  world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const drawn = await ui.drawn()
+  expect(shownRows(drawn)[0]).toBe(`${MODEL_LABEL} · ⚠ ~`)
+  expect(shownColors(shownColumn(drawn)?.children?.[0])).toContain(PALETTE.warning)
+  await ui.unmount()
+})
 
 test('the footer head shows the git branch of the session directory after the path', async ($, on) => {
   const w = world(on, { branch: 'main' })

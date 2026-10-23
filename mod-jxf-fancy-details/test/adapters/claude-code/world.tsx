@@ -47,6 +47,7 @@ export type WorldOptions = {
   isToolFailing?: boolean
   isWriteFailing?: boolean
   branch?: string | null
+  cwd?: string
   env?: Readonly<Record<string, string>>
   credential?: SessionAuthorization
   settings?: Settings
@@ -60,6 +61,7 @@ export function world(
     isToolFailing = false,
     isWriteFailing = false,
     branch = null,
+    cwd = CWD,
     env = {},
     credential = SUBSCRIPTION,
     settings = {},
@@ -82,7 +84,7 @@ export function world(
 
   on('session.id', () => ({ value: SESSION_ID }))
   on('session.model', () => ({ value: MODEL }))
-  on('session.cwd', () => ({ value: CWD }))
+  on('session.cwd', () => ({ value: cwd }))
   on('session.turns', () => ({ value: turns }))
   on('session.usage', () => ({ value: { startedAt: T0, context: { window: 200_000 }, rateLimits: w.rateLimits } }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
