@@ -314,6 +314,7 @@ test(
 
 const BRANCH_GLYPH = ''
 const WARNING_MARK = /^⚠ $/
+const PULSE_FRAMES_MS = 300
 
 test('the footer head warns in the warning colors when the session directory is home', async ($, on) => {
   world(on, { cwd: HOME })
@@ -326,6 +327,27 @@ test('the footer head warns in the warning colors when the session directory is 
   expect((await ui.find({ text: WARNING_MARK }))?.props.backgroundColor).toBe(BACKGROUND.warning)
   await ui.unmount()
 })
+
+test('the footer head pulses the warning background when the session directory is home', async ($, on) => {
+  world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const key = (await ui.find({ type: 'Client' }))?.key
+    expect(key).toBeDefined()
+
+    const mark = async () => (await ui.find({ in: key, text: WARNING_MARK }))?.props
+    const before = await mark()
+    expect(before?.color).toBe(PALETTE.warning)
+    expect(before?.backgroundColor).toBeDefined()
+
+    await ui.advance(PULSE_FRAMES_MS)
+    expect((await mark())?.backgroundColor).not.toBe(before?.backgroundColor)
+    await ui.unmount()
+  }
+})
+
 test('the footer head shows the git branch of the session directory after the path', async ($, on) => {
   const w = world(on, { branch: 'main' })
   await start($)

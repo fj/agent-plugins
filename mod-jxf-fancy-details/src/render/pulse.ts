@@ -11,7 +11,7 @@ const FULL_TURN = 2 * Math.PI
 const PULSING_ROLES: ReadonlySet<Role> = new Set(['overage'])
 const PULSING_BACKGROUNDS: ReadonlySet<Role> = new Set(['warning'])
 
-export const pulses = (role: Role) => PULSING_ROLES.has(role)
+export const pulses = (role: Role) => PULSING_ROLES.has(role) || PULSING_BACKGROUNDS.has(role)
 
 export const hasPulse = (line: Line) => line.some(part => pulses(part.role))
 

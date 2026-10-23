@@ -654,6 +654,36 @@ test('the pulse stops when the session shuts down', async () => {
   assert.equal(ticks(s), 0)
 })
 
+const WARNING_BACKGROUND = /\x1b\[48;2;([\d;]+)m(?:\x1b\[38;2;[\d;]+m)?⚠ /
+
+const warningBackground = (s: ReturnType<typeof setup>) => WARNING_BACKGROUND.exec(s.paintedFooter()![0]!)?.[1]
+
+async function startAtHome() {
+  const s = setup({ cwd: '/home/j' })
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.footerLines()
+
+  return s
+}
+
+test('the home warning background pulses while the agent is idle', async () => {
+  const s = await startAtHome()
+  const before = warningBackground(s)
+
+  assert.ok(before)
+  assert.equal(ticks(s), 3)
+  assert.notEqual(warningBackground(s), before)
+})
+
+test('nothing pulses below home', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.footerLines()
+  assert.equal(ticks(s), 0)
+})
+
 test('nothing pulses while the footer hides the subscription meters', async () => {
   const s = await startPulsing({ config: { showSubscription: false } })
 

@@ -106,6 +106,7 @@ export function fakePi() {
 
 export type CtxOptions = {
   mode?: string
+  cwd?: string
   provider?: string
   reasoning?: boolean
   oauth?: boolean
@@ -127,7 +128,7 @@ export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   }
   const ctx = {
     mode: options.mode ?? 'tui',
-    cwd: '/home/j/src/projects/demo',
+    cwd: options.cwd ?? '/home/j/src/projects/demo',
     model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', reasoning: options.reasoning, promptCache: options.promptCache },
     modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
     getContextUsage: () => context,

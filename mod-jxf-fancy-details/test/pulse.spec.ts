@@ -63,3 +63,7 @@ test('a role with no background has none at any moment', () => {
   assert.equal(roleBackground('overage', 0), undefined)
   assert.equal(roleBackground('path'), undefined)
 })
+
+test('a line pulses when one of its parts has a pulsing background', () => {
+  assert.equal(hasPulse([seg('⚠ ', 'warning'), seg('~', 'path')]), true)
+})
