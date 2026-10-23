@@ -511,6 +511,16 @@ test('the footer orders statuses by key, flattens multi-line ones, drops blank o
   assert.match(lines[0]!, /^one two three +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
 })
 
+test('long statuses wrap beside the footer rows below the head', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  const [head, next] = s.footerLines(footerData({ a: 'word '.repeat(WIDTH / 2).trim() }))!
+
+  assert.match(head!, /^word( word)* +anthropic\/claude-opus-5-5 · /)
+  assert.match(next!, /^word( word)* +session /)
+})
+
 test('the footer shows the context window size until the fill is known, then follows the fill', async () => {
   const s = setup({ context: { tokens: null, contextWindow: 200_000, percent: null } })
 
