@@ -1,7 +1,7 @@
 import type { ClientModule } from 'claude-code'
 
-import { roleColor } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
+import { partNode } from './draw.tsx'
 
 const FRAME_MS = 100
 
@@ -27,13 +27,7 @@ const PulsingLine: ClientModule<PulseProps, PulseState> = (props, surface) => {
   const now = state?.tickedMs ?? 0
 
   return (
-    <Text wrap="truncate">
-      {props.line.map(part => {
-        const color = roleColor(part.role, now)
-
-        return color === undefined ? <Text>{part.text}</Text> : <Text color={color}>{part.text}</Text>
-      })}
-    </Text>
+    <Text wrap="truncate">{props.line.map(part => partNode(Text, part, now))}</Text>
   )
 }
 

@@ -1,18 +1,25 @@
 import type { BoxProps, ElementConstructor, RenderNode, TextProps } from 'claude-code'
 
-import { roleColor } from '../../render/pulse.ts'
-import type { Line } from '../../render/segment.ts'
+import { roleBackground, roleColor } from '../../render/pulse.ts'
+import type { Line, Segment } from '../../render/segment.ts'
 
 export type TextTag = ElementConstructor<TextProps>
 
 export type BoxTag = ElementConstructor<BoxProps>
 
-export function lineNodes(Text: TextTag, line: Line): RenderNode[] {
-  return line.map(part => {
-    const color = roleColor(part.role)
+export function partNode(Text: TextTag, part: Segment, nowMs?: number): RenderNode {
+  const color = roleColor(part.role, nowMs)
+  const backgroundColor = roleBackground(part.role, nowMs)
 
-    return color === undefined ? <Text>{part.text}</Text> : <Text color={color}>{part.text}</Text>
-  })
+  return (
+    <Text {...(color === undefined ? {} : { color })} {...(backgroundColor === undefined ? {} : { backgroundColor })}>
+      {part.text}
+    </Text>
+  )
+}
+
+export function lineNodes(Text: TextTag, line: Line): RenderNode[] {
+  return line.map(part => partNode(Text, part))
 }
 
 export function blankLine(Text: TextTag): RenderNode {

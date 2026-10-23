@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 
-import { PALETTE } from '../../../src/render/palette.ts'
+import { BACKGROUND, PALETTE } from '../../../src/render/palette.ts'
 import {
   CWD,
   dayDirOf,
@@ -313,18 +313,19 @@ test(
 )
 
 const BRANCH_GLYPH = ''
+const WARNING_MARK = /^⚠ $/
 
-test('the footer head warns in the warning color when the session directory is home', async ($, on) => {
+test('the footer head warns in the warning colors when the session directory is home', async ($, on) => {
   world(on, { cwd: HOME })
   await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
 
-  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'vscode', component: 'SessionMode', props: { modes: [] } })
   const drawn = await ui.drawn()
   expect(shownRows(drawn)[0]).toBe(`${MODEL_LABEL} · ⚠ ~`)
   expect(shownColors(shownColumn(drawn)?.children?.[0])).toContain(PALETTE.warning)
+  expect((await ui.find({ text: WARNING_MARK }))?.props.backgroundColor).toBe(BACKGROUND.warning)
   await ui.unmount()
 })
-
 test('the footer head shows the git branch of the session directory after the path', async ($, on) => {
   const w = world(on, { branch: 'main' })
   await start($)
