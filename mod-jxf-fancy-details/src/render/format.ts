@@ -3,7 +3,6 @@ import type { Cost } from '../core/cost.ts'
 const MS_PER_SECOND = 1000
 const SECONDS_PER_MINUTE = 60
 const SECONDS_PER_HOUR = 3600
-const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
 const THOUSAND = 1000
 const MILLION = 1_000_000
 const CENTS_DIGITS = 2
@@ -75,11 +74,11 @@ export function shortenPath(path: string, home: string, maxWidth: number): strin
 }
 
 export function formatRemaining(ms: number): string {
-  if (ms <= 0) {
-    return '0m'
-  }
+  const totalSeconds = Math.ceil(Math.max(0, ms) / MS_PER_SECOND)
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE)
+  const seconds = totalSeconds % SECONDS_PER_MINUTE
 
-  return ms < MS_PER_MINUTE ? '<1m' : `${Math.ceil(ms / MS_PER_MINUTE)}m`
+  return minutes > 0 ? `${minutes}m ${pad(seconds)}s` : `${seconds}s`
 }
 
 export function modelLabel(...parts: readonly string[]): string {

@@ -6,6 +6,7 @@ import { EMPTY_JOURNAL } from '../../core/journal.ts'
 import { isStreaming, lastContextTokens, markStep } from '../../core/ledger.ts'
 import { EMPTY_ROWS, markIds, promptIds, resolveRow } from '../../core/rows.ts'
 import { NO_OTHER_SESSIONS, todayTotals } from '../../core/tracker.ts'
+import { hasCacheCountdown } from '../../render/countdown.ts'
 import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts'
 import { formatTokens, modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
@@ -14,6 +15,7 @@ import { hasPulse } from '../../render/pulse.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
+import type { CountdownProps } from './countdown.tsx'
 import { blankLine, lineNodes, rightColumn, type LiveLine } from './draw.tsx'
 import { isUserOrigin } from './origin.ts'
 import type { PulseProps } from './pulse.tsx'
@@ -53,17 +55,28 @@ async function timerNode($: EngineInterface, e: RenderInput, { key, startedAt, e
   return <Text color={PALETTE.time}>{timerView(startedAt, now).text}</Text>
 }
 
-function liveLine($: EngineInterface, e: RenderInput): LiveLine | undefined {
+async function liveLine($: EngineInterface, e: RenderInput, cacheRemainingMs: number | undefined): Promise<LiveLine | undefined> {
   if (e.surface !== 'terminal' && e.surface !== 'desktop') {
     return undefined
   }
 
   const { Client } = $.ui.resolve(e)
+  const drawnAt = await $.clock.now()
 
   return (line, index) => {
-    const props: PulseProps = { line }
+    if (hasPulse(line)) {
+      const props: PulseProps = { line }
 
-    return hasPulse(line) ? <Client key={`footer-pulse-${index}`} module="./pulse.tsx" props={props} /> : undefined
+      return <Client key={`footer-pulse-${index}`} module="./pulse.tsx" props={props} />
+    }
+
+    if (hasCacheCountdown(line) && cacheRemainingMs !== undefined) {
+      const props: CountdownProps = { line, remainingMs: cacheRemainingMs, drawnAt }
+
+      return <Client key={`footer-countdown-${index}`} module="./countdown.tsx" props={props} />
+    }
+
+    return undefined
   }
 }
 
@@ -218,7 +231,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, liveLine($, e))}
+        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, await liveLine($, e, input.cacheRemainingMs))}
       </Box>
     )
   })
@@ -229,7 +242,8 @@ export function drawSites(on: On, config: Config): void {
     }
 
     const { Box, Text } = $.ui.resolve(e)
-    const rows = footerRows(await footerInput($, config))
+    const input = await footerInput($, config)
+    const rows = footerRows(input)
     const drawn = await next(e)
 
     return (
@@ -237,7 +251,7 @@ export function drawSites(on: On, config: Config): void {
         <Box flexGrow={1} flexShrink={1}>
           {drawn}
         </Box>
-        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, liveLine($, e))}
+        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, await liveLine($, e, input.cacheRemainingMs))}
       </Box>
     )
   })

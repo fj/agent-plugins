@@ -21,6 +21,7 @@ import { promptLines, stepLines, toolTimerLine, view } from './views.ts'
 
 export const CUSTOM_TYPE = 'mod-jxf-fancy-details'
 export const FRAME_MS = 100
+export const COUNTDOWN_MS = 1000
 export const PERSIST_POLL_MS = 5
 export const MAX_PERSIST_POLLS = 40
 
@@ -83,6 +84,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
     const pulse = ticker(FRAME_MS, () => tui?.requestRender())
+    const countdown = ticker(COUNTDOWN_MS, () => tui?.requestRender())
 
     const scene: FooterScene = {
       ledger: () => tracker.ledger(),
@@ -100,6 +102,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env, isUsingOverage()), now()),
       layout: () => footerLayout(config),
       showPulse: isPulsing => (isPulsing ? pulse.start() : pulse.stop()),
+      showCountdown: isCounting => (isCounting ? countdown.start() : countdown.stop()),
     }
 
     const frames = ticker(FRAME_MS, () => {
@@ -191,6 +194,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       frames.stop()
       refresher.stop()
       pulse.stop()
+      countdown.stop()
       unpatchToolRows?.()
       unpatchToolRows = undefined
       running = false

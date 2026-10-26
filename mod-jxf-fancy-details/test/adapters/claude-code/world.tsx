@@ -263,6 +263,26 @@ export function shownRows(node: unknown): string[] {
   return (shownColumn(node)?.children ?? []).map(shownText)
 }
 
+type Drawing = { drawn(options?: { in: string }): Promise<unknown> }
+
+const clientKey = (node: unknown) => {
+  const element = node as { type?: string; props?: { key?: string } }
+
+  return element.type === 'Client' ? element.props?.key : undefined
+}
+
+export async function liveRows(ui: Drawing): Promise<string[]> {
+  const rows = shownColumn(await ui.drawn())?.children ?? []
+
+  return Promise.all(
+    rows.map(async row => {
+      const key = clientKey(row)
+
+      return shownText(key === undefined ? row : await ui.drawn({ in: key }))
+    }),
+  )
+}
+
 export function shownColors(node: unknown): string[] {
   return leaves(node).flatMap(leaf => (leaf.color === undefined ? [] : [leaf.color]))
 }
