@@ -8,6 +8,7 @@ const SOURCE_LINE = /^ {2}(\S.*)$/
 const PATH_LINE = /^ {4}(\S.*)$/
 const FILTERED = / \(filtered\)$/
 const GIT_PREFIX = 'git:'
+const NPM_PREFIX = 'npm:'
 const URL_SCHEME = /^(https?|ssh):\/\//
 
 export function listPiPackages(run: Run): PiPackage[] {
@@ -40,5 +41,8 @@ export function gitRepoOf(source: string): string | undefined {
   return [...segments, repo].join('/')
 }
 
-export const removePi = (run: Run, source: string) => run('pi', ['remove', source])
+const isLocal = (source: string) => !source.startsWith(NPM_PREFIX) && gitRepoOf(source) === undefined
+
+export const removePi = (run: Run, { source, path }: PiPackage) =>
+  run('pi', ['remove', path && isLocal(source) ? path : source])
 export const installPi = (run: Run, source: string) => run('pi', ['install', source])

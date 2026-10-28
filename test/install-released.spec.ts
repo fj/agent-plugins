@@ -25,7 +25,7 @@ async function setup(t: TestContext, outputs: (dataDir: string) => Record<string
   const fake = fakeRunner(outputs(dataDir))
   const install = (harnesses: Harness[]) =>
     installReleased({ indexDir: join(dir, 'index'), indexUrl, owner: 'fj', dataDir, run: fake.run, log: () => {} }, harnesses)
-  return { fake, install }
+  return { fake, install, dataDir }
 }
 
 test('Claude replaces a jxf marketplace with another source and swaps local plugins for released ones', async (t) => {
@@ -66,7 +66,7 @@ test('Claude updates the released marketplace and installed plugins', async (t) 
 })
 
 test('Pi removes local and other-ref installs, then installs the released tag', async (t) => {
-  const { fake, install } = await setup(t, (dataDir) => ({
+  const { fake, install, dataDir } = await setup(t, (dataDir) => ({
     'pi list --no-approve': [
       'User packages:',
       '  ../../data/pi/alpha',
@@ -84,7 +84,7 @@ test('Pi removes local and other-ref installs, then installs the released tag', 
 
   assert.deepEqual(fake.calls, [
     'pi list --no-approve',
-    'pi remove ../../data/pi/alpha',
+    `pi remove ${join(dataDir, 'pi', 'alpha')}`,
     'pi remove git:github.com/fj/jxf-agent-plugins-alpha-pi@v0.1.1',
     'pi install git:github.com/fj/jxf-agent-plugins-alpha-pi@v0.1.2',
   ])

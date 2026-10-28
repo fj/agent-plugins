@@ -38,9 +38,10 @@ const INSTALLERS: Record<Harness, (ctx: ReleasedContext, releases: Releases) => 
     for (const { name, version } of released(releases, 'pi')) {
       const target = piGitSource(owner, name, version)
       const local = deployDir(dataDir, 'pi', name)
-      for (const { source, path } of packages) {
+      for (const installed of packages) {
+        const { source, path } = installed
         const replaced = path === local || (gitRepoOf(source) === piGitRepo(owner, name) && source !== target)
-        if (replaced) removePi(run, source)
+        if (replaced) removePi(run, installed)
       }
       if (!packages.some(({ source }) => source === target)) installPi(run, target)
     }
