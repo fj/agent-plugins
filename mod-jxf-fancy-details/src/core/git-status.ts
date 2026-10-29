@@ -6,7 +6,6 @@ export type GitStatus = {
   deleted: number
   renamed: number
   modified: number
-  typechanged: number
   staged: number
   untracked: number
   ahead?: number
@@ -21,7 +20,6 @@ const EMPTY_STATUS: GitStatus = {
   deleted: 0,
   renamed: 0,
   modified: 0,
-  typechanged: 0,
   staged: 0,
   untracked: 0,
 }
@@ -42,7 +40,6 @@ function addChange(status: GitStatus, [index, worktree]: string): GitStatus {
     deleted: status.deleted + count(xy.includes('D')),
     renamed: status.renamed + count(xy.includes('R')),
     modified: status.modified + count(worktree === 'M' || worktree === 'A'),
-    typechanged: status.typechanged + count(worktree === 'T'),
     staged: status.staged + count(index === 'M' || index === 'A' || index === 'T'),
   }
 }

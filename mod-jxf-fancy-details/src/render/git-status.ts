@@ -1,57 +1,45 @@
 import type { GitStatus } from '../core/git-status.ts'
-import { renderFormat, type Lookup } from './starship-format.ts'
 
-const COUNTED = ['conflicted', 'stashed', 'deleted', 'renamed', 'modified', 'typechanged', 'staged', 'untracked'] as const
+type Counted = Exclude<keyof GitStatus, 'ahead' | 'behind'>
 
-type Counted = (typeof COUNTED)[number]
+const COUNTED_SYMBOLS: readonly (readonly [Counted, string])[] = [
+  ['conflicted', '⇄'],
+  ['stashed', '■'],
+  ['deleted', '×'],
+  ['renamed', '»'],
+  ['modified', '!'],
+  ['staged', '+'],
+  ['untracked', '?'],
+]
+const AHEAD = '⇡'
+const BEHIND = '⇣'
+const DIVERGED = '⇕'
+const UP_TO_DATE = '✓'
 
-export type StatusSymbol = Counted | 'ahead' | 'behind' | 'diverged' | 'up_to_date'
+const counted = (symbol: string, count: number) => `${symbol}⟨${count}⟩`
 
-export type GitStatusConfig = { format: string; isDisabled: boolean; symbols: Readonly<Record<StatusSymbol, string>> }
+function changes(status: GitStatus): string {
+  return COUNTED_SYMBOLS.filter(([name]) => status[name] > 0)
+    .map(([name, symbol]) => counted(symbol, status[name]))
+    .join('')
+}
 
-const ALL_STATUS = COUNTED.map(name => `$${name}`).join('')
-
-const counts =
-  (values: Readonly<Record<string, number>>): Lookup =>
-  name =>
-    values[name]?.toString() ?? ''
-
-function aheadBehind(status: GitStatus, { symbols }: GitStatusConfig): string {
-  const { ahead, behind } = status
-
+function aheadBehind({ ahead, behind }: GitStatus): string {
   if (ahead === undefined || behind === undefined) {
     return ''
   }
 
   if (ahead > 0 && behind > 0) {
-    return renderFormat(symbols.diverged, counts({ ahead_count: ahead, behind_count: behind }))
+    return `${DIVERGED} ${AHEAD}${ahead} ${BEHIND}${behind}`
   }
 
   if (ahead > 0) {
-    return renderFormat(symbols.ahead, counts({ count: ahead }))
+    return counted(AHEAD, ahead)
   }
 
-  return behind > 0 ? renderFormat(symbols.behind, counts({ count: behind })) : renderFormat(symbols.up_to_date, counts({}))
+  return behind > 0 ? counted(BEHIND, behind) : UP_TO_DATE
 }
 
-function statusLookup(status: GitStatus, config: GitStatusConfig): Lookup {
-  const lookup: Lookup = name => {
-    if (name === 'all_status') {
-      return renderFormat(ALL_STATUS, lookup)
-    }
-
-    if (name === 'ahead_behind') {
-      return aheadBehind(status, config)
-    }
-
-    const counted = COUNTED.find(key => key === name)
-
-    return counted === undefined || status[counted] === 0 ? '' : renderFormat(config.symbols[counted], counts({ count: status[counted] }))
-  }
-
-  return lookup
-}
-
-export function gitStatusText(status: GitStatus, config: GitStatusConfig): string {
-  return config.isDisabled ? '' : renderFormat(config.format, statusLookup(status, config)).trim()
+export function gitStatusText(status: GitStatus): string {
+  return `${changes(status)}${aheadBehind(status)}`
 }

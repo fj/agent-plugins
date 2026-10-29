@@ -32,14 +32,13 @@ const PORCELAIN = [
   '',
 ].join('\n')
 
-test('porcelain counts follow Starship status categories', () => {
+test('porcelain counts fall into status categories', () => {
   assert.deepEqual(gitStatusFrom({ exitCode: 0, stdout: PORCELAIN }), {
     conflicted: 1,
     stashed: 4,
     deleted: 2,
     renamed: 1,
     modified: 3,
-    typechanged: 1,
     staged: 4,
     untracked: 2,
     ahead: 2,

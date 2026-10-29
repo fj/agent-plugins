@@ -1,7 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
-import { gitStatusConfig, starshipConfigPath } from '../../config/starship.ts'
 import type { ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
@@ -84,20 +83,13 @@ async function refreshBranch($: EngineInterface): Promise<void> {
   await update($, branchAtom, () => branch)
 }
 
-async function readStarshipConfig($: EngineInterface): Promise<string | undefined> {
-  const env = { STARSHIP_CONFIG: await $.env.get('STARSHIP_CONFIG') }
-  const path = starshipConfigPath(env, (await $.env.get('HOME')) ?? '')
-
-  return $.fs.read(path).catch(() => undefined)
-}
-
 async function refreshGitStatus($: EngineInterface): Promise<void> {
   const cwd = await $.session.cwd()
   const status = await $.process
     .run(SHOW_STATUS, { cwd, timeoutMs: GIT_TIMEOUT_MS })
     .then(gitStatusFrom)
     .catch(() => null)
-  const text = status === null ? null : gitStatusText(status, gitStatusConfig(await readStarshipConfig($)))
+  const text = status === null ? null : gitStatusText(status)
   await update($, gitStatusAtom, () => text)
 }
 
