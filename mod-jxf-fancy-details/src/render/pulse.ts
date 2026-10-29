@@ -29,7 +29,7 @@ function mix(from: string, to: string, amount: number): string {
 function swell(dim: string, bright: string, nowMs: number): string {
   const phase = (nowMs % PULSE_PERIOD_MS) / PULSE_PERIOD_MS
 
-  return mix(dim, bright, (1 - Math.cos(phase * FULL_TURN)) / 2)
+  return mix(dim, bright, (1 + Math.cos(phase * FULL_TURN)) / 2)
 }
 
 export function roleColor(role: Role, nowMs?: number): string | undefined {

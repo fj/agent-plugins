@@ -5,16 +5,16 @@ import { BACKGROUND, DIM_BACKGROUND, PALETTE } from '../src/render/palette.ts'
 import { hasPulse, PULSE_PERIOD_MS as PERIOD_MS, roleBackground, roleColor } from '../src/render/pulse.ts'
 import { seg } from '../src/render/segment.ts'
 
-test('a pulsing role brightens to its palette color halfway through a pulse and dims at either end', () => {
-  assert.equal(roleColor('overage', PERIOD_MS / 2), PALETTE.overage)
-  assert.equal(roleColor('overage', 0), roleColor('overage', PERIOD_MS))
-  assert.notEqual(roleColor('overage', 0), PALETTE.overage)
+test('pulsing role starts at palette color, dims halfway through pulse, and brightens again', () => {
+  assert.equal(roleColor('overage', 0), PALETTE.overage)
+  assert.equal(roleColor('overage', PERIOD_MS), PALETTE.overage)
+  assert.notEqual(roleColor('overage', PERIOD_MS / 2), PALETTE.overage)
 })
 
 test('a pulsing role passes through a color between its dim and bright ends', () => {
   const between = roleColor('overage', PERIOD_MS / 4)
 
-  assert.notEqual(between, roleColor('overage', 0))
+  assert.notEqual(between, roleColor('overage', PERIOD_MS / 2))
   assert.notEqual(between, PALETTE.overage)
 })
 
@@ -37,10 +37,9 @@ test('a line pulses only when one of its parts has a pulsing role', () => {
   assert.equal(hasPulse([seg('5h', 'muted')]), false)
 })
 
-test('a background role swells to its background color halfway through a pulse and dims at either end', () => {
-  assert.equal(roleBackground('warning', PERIOD_MS / 2), BACKGROUND.warning)
-  assert.equal(roleBackground('warning', 0), DIM_BACKGROUND)
-  assert.equal(roleBackground('warning', PERIOD_MS), DIM_BACKGROUND)
+test('warning background starts bright and dims halfway through pulse', () => {
+  assert.equal(roleBackground('warning', 0), BACKGROUND.warning)
+  assert.equal(roleBackground('warning', PERIOD_MS / 2), DIM_BACKGROUND)
 })
 
 test('a background role passes through a color between its dim and bright ends', () => {
