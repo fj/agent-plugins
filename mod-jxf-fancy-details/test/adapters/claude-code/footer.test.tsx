@@ -315,8 +315,9 @@ test(
 const BRANCH_GLYPH = ''
 const WARNING_MARK = /^⚠$/
 const PULSE_FRAMES_MS = 300
+const WARNING_PULSE_MS = 3600
 
-test('the footer head warns in the warning colors when the session directory is home', async ($, on) => {
+test('footer head warns in warning colors when session directory is home', async ($, on) => {
   world(on, { cwd: HOME })
   await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
 
@@ -328,7 +329,7 @@ test('the footer head warns in the warning colors when the session directory is 
   await ui.unmount()
 })
 
-test('the footer head pulses the warning background when the session directory is home', async ($, on) => {
+test('footer head pulses warning background for few seconds, then holds it bright', async ($, on) => {
   world(on, { cwd: HOME })
   await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
 
@@ -336,14 +337,18 @@ test('the footer head pulses the warning background when the session directory i
     const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
     const key = (await ui.find({ type: 'Client' }))?.key
     expect(key).toBeDefined()
+    expect((await liveRows(ui))[0]).toBe(`${MODEL_LABEL} · ⚠ ~`)
 
     const mark = async () => (await ui.find({ in: key, text: WARNING_MARK }))?.props
-    const before = await mark()
-    expect(before?.color).toBe(PALETTE.warning)
-    expect(before?.backgroundColor).toBeDefined()
+    expect(await mark()).toMatchObject({ color: PALETTE.warning, backgroundColor: BACKGROUND.warning })
 
     await ui.advance(PULSE_FRAMES_MS)
-    expect((await mark())?.backgroundColor).not.toBe(before?.backgroundColor)
+    expect((await mark())?.backgroundColor).not.toBe(BACKGROUND.warning)
+
+    await ui.advance(WARNING_PULSE_MS)
+    expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
+    await ui.advance(PULSE_FRAMES_MS)
+    expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
     await ui.unmount()
   }
 })

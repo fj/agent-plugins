@@ -1,5 +1,6 @@
 import type { ClientModule } from 'claude-code'
 
+import { hasPulse } from '../../render/pulse.ts'
 import type { Line } from '../../render/segment.ts'
 import { partNode } from './draw.tsx'
 
@@ -18,7 +19,7 @@ const PulsingLine: ClientModule<PulseProps, PulseState> = (props, surface) => {
     surface.every(FRAME_MS, () => {
       const current = surface.state
 
-      if (current !== undefined) {
+      if (current !== undefined && hasPulse(props.line, current.tickedMs)) {
         surface.setState({ tickedMs: current.tickedMs + FRAME_MS })
       }
     })

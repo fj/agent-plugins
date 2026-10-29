@@ -24,6 +24,4 @@ export const BACKGROUND: Readonly<Partial<Record<Role, string>>> = {
   warning: '#8b1a1a',
 }
 
-export const DIM_BACKGROUND = '#2b0a0a'
-
 export const DONE_TIMER_COLOR = '#8a8a8a'

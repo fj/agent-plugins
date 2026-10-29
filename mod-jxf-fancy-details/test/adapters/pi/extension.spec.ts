@@ -655,6 +655,8 @@ test('the pulse stops when the session shuts down', async () => {
 })
 
 const WARNING_BACKGROUND = /\x1b\[38;2;\d+;\d+;\d+;48;2;(\d+;\d+;\d+)m⚠/
+const BRIGHT_WARNING_BACKGROUND = '139;26;26'
+const WARNING_PULSE_MS = 3600
 
 const warningBackground = (s: ReturnType<typeof setup>) => WARNING_BACKGROUND.exec(s.paintedFooter()![0]!)?.[1]
 
@@ -667,13 +669,30 @@ async function startAtHome() {
   return s
 }
 
-test('the home warning background pulses while the agent is idle', async () => {
+test('home warning background pulses after session start', async () => {
   const s = await startAtHome()
-  const before = warningBackground(s)
 
-  assert.ok(before)
+  assert.equal(warningBackground(s), BRIGHT_WARNING_BACKGROUND)
   assert.equal(ticks(s), 3)
-  assert.notEqual(warningBackground(s), before)
+  assert.notEqual(warningBackground(s), BRIGHT_WARNING_BACKGROUND)
+})
+
+test('home warning background stops pulsing after few seconds and stays bright', async () => {
+  const s = await startAtHome()
+
+  s.advance(WARNING_PULSE_MS)
+  assert.equal(warningBackground(s), BRIGHT_WARNING_BACKGROUND)
+  assert.equal(ticks(s), 0)
+})
+
+test('home warning background pulses again on new session', async () => {
+  const s = await startAtHome()
+
+  s.advance(WARNING_PULSE_MS)
+  s.footerLines()
+  await s.emit('session_start', { reason: 'new' })
+  s.footerLines()
+  assert.equal(ticks(s), 3)
 })
 
 test('nothing pulses below home', async () => {

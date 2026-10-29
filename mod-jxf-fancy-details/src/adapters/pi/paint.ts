@@ -46,8 +46,8 @@ export function paint(text: string, hex: string | undefined): string {
   return paintPart(text, hex)
 }
 
-export function paintLine(line: Line, nowMs?: number): string {
-  return line.map(part => paintPart(part.text, roleColor(part.role, nowMs), roleBackground(part.role, nowMs))).join('')
+export function paintLine(line: Line, elapsedMs?: number): string {
+  return line.map(part => paintPart(part.text, roleColor(part.role, elapsedMs), roleBackground(part.role, elapsedMs))).join('')
 }
 
 export function paintTimer(view: TimerView, now: number): string {

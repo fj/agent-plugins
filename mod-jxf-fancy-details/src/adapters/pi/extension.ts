@@ -9,6 +9,7 @@ import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
 import type { ContextFill } from '../../render/context.ts'
 import { modelLabel } from '../../render/format.ts'
+import { pulseClock } from '../../render/pulse.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 import { cacheTtlMs, type Env } from './cache.ts'
@@ -85,6 +86,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
     const pulse = ticker(FRAME_MS, () => tui?.requestRender())
     const countdown = ticker(COUNTDOWN_MS, () => tui?.requestRender())
+    let pulseElapsed = pulseClock()
 
     const scene: FooterScene = {
       ledger: () => tracker.ledger(),
@@ -101,6 +103,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       context: () => contextFill(ctx?.getContextUsage()),
       cacheRemainingMs: () => cacheRemainingMs(tracker.ledger().cachedAt, cacheTtlMs(model, env, isUsingOverage()), now()),
       layout: () => footerLayout(config),
+      pulseElapsedMs: () => pulseElapsed(ctx?.cwd ?? '', now()),
       showPulse: isPulsing => (isPulsing ? pulse.start() : pulse.stop()),
       showCountdown: isCounting => (isCounting ? countdown.start() : countdown.stop()),
     }
@@ -213,6 +216,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
 
     pi.on('session_start', async (_event, context) => {
       ctx = context
+      pulseElapsed = pulseClock()
       config = loadConfig(deps.configPath)
       model = context.model
       chooseStrategies()
