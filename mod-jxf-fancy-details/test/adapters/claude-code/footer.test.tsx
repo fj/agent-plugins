@@ -316,6 +316,7 @@ const BRANCH_GLYPH = ''
 const WARNING_MARK = /^⚠$/
 const PULSE_FRAMES_MS = 300
 const WARNING_PULSE_MS = 3600
+const ROOT_DIR = '/'
 
 test('footer head warns in warning colors when session directory is home', async ($, on) => {
   world(on, { cwd: HOME })
@@ -351,6 +352,23 @@ test('footer head pulses warning background for few seconds, then holds it brigh
     expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
     await ui.unmount()
   }
+})
+
+test('footer head pulses warning background again after directory change', async ($, on) => {
+  const w = world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const key = (await ui.find({ type: 'Client' }))?.key
+  const background = async () => (await ui.find({ in: key, text: WARNING_MARK }))?.props.backgroundColor
+  await ui.advance(WARNING_PULSE_MS)
+  expect(await background()).toBe(BACKGROUND.warning)
+
+  w.cwd = ROOT_DIR
+  await ui.redraw()
+  await ui.advance(PULSE_FRAMES_MS)
+  expect(await background()).not.toBe(BACKGROUND.warning)
+  await ui.unmount()
 })
 
 test('the footer head shows the git branch of the session directory after the path', async ($, on) => {

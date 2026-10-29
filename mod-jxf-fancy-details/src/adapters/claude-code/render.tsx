@@ -11,7 +11,7 @@ import { footerHead, footerRows, type FooterInput } from '../../render/footer.ts
 import { formatTokens, modelLabel } from '../../render/format.ts'
 import { DONE_TIMER_COLOR, PALETTE } from '../../render/palette.ts'
 import { messagePrefix, messageTags, turnTag, type PrefixInput } from '../../render/prefix.ts'
-import { hasPulse } from '../../render/pulse.ts'
+import { hasPulse, pulses } from '../../render/pulse.ts'
 import { seg } from '../../render/segment.ts'
 import { timerView } from '../../render/timer.ts'
 import type { Config } from './config.ts'
@@ -55,7 +55,7 @@ async function timerNode($: EngineInterface, e: RenderInput, { key, startedAt, e
   return <Text color={PALETTE.time}>{timerView(startedAt, now).text}</Text>
 }
 
-async function liveLine($: EngineInterface, e: RenderInput, cacheRemainingMs: number | undefined): Promise<LiveLine | undefined> {
+async function liveLine($: EngineInterface, e: RenderInput, { cwd, cacheRemainingMs }: FooterInput): Promise<LiveLine | undefined> {
   if (e.surface !== 'terminal' && e.surface !== 'desktop') {
     return undefined
   }
@@ -65,9 +65,10 @@ async function liveLine($: EngineInterface, e: RenderInput, cacheRemainingMs: nu
 
   return (line, index) => {
     if (hasPulse(line)) {
-      const props: PulseProps = { line }
+      const props: PulseProps = { line, epoch: cwd }
+      const roles = line.filter(part => pulses(part.role)).map(part => part.role)
 
-      return <Client key={`footer-pulse-${index}`} module="./pulse.tsx" props={props} />
+      return <Client key={`footer-pulse-${roles.join('-')}`} module="./pulse.tsx" props={props} />
     }
 
     if (hasCacheCountdown(line) && cacheRemainingMs !== undefined) {
@@ -231,7 +232,7 @@ export function drawSites(on: On, config: Config): void {
     return (
       <Box>
         {modes !== '' && <Text dimColor>{modes}</Text>}
-        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, await liveLine($, e, input.cacheRemainingMs))}
+        {rightColumn(Box, Text, [footerHead(input), ...(isAbovePrompt ? [] : footerRows(input))], {}, await liveLine($, e, input))}
       </Box>
     )
   })
@@ -251,7 +252,7 @@ export function drawSites(on: On, config: Config): void {
         <Box flexGrow={1} flexShrink={1}>
           {drawn}
         </Box>
-        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, await liveLine($, e, input.cacheRemainingMs))}
+        {rightColumn(Box, Text, rows, { key: 'footer-rows', flexShrink: 0 }, await liveLine($, e, input))}
       </Box>
     )
   })

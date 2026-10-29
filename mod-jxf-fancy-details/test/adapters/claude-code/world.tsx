@@ -24,6 +24,7 @@ export type World = {
   toolIds: string[]
   rateLimits: SessionRateLimit[]
   branch: string | null
+  cwd: string
   gitCwds: string[]
 }
 
@@ -75,6 +76,7 @@ export function world(
     toolIds: [],
     rateLimits: [],
     branch,
+    cwd,
     gitCwds: [],
   }
   mock.env(on, { HOME, ...env })
@@ -84,7 +86,7 @@ export function world(
 
   on('session.id', () => ({ value: SESSION_ID }))
   on('session.model', () => ({ value: MODEL }))
-  on('session.cwd', () => ({ value: cwd }))
+  on('session.cwd', () => ({ value: w.cwd }))
   on('session.turns', () => ({ value: turns }))
   on('session.usage', () => ({ value: { startedAt: T0, context: { window: 200_000 }, rateLimits: w.rateLimits } }))
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
