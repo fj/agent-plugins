@@ -313,7 +313,7 @@ test(
 )
 
 const BRANCH_GLYPH = ''
-const WARNING_MARK = /^⚠ $/
+const WARNING_MARK = /^⚠$/
 const PULSE_FRAMES_MS = 300
 
 test('the footer head warns in the warning colors when the session directory is home', async ($, on) => {
