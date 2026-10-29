@@ -75,6 +75,7 @@ declare module 'claude-code' {
       rateLimits: readonly FancyQuotaWindow[]
       context: FancyContextFill | null
       branch: string | null
+      gitStatus: string | null
       route: FancyRoute | null
       effort: string | number | null
     }

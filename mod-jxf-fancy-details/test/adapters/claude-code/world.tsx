@@ -24,6 +24,7 @@ export type World = {
   toolIds: string[]
   rateLimits: SessionRateLimit[]
   branch: string | null
+  porcelain: string
   gitCwds: string[]
 }
 
@@ -47,6 +48,7 @@ export type WorldOptions = {
   isToolFailing?: boolean
   isWriteFailing?: boolean
   branch?: string | null
+  porcelain?: string
   cwd?: string
   env?: Readonly<Record<string, string>>
   credential?: SessionAuthorization
@@ -61,6 +63,7 @@ export function world(
     isToolFailing = false,
     isWriteFailing = false,
     branch = null,
+    porcelain = '',
     cwd = CWD,
     env = {},
     credential = SUBSCRIPTION,
@@ -75,6 +78,7 @@ export function world(
     toolIds: [],
     rateLimits: [],
     branch,
+    porcelain,
     gitCwds: [],
   }
   mock.env(on, { HOME, ...env })
@@ -129,12 +133,13 @@ export function world(
   })
   on('process.run', (_$, e) => {
     w.gitCwds.push(e.init?.cwd ?? '')
+    const stdout = e.argv[1] === 'status' ? w.porcelain : `${w.branch}\n`
 
     return {
       value:
         w.branch === null
           ? { exitCode: NOT_A_REPO, stdout: '', stderr: 'fatal: not a git repository', isStdoutTruncated: false, isStderrTruncated: false }
-          : { exitCode: 0, stdout: `${w.branch}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+          : { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
     }
   })
   on('turn.step', async function* (_$, e) {

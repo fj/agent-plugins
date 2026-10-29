@@ -27,6 +27,7 @@ const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const,
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
+const gitStatusAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'gitStatus' } as const, null)
 const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
 const effortAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'effort' } as const, null)
 
@@ -95,6 +96,7 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
   const rateLimits = await read($, rateLimitsAtom)
   const context = await read($, contextAtom)
   const branch = await read($, branchAtom)
+  const gitStatus = await read($, gitStatusAtom)
   const route = await read($, routeAtom)
   const effort = await read($, effortAtom)
   const reading = config.subscription.read({ windows: rateLimits })
@@ -106,6 +108,7 @@ async function footerInput($: EngineInterface, config: Config): Promise<FooterIn
     effort: effortLabel(effort),
     cwd: await $.session.cwd(),
     branch: branch ?? undefined,
+    gitStatus: gitStatus ?? undefined,
     home: (await $.env.get('HOME')) ?? '',
     session: ledger.totals,
     today: todayTotals(days, others, now),
