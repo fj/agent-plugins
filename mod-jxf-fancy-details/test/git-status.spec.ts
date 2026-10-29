@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { gitStatusFrom, parseGitStatus } from '../src/core/git-status.ts'
+import { gitStatusFrom } from '../src/core/git-status.ts'
 
 const NOT_A_REPO = 128
 const HASH = '0123456789abcdef0123456789abcdef01234567'
@@ -33,7 +33,7 @@ const PORCELAIN = [
 ].join('\n')
 
 test('porcelain counts follow Starship status categories', () => {
-  assert.deepEqual(parseGitStatus(PORCELAIN), {
+  assert.deepEqual(gitStatusFrom({ exitCode: 0, stdout: PORCELAIN }), {
     conflicted: 1,
     stashed: 4,
     deleted: 2,
@@ -48,11 +48,11 @@ test('porcelain counts follow Starship status categories', () => {
 })
 
 test('branch without upstream has no ahead or behind counts', () => {
-  const status = parseGitStatus(`# branch.oid ${HASH}\n# branch.head topic/x\n`)
+  const status = gitStatusFrom({ exitCode: 0, stdout: `# branch.oid ${HASH}\n# branch.head topic/x\n` })
 
-  assert.equal(status.ahead, undefined)
-  assert.equal(status.behind, undefined)
-  assert.equal(status.stashed, 0)
+  assert.equal(status?.ahead, undefined)
+  assert.equal(status?.behind, undefined)
+  assert.equal(status?.stashed, 0)
 })
 
 test('status is none when git fails', () => {

@@ -71,7 +71,7 @@ function addLine(status: GitStatus, line: string): GitStatus {
   return line.startsWith(UNTRACKED) ? { ...status, untracked: status.untracked + 1 } : status
 }
 
-export function parseGitStatus(stdout: string): GitStatus {
+function parseGitStatus(stdout: string): GitStatus {
   return stdout.split('\n').reduce(addLine, EMPTY_STATUS)
 }
 
