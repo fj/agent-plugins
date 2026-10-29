@@ -29,6 +29,7 @@ const STASH = /^# stash (\d+)$/
 const CHANGED = /^[12] (\S\S) /
 const CONFLICTED = 'u '
 const UNTRACKED = '? '
+const STAGED_CODES = 'MADRCT'
 
 const count = (isCounted: boolean) => (isCounted ? 1 : 0)
 
@@ -40,7 +41,7 @@ function addChange(status: GitStatus, [index, worktree]: string): GitStatus {
     deleted: status.deleted + count(xy.includes('D')),
     renamed: status.renamed + count(xy.includes('R')),
     modified: status.modified + count(worktree === 'M' || worktree === 'A'),
-    staged: status.staged + count(index === 'M' || index === 'A' || index === 'T'),
+    staged: status.staged + count(STAGED_CODES.includes(index)),
   }
 }
 
