@@ -384,6 +384,18 @@ test('footer head leaves out brackets for clean tree without upstream', async ($
   expect(await footerText($)).not.toContain('[')
 })
 
+test('footer head drops stale git status once git status fails', async ($, on) => {
+  const w = world(on, { branch: 'main', porcelain: UNTRACKED, files: STARSHIP_FILES })
+  await start($)
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [?⟨1⟩]`)
+
+  w.isStatusFailing = true
+  await runTool($, w)
+  const text = await footerText($)
+  expect(text).toContain(`${BRANCH_GLYPH} main`)
+  expect(text).not.toContain('[')
+})
+
 test('footer git status reads config from STARSHIP_CONFIG', async ($, on) => {
   world(on, { branch: 'main', porcelain: UNTRACKED, env: { STARSHIP_CONFIG: '/etc/starship.toml' }, files: { '/etc/starship.toml': STARSHIP_TOML } })
   await start($)

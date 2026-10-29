@@ -25,6 +25,7 @@ export type World = {
   rateLimits: SessionRateLimit[]
   branch: string | null
   porcelain: string
+  isStatusFailing: boolean
   gitCwds: string[]
 }
 
@@ -79,6 +80,7 @@ export function world(
     rateLimits: [],
     branch,
     porcelain,
+    isStatusFailing: false,
     gitCwds: [],
   }
   mock.env(on, { HOME, ...env })
@@ -133,6 +135,11 @@ export function world(
   })
   on('process.run', (_$, e) => {
     w.gitCwds.push(e.init?.cwd ?? '')
+
+    if (e.argv[1] === 'status' && w.isStatusFailing) {
+      return { deny: 'git status timed out' }
+    }
+
     const stdout = e.argv[1] === 'status' ? w.porcelain : `${w.branch}\n`
 
     return {
