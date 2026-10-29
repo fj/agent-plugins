@@ -11,6 +11,7 @@ export type Role =
   | 'model'
   | 'path'
   | 'branch'
+  | 'gitStatus'
   | 'meter'
   | 'overage'
   | 'warning'

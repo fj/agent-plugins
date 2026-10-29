@@ -1,12 +1,15 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude-code'
 
+import { gitStatusConfig, starshipConfigPath } from '../../config/starship.ts'
 import type { ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
+import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../../core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../../core/rows.ts'
 import { isPersistedRecord, NO_OTHER_SESSIONS, persistDay, readOtherSessions } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
+import { gitStatusText } from '../../render/git-status.ts'
 import type { Config } from './config.ts'
 import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
 import { branchFrom, SHOW_BRANCH } from './git.ts'
@@ -19,6 +22,7 @@ const rowsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rows' } as const,
 const rateLimitsAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'rateLimits' } as const, [])
 const contextAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'context' } as const, null)
 const branchAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'branch' } as const, null)
+const gitStatusAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'gitStatus' } as const, null)
 const routeAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'route' } as const, null)
 const effortAtom = atom({ plugin: 'mod-jxf-fancy-details', key: 'effort' } as const, null)
 
@@ -80,6 +84,27 @@ async function refreshBranch($: EngineInterface): Promise<void> {
   await update($, branchAtom, () => branch)
 }
 
+async function readStarshipConfig($: EngineInterface): Promise<string | undefined> {
+  const env = { STARSHIP_CONFIG: await $.env.get('STARSHIP_CONFIG') }
+  const path = starshipConfigPath(env, (await $.env.get('HOME')) ?? '')
+
+  return $.fs.read(path).catch(() => undefined)
+}
+
+async function refreshGitStatus($: EngineInterface): Promise<void> {
+  const cwd = await $.session.cwd()
+  const status = await $.process
+    .run(SHOW_STATUS, { cwd, timeoutMs: GIT_TIMEOUT_MS })
+    .then(gitStatusFrom)
+    .catch(() => null)
+  const text = status === null ? null : gitStatusText(status, gitStatusConfig(await readStarshipConfig($)))
+  await update($, gitStatusAtom, () => text)
+}
+
+async function refreshGit($: EngineInterface): Promise<void> {
+  await Promise.all([refreshBranch($), refreshGitStatus($)])
+}
+
 async function cloudFlags($: EngineInterface): Promise<CloudFlags> {
   return {
     bedrock: await $.env.get('CLAUDE_CODE_USE_BEDROCK'),
@@ -119,7 +144,7 @@ async function refreshRoute($: EngineInterface): Promise<void> {
 }
 
 async function refreshPolled($: EngineInterface): Promise<void> {
-  await Promise.all([refreshOthers($), refreshBranch($)])
+  await Promise.all([refreshOthers($), refreshGit($)])
 }
 
 function debugLog($: EngineInterface, isDebug: boolean, text: string): void {
@@ -254,7 +279,7 @@ export function trackEvents(on: On, config: Config): void {
       return await next(e)
     } finally {
       await record($, config, { kind: 'toolEnd', id, at: await $.clock.now() })
-      await refreshBranch($)
+      await refreshGit($)
     }
   })
 

@@ -12,6 +12,7 @@ export type FooterInput = {
   effort?: string
   cwd: string
   branch?: string
+  gitStatus?: string
   home: string
   session: Totals
   today: Totals
@@ -71,8 +72,14 @@ function metersLine({ quota, context, layout }: FooterInput): Line {
   return join([shownQuota, shownContext], GROUP_GAP)
 }
 
-function branchSegments(branch: string | undefined): Line {
-  return branch === undefined ? [] : [seg(' · ', 'muted'), seg(`${BRANCH_SYMBOL} ${branch}`, 'branch')]
+function gitStatusSegments(gitStatus: string | undefined): Line {
+  return gitStatus === undefined || gitStatus === '' ? [] : [seg(' [', 'muted'), seg(gitStatus, 'gitStatus'), seg(']', 'muted')]
+}
+
+function branchSegments(branch: string | undefined, gitStatus: string | undefined): Line {
+  return branch === undefined
+    ? []
+    : [seg(' · ', 'muted'), seg(`${BRANCH_SYMBOL} ${branch}`, 'branch'), ...gitStatusSegments(gitStatus)]
 }
 
 function effortSegments(effort: string | undefined): Line {
@@ -90,7 +97,7 @@ export function footerHead(input: FooterInput): Line {
     seg(' · ', 'muted'),
     ...warningSegments(input.cwd, input.home),
     seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
-    ...branchSegments(input.branch),
+    ...branchSegments(input.branch, input.gitStatus),
   ]
 }
 

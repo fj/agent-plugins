@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { CONFIG_FILE, readConfig } from '../../../src/adapters/pi/config.ts'
+import { CONFIG_FILE, readConfig, readOptionalText } from '../../../src/adapters/pi/config.ts'
 
 async function withDir(body: (dir: string) => Promise<void>) {
   const dir = await mkdtemp(join(tmpdir(), 'mod-jxf-fancy-details-config-'))
@@ -27,6 +27,16 @@ test('readConfig parses the config file', () =>
 test('readConfig falls back to no settings when the file is missing', () =>
   withDir(async dir => {
     assert.deepEqual(readConfig(join(dir, CONFIG_FILE)), {})
+  }))
+
+test('optional text is file contents, or none for missing file or directory', () =>
+  withDir(async dir => {
+    const path = join(dir, 'starship.toml')
+    await writeFile(path, '[directory]\n')
+
+    assert.equal(readOptionalText(path), '[directory]\n')
+    assert.equal(readOptionalText(join(dir, 'missing.toml')), undefined)
+    assert.equal(readOptionalText(dir), undefined)
   }))
 
 test('readConfig falls back to no settings when the path cannot be read as a file', () =>

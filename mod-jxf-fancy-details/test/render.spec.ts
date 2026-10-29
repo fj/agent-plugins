@@ -175,6 +175,21 @@ test('the footer head shows the git branch after the path when there is one', ()
   assert.equal(head!.at(-1)?.role, 'branch')
 })
 
+test('footer head shows git status in brackets after branch', () => {
+  const [head] = footer({ ...FOOTER_INPUT, branch: 'topic/x', gitStatus: '!⟨1⟩⇡⟨2⟩' })
+
+  assert.equal(lineText(head!), 'claude-opus-5-5 · ~/src/…/mod-jxf-fancy-details · \ue0a0 topic/x [!⟨1⟩⇡⟨2⟩]')
+  assert.deepEqual(head!.slice(-3).map(part => part.role), ['muted', 'gitStatus', 'muted'])
+})
+
+test('footer head leaves out brackets for empty git status or missing branch', () => {
+  const [clean] = footer({ ...FOOTER_INPUT, branch: 'topic/x', gitStatus: '' })
+  const [detached] = footer({ ...FOOTER_INPUT, gitStatus: '!⟨1⟩' })
+
+  assert.equal(lineText(clean!), 'claude-opus-5-5 · ~/src/…/mod-jxf-fancy-details · \ue0a0 topic/x')
+  assert.equal(lineText(detached!), 'claude-opus-5-5 · ~/src/…/mod-jxf-fancy-details')
+})
+
 test('the footer head shows the effort after the model when there is one', () => {
   const [head] = footer({ ...FOOTER_INPUT, effort: 'high' })
 
