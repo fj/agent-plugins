@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
-import { COUNTDOWN_MS, CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS, POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { COUNTDOWN_MS, CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
@@ -11,6 +11,7 @@ import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
 const WIDTH = 200
+const POLL_MS = 30_000
 const USAGE = { input: 400, cacheWrite: 15_000, cacheRead: 61_100, output: 3_200 }
 const RATE_LIMIT_HEADERS = {
   'anthropic-ratelimit-unified-5h-utilization': '0.42',
@@ -244,19 +245,27 @@ test('footer head shows git status with Starship symbols in brackets after branc
 
   assert.match(head!, / · \ue0a0 main \[!⟨1⟩⇡⟨2⟩\]$/)
   assert.deepEqual(s.pi.execs, [
-    { command: 'git', args: ['status', '--porcelain=v2', '--branch', '--show-stash'], cwd: '/home/j/src/projects/demo' },
+    { command: 'git', args: ['status', '--porcelain=v2', '--branch', '--show-stash'], cwd: '/home/j/src/projects/demo', timeout: 2000 },
   ])
 })
 
-test('footer head leaves out brackets for clean tree or outside git repository', async () => {
+test('footer head drops stale git status once git fails', async () => {
+  const s = setup({ starship: STARSHIP })
+
+  s.pi.setPorcelain(UNTRACKED)
+  await s.emit('session_start', { reason: 'startup' })
+  assert.match(s.footerLines()![0]!, /\[\?⟨1⟩\]$/)
+
+  s.pi.setPorcelain(null)
+  await s.emit('agent_settled')
+  assert.match(s.footerLines()![0]!, / main$/)
+})
+
+test('footer head leaves out brackets for clean tree', async () => {
   const s = setup({ starship: STARSHIP })
 
   await s.emit('session_start', { reason: 'startup' })
   assert.match(s.footerLines()![0]!, / · \ue0a0 main$/)
-
-  s.pi.setPorcelain(null)
-  await s.emit('agent_settled')
-  assert.match(s.footerLines(footerData({}, null))![0]!, /~\/src\/projects\/demo$/)
 })
 
 test('footer git status reads config from STARSHIP_CONFIG', async () => {

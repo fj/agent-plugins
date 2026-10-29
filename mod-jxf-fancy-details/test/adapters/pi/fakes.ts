@@ -10,7 +10,7 @@ type Factory = (tui: unknown, theme: unknown, data?: unknown) => Component
 
 export type FakeEntry = { type: string; customType?: string; data?: unknown; message?: unknown }
 
-type Exec = { command: string; args: string[]; cwd?: string }
+type Exec = { command: string; args: string[]; cwd?: string; timeout?: number }
 
 const NOT_A_REPO = 128
 
@@ -82,8 +82,8 @@ export function fakePi() {
   let porcelain: string | null = ''
   const api = {
     getThinkingLevel: () => thinkingLevel,
-    exec: async (command: string, args: string[], options?: { cwd?: string }) => {
-      execs.push({ command, args, cwd: options?.cwd })
+    exec: async (command: string, args: string[], options?: { cwd?: string; timeout?: number }) => {
+      execs.push({ command, args, cwd: options?.cwd, timeout: options?.timeout })
 
       return porcelain === null
         ? { stdout: '', stderr: 'fatal: not a git repository', code: NOT_A_REPO, killed: false }

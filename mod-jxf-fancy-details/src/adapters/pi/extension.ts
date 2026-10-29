@@ -27,9 +27,9 @@ export const FRAME_MS = 100
 export const COUNTDOWN_MS = 1000
 export const PERSIST_POLL_MS = 5
 export const MAX_PERSIST_POLLS = 40
-export const POLL_MS = 30_000
 
 const SESSION_KEY_PREFIX = 'pi-'
+const POLL_MS = 30_000
 const GIT_TIMEOUT_MS = 2000
 
 export type FancyDeps = {
