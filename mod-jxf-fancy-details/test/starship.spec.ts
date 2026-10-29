@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { DEFAULT_GIT_STATUS, gitStatusConfig, starshipConfigPath } from '../src/config/starship.ts'
+import { gitStatusConfig, starshipConfigPath } from '../src/config/starship.ts'
 import { tomlTable } from '../src/config/toml.ts'
 
 import { STARSHIP_TOML } from './starship-fixture.ts'
@@ -43,12 +43,31 @@ test('git status config takes user symbols and format', () => {
   assert.equal(config.symbols.modified, '!⟨${count}⟩')
   assert.equal(config.symbols.diverged, '⇕ ⇡${ahead_count} ⇣${behind_count}')
   assert.equal(config.symbols.up_to_date, '✓')
-  assert.equal(config.symbols.typechanged, DEFAULT_GIT_STATUS.symbols.typechanged)
+  assert.equal(config.symbols.typechanged, '')
 })
 
 test('git status config falls back to Starship defaults without file or table', () => {
-  assert.deepEqual(gitStatusConfig(undefined), DEFAULT_GIT_STATUS)
-  assert.deepEqual(gitStatusConfig('[directory]\nformat = "$path"\n'), DEFAULT_GIT_STATUS)
+  const defaults = {
+    format: '$all_status$ahead_behind',
+    isDisabled: false,
+    symbols: {
+      conflicted: '=',
+      stashed: '\\$',
+      deleted: '✘',
+      renamed: '»',
+      modified: '!',
+      typechanged: '',
+      staged: '+',
+      untracked: '?',
+      ahead: '⇡',
+      behind: '⇣',
+      diverged: '⇕',
+      up_to_date: '',
+    },
+  }
+
+  assert.deepEqual(gitStatusConfig(undefined), defaults)
+  assert.deepEqual(gitStatusConfig('[directory]\nformat = "$path"\n'), defaults)
 })
 
 test('git status config honors disabled flag', () => {

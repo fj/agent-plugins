@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { DEFAULT_GIT_STATUS, gitStatusConfig } from '../src/config/starship.ts'
+import { gitStatusConfig } from '../src/config/starship.ts'
 import type { GitStatus } from '../src/core/git-status.ts'
 import { gitStatusText } from '../src/render/git-status.ts'
 import { STARSHIP_TOML } from './starship-fixture.ts'
@@ -29,6 +29,7 @@ const EVERY_CHANGE: GitStatus = {
   behind: 0,
 }
 const USER = gitStatusConfig(STARSHIP_TOML)
+const DEFAULTS = gitStatusConfig(undefined)
 
 test('user symbols keep Starship order with counts, then ahead', () => {
   assert.equal(gitStatusText(EVERY_CHANGE, USER), '⇄⟨1⟩■⟨2⟩×⟨3⟩»⟨4⟩!⟨5⟩+⟨7⟩?⟨8⟩⇡⟨9⟩')
@@ -45,8 +46,8 @@ test('clean tree shows up-to-date symbol only with upstream', () => {
 })
 
 test('Starship defaults apply without user config', () => {
-  assert.equal(gitStatusText({ ...EVERY_CHANGE, ahead: 1, behind: 1 }, DEFAULT_GIT_STATUS), '=$✘»!+?⇕')
-  assert.equal(gitStatusText({ ...CLEAN, ahead: 0, behind: 0 }, DEFAULT_GIT_STATUS), '')
+  assert.equal(gitStatusText({ ...EVERY_CHANGE, ahead: 1, behind: 1 }, DEFAULTS), '=$✘»!+?⇕')
+  assert.equal(gitStatusText({ ...CLEAN, ahead: 0, behind: 0 }, DEFAULTS), '')
 })
 
 test('disabled module shows nothing', () => {
