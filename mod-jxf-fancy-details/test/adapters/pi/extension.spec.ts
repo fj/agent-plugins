@@ -654,7 +654,7 @@ test('the pulse stops when the session shuts down', async () => {
   assert.equal(ticks(s), 0)
 })
 
-const WARNING_BACKGROUND = /\x1b\[48;2;([\d;]+)m(?:\x1b\[38;2;[\d;]+m)?⚠ /
+const WARNING_BACKGROUND = /\x1b\[38;2;\d+;\d+;\d+;48;2;(\d+;\d+;\d+)m⚠ /
 
 const warningBackground = (s: ReturnType<typeof setup>) => WARNING_BACKGROUND.exec(s.paintedFooter()![0]!)?.[1]
 

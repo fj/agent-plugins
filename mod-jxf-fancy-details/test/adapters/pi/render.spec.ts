@@ -12,8 +12,8 @@ test('painting uses truecolor and leaves plain text alone', () => {
   assert.equal(plain(paintLine([seg('a', 'cost'), seg('b')])), 'ab')
 })
 
-test('a warning part gets a truecolor background under its foreground; other parts get none', () => {
-  assert.equal(paintLine([seg('!', 'warning')]), '\x1b[48;2;139;26;26m\x1b[38;2;255;107;107m!\x1b[39m\x1b[49m')
+test('warning part gets truecolor foreground and background in one escape; other parts get no background', () => {
+  assert.equal(paintLine([seg('!', 'warning')]), '\x1b[38;2;255;107;107;48;2;139;26;26m!\x1b[39;49m')
   assert.doesNotMatch(paintLine([seg('a', 'cost')]), /\x1b\[48;/)
 })
 
