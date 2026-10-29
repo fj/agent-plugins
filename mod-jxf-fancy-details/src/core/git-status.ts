@@ -14,6 +14,10 @@ export type GitStatus = {
 
 type GitOutput = { exitCode: number; stdout: string }
 
+export type GitReading = { branch: string | null; status: GitStatus | null }
+
+const NO_GIT: GitReading = { branch: null, status: null }
+
 const EMPTY_STATUS: GitStatus = {
   conflicted: 0,
   stashed: 0,
@@ -24,6 +28,8 @@ const EMPTY_STATUS: GitStatus = {
   untracked: 0,
 }
 
+const BRANCH_HEAD = /^# branch\.head (.+)$/m
+const DETACHED = '(detached)'
 const AHEAD_BEHIND = /^# branch\.ab \+(\d+) -(\d+)$/
 const STASH = /^# stash (\d+)$/
 const CHANGED = /^[12] (\S\S) /
@@ -73,6 +79,16 @@ function parseGitStatus(stdout: string): GitStatus {
   return stdout.split('\n').reduce(addLine, EMPTY_STATUS)
 }
 
-export function gitStatusFrom({ exitCode, stdout }: GitOutput): GitStatus | null {
-  return exitCode === 0 ? parseGitStatus(stdout) : null
+function branchOf(stdout: string): string | null {
+  const head = BRANCH_HEAD.exec(stdout)?.[1]
+
+  return head === undefined || head === DETACHED ? null : head
+}
+
+export function readGit({ exitCode, stdout }: GitOutput): GitReading {
+  if (exitCode !== 0) {
+    return NO_GIT
+  }
+
+  return { branch: branchOf(stdout), status: parseGitStatus(stdout) }
 }

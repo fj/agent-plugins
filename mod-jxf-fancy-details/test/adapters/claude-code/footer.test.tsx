@@ -377,7 +377,7 @@ test('the footer head shows the git branch of the session directory after the pa
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL_LABEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
-  expect(w.gitCwds).toEqual([CWD, CWD])
+  expect(w.gitCwds).toEqual([CWD])
 })
 
 test('the footer head leaves out the branch outside a git repository', async ($, on) => {

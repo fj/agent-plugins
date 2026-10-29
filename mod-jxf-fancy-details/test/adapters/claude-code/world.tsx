@@ -142,7 +142,7 @@ export function world(
       return { deny: 'git status timed out' }
     }
 
-    const stdout = e.argv[1] === 'status' ? w.porcelain : `${w.branch}\n`
+    const stdout = `# branch.head ${w.branch}\n${w.porcelain}`
 
     return {
       value:

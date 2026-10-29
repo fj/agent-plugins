@@ -3,7 +3,7 @@ import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-wor
 import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
 import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
-import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
+import { readGit, SHOW_STATUS } from '../../core/git-status.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
@@ -136,7 +136,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       const [command, ...args] = SHOW_STATUS
       const status = await pi
         .exec(command!, args, { cwd: ctx.cwd, timeout: GIT_TIMEOUT_MS })
-        .then(({ code, stdout }) => gitStatusFrom({ exitCode: code, stdout }))
+        .then(({ code, stdout }) => readGit({ exitCode: code, stdout }).status)
         .catch(() => null)
 
       gitStatus = status === null ? undefined : gitStatusText(status)

@@ -3,7 +3,7 @@ import type { EngineInterface, On, SessionContextUsage, TurnUsage } from 'claude
 
 import type { ClaudeCodeCacheEnv } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
-import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
+import { readGit, SHOW_STATUS } from '../../core/git-status.ts'
 import { applyRecord, EMPTY_JOURNAL, type JournalRecord } from '../../core/journal.ts'
 import { aliasRow, appendKeyText, EMPTY_ROWS, noteText, pendingMessageMark, pendingPrompt } from '../../core/rows.ts'
 import { isPersistedRecord, NO_OTHER_SESSIONS, persistDay, readOtherSessions } from '../../core/tracker.ts'
@@ -11,7 +11,6 @@ import type { TokenUsage } from '../../core/usage.ts'
 import { gitStatusText } from '../../render/git-status.ts'
 import type { Config } from './config.ts'
 import { fileDailyStore, sessionKeyFor, type Files } from './daily.ts'
-import { branchFrom, SHOW_BRANCH } from './git.ts'
 import { isUserOrigin } from './origin.ts'
 import { claudeCodeBilling, claudeCodeProvider, type CloudFlags } from './provider.ts'
 
@@ -74,27 +73,14 @@ async function refreshOthers($: EngineInterface): Promise<void> {
   await update($, othersAtom, () => others)
 }
 
-async function refreshBranch($: EngineInterface): Promise<void> {
-  const cwd = await $.session.cwd()
-  const branch = await $.process
-    .run(SHOW_BRANCH, { cwd, timeoutMs: GIT_TIMEOUT_MS })
-    .then(branchFrom)
-    .catch(() => null)
-  await update($, branchAtom, () => branch)
-}
-
-async function refreshGitStatus($: EngineInterface): Promise<void> {
-  const cwd = await $.session.cwd()
-  const status = await $.process
-    .run(SHOW_STATUS, { cwd, timeoutMs: GIT_TIMEOUT_MS })
-    .then(gitStatusFrom)
-    .catch(() => null)
-  const text = status === null ? null : gitStatusText(status)
-  await update($, gitStatusAtom, () => text)
-}
-
 async function refreshGit($: EngineInterface): Promise<void> {
-  await Promise.all([refreshBranch($), refreshGitStatus($)])
+  const cwd = await $.session.cwd()
+  const git = await $.process
+    .run(SHOW_STATUS, { cwd, timeoutMs: GIT_TIMEOUT_MS })
+    .then(readGit)
+    .catch(() => undefined)
+  await update($, branchAtom, branch => (git === undefined ? branch : git.branch))
+  await update($, gitStatusAtom, () => (git === undefined || git.status === null ? null : gitStatusText(git.status)))
 }
 
 async function cloudFlags($: EngineInterface): Promise<CloudFlags> {
