@@ -10,6 +10,10 @@ type Factory = (tui: unknown, theme: unknown, data?: unknown) => Component
 
 export type FakeEntry = { type: string; customType?: string; data?: unknown; message?: unknown }
 
+type Exec = { command: string; args: string[]; cwd?: string }
+
+const NOT_A_REPO = 128
+
 const ANSI = /\x1b\[[0-9;]*m/g
 const ANSI_TOKEN = /(\x1b\[[0-9;]*m)/
 const RESET = '\x1b[0m'
@@ -73,9 +77,18 @@ export function fakePi() {
   const handlers = new Map<string, Handler[]>()
   const renderers = new Map<string, (entry: { data?: unknown }) => Component | undefined>()
   const branch: FakeEntry[] = []
+  const execs: Exec[] = []
   let thinkingLevel = 'off'
+  let porcelain: string | null = ''
   const api = {
     getThinkingLevel: () => thinkingLevel,
+    exec: async (command: string, args: string[], options?: { cwd?: string }) => {
+      execs.push({ command, args, cwd: options?.cwd })
+
+      return porcelain === null
+        ? { stdout: '', stderr: 'fatal: not a git repository', code: NOT_A_REPO, killed: false }
+        : { stdout: porcelain, stderr: '', code: 0, killed: false }
+    },
     on(name: string, handler: Handler) {
       handlers.set(name, [...(handlers.get(name) ?? []), handler])
     },
@@ -90,8 +103,12 @@ export function fakePi() {
   return {
     api: api as unknown as ExtensionAPI,
     branch,
+    execs,
     setThinkingLevel: (level: string) => {
       thinkingLevel = level
+    },
+    setPorcelain: (text: string | null) => {
+      porcelain = text
     },
     handlerNames: () => [...handlers.keys()],
     emit: async (name: string, event: object, ctx: ExtensionContext) => {

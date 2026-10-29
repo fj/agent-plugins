@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, mock, test } from 'node:test'
 
-import { COUNTDOWN_MS, CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS } from '../../../src/adapters/pi/extension.ts'
+import { COUNTDOWN_MS, CUSTOM_TYPE, FRAME_MS, MAX_PERSIST_POLLS, modJxfFancyDetails, PERSIST_POLL_MS, POLL_MS } from '../../../src/adapters/pi/extension.ts'
 import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
+import { STARSHIP_TOML } from '../../starship-fixture.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type CtxOptions, type FakeEntry } from './fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
@@ -34,6 +35,7 @@ type SetupOptions = CtxOptions & {
   others?: number
   config?: FancyConfig
   env?: Record<string, string>
+  starship?: Record<string, string>
 }
 
 function setup(options: SetupOptions = {}) {
@@ -53,6 +55,7 @@ function setup(options: SetupOptions = {}) {
     configPath: '/nowhere/mod-jxf-fancy-details.json',
     toolRows: FakeToolRow.prototype,
     readConfig: () => options.config ?? {},
+    readStarshipConfig: path => options.starship?.[path],
     now: () => clock,
     env: options.env ?? {},
     newId: () => `id${(ids += 1)}`,
@@ -225,6 +228,73 @@ test('the footer head leaves out the branch outside a git repository', async () 
   const [head] = s.footerLines(footerData({}, null))!
 
   assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
+})
+
+const STARSHIP = { '/home/j/.config/starship.toml': STARSHIP_TOML }
+const MODIFIED_AHEAD = '# branch.ab +2 -0\n1 .M N... 100644 100644 100644 0000 0000 a.ts\n'
+const UNTRACKED = '? b.ts\n'
+
+test('footer head shows git status with Starship symbols in brackets after branch', async () => {
+  const s = setup({ starship: STARSHIP })
+
+  s.pi.setPorcelain(MODIFIED_AHEAD)
+  await s.emit('session_start', { reason: 'startup' })
+
+  const [head] = s.footerLines()!
+
+  assert.match(head!, / · \ue0a0 main \[!⟨1⟩⇡⟨2⟩\]$/)
+  assert.deepEqual(s.pi.execs, [
+    { command: 'git', args: ['status', '--porcelain=v2', '--branch', '--show-stash'], cwd: '/home/j/src/projects/demo' },
+  ])
+})
+
+test('footer head leaves out brackets for clean tree or outside git repository', async () => {
+  const s = setup({ starship: STARSHIP })
+
+  await s.emit('session_start', { reason: 'startup' })
+  assert.match(s.footerLines()![0]!, / · \ue0a0 main$/)
+
+  s.pi.setPorcelain(null)
+  await s.emit('agent_settled')
+  assert.match(s.footerLines(footerData({}, null))![0]!, /~\/src\/projects\/demo$/)
+})
+
+test('footer git status reads config from STARSHIP_CONFIG', async () => {
+  const s = setup({ env: { STARSHIP_CONFIG: '/etc/starship.toml' }, starship: { '/etc/starship.toml': STARSHIP_TOML } })
+
+  s.pi.setPorcelain(UNTRACKED)
+  await s.emit('session_start', { reason: 'startup' })
+
+  assert.match(s.footerLines()![0]!, /\ue0a0 main \[\?⟨1⟩\]$/)
+})
+
+test('footer git status follows tool end, settled agent and refresh tick', async () => {
+  const s = setup({ starship: STARSHIP })
+  const head = () => s.footerLines()![0]!
+
+  await s.emit('session_start', { reason: 'startup' })
+
+  s.pi.setPorcelain(UNTRACKED)
+  await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+  assert.match(head(), /\[\?⟨1⟩\]$/)
+
+  s.pi.setPorcelain(MODIFIED_AHEAD)
+  await s.emit('agent_settled')
+  assert.match(head(), /\[!⟨1⟩⇡⟨2⟩\]$/)
+
+  s.pi.setPorcelain('')
+  s.advance(POLL_MS)
+  await new Promise(setImmediate)
+  assert.match(head(), / main$/)
+})
+
+test('footer git status skips git outside tui mode', async () => {
+  const s = setup({ mode: 'print' })
+
+  await s.emit('session_start', { reason: 'startup' })
+  await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+
+  assert.deepEqual(s.pi.execs, [])
 })
 
 test('the footer head names the provider before the model', async () => {

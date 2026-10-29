@@ -11,6 +11,7 @@ export type FooterScene = Scene & {
   model(): string
   effort(): string | undefined
   cwd(): string
+  gitStatus(): string | undefined
   home: string
   today(): Totals
   quota(): Line
@@ -46,6 +47,7 @@ export function footerLines(scene: FooterScene, data: FooterData, width: number)
     effort: scene.effort(),
     cwd: scene.cwd(),
     branch: data.getGitBranch() ?? undefined,
+    gitStatus: scene.gitStatus(),
     home: scene.home,
     session: scene.ledger().totals,
     today: scene.today(),

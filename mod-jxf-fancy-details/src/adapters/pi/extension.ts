@@ -1,18 +1,21 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
 import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
+import { gitStatusConfig, starshipConfigPath } from '../../config/starship.ts'
 import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
+import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
 import type { TokenUsage } from '../../core/usage.ts'
 import type { ContextFill } from '../../render/context.ts'
 import { modelLabel } from '../../render/format.ts'
+import { gitStatusText } from '../../render/git-status.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 import { cacheTtlMs, type Env } from './cache.ts'
-import { readConfig } from './config.ts'
+import { readConfig, readOptionalText } from './config.ts'
 import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
 import { ticker } from './ticker.ts'
@@ -24,9 +27,10 @@ export const FRAME_MS = 100
 export const COUNTDOWN_MS = 1000
 export const PERSIST_POLL_MS = 5
 export const MAX_PERSIST_POLLS = 40
+export const POLL_MS = 30_000
 
 const SESSION_KEY_PREFIX = 'pi-'
-const TODAY_REFRESH_MS = 30_000
+const GIT_TIMEOUT_MS = 2000
 
 export type FancyDeps = {
   measure: TextWidth
@@ -35,6 +39,7 @@ export type FancyDeps = {
   configPath: string
   toolRows?: ToolRowPrototype
   readConfig?: (path: string) => FancyConfig
+  readStarshipConfig?: (path: string) => string | undefined
   now?: () => number
   newId?: () => string
   env?: Env
@@ -66,6 +71,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
   const now = deps.now ?? Date.now
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const loadConfig = deps.readConfig ?? readConfig
+  const loadStarshipConfig = deps.readStarshipConfig ?? readOptionalText
   const env = deps.env ?? process.env
 
   return pi => {
@@ -80,6 +86,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let pendingPrompt: { record: JournalRecord; message: unknown; polls: number } | undefined
     let unpatchToolRows: (() => void) | undefined
     let openStepId: string | undefined
+    let gitStatus: string | undefined
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
@@ -95,6 +102,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       model: () => (model === undefined ? 'no model' : modelLabel(model.provider, model.id)),
       effort: () => (model?.reasoning === true ? pi.getThinkingLevel() : undefined),
       cwd: () => ctx?.cwd ?? '',
+      gitStatus: () => gitStatus,
       home: deps.home,
       today: () => tracker.today(now()),
       quota: () => (reading === null ? [] : subscription.render(reading)),
@@ -113,11 +121,31 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       }
     })
 
-    const refresher = ticker(TODAY_REFRESH_MS, () => void refreshOthers())
+    const refresher = ticker(POLL_MS, () => void refreshPolled())
 
     async function refreshOthers() {
       await tracker.refreshOthers(now())
       tui?.requestRender()
+    }
+
+    async function refreshGitStatus() {
+      if (ctx?.mode !== 'tui') {
+        return
+      }
+
+      const [command, ...args] = SHOW_STATUS
+      const status = await pi
+        .exec(command!, args, { cwd: ctx.cwd, timeout: GIT_TIMEOUT_MS })
+        .then(({ code, stdout }) => gitStatusFrom({ exitCode: code, stdout }))
+        .catch(() => null)
+      const starship = gitStatusConfig(loadStarshipConfig(starshipConfigPath(env, deps.home)))
+
+      gitStatus = status === null ? undefined : gitStatusText(status, starship)
+      tui?.requestRender()
+    }
+
+    async function refreshPolled() {
+      await Promise.all([refreshOthers(), refreshGitStatus()])
     }
 
     function chooseStrategies() {
@@ -225,7 +253,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
 
       if (context.mode === 'tui') {
         showUi(context)
-        await refreshOthers()
+        await refreshPolled()
       }
     })
 
@@ -290,6 +318,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     pi.on('tool_execution_end', async event => {
       if (!isNestedCall(event)) {
         record({ kind: 'toolEnd', id: event.toolCallId, at: now() })
+        await refreshGitStatus()
       }
     })
 
@@ -306,7 +335,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       }
 
       tui?.requestRender()
-      await refreshOthers()
+      await refreshPolled()
     })
 
     pi.on('session_shutdown', async () => {
