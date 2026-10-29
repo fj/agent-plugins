@@ -458,6 +458,20 @@ test('footer head keeps branch but drops status when git output is cut off', asy
   expect(text).not.toContain('[')
 })
 
+test('tool call does not wait for slow git status', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  w.porcelain = UNTRACKED
+  const release = w.holdNextRun()
+  await runTool($, w)
+  expect(await footerText($)).not.toContain('[')
+
+  release()
+  await w.clock.settle()
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [?⟨1⟩]`)
+})
+
 test('slow older git status does not overwrite newer one', async ($, on) => {
   const w = world(on, { branch: 'main' })
   await start($)

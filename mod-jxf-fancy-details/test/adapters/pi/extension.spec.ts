@@ -272,6 +272,7 @@ test('footer git status follows tool end, settled agent and refresh tick', async
 
   s.pi.setPorcelain(UNTRACKED)
   await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+  await new Promise(setImmediate)
   assert.match(head(), /\[\?⟨1⟩\]$/)
 
   s.pi.setPorcelain(MODIFIED_AHEAD)
@@ -282,6 +283,27 @@ test('footer git status follows tool end, settled agent and refresh tick', async
   s.advance(POLL_MS)
   await new Promise(setImmediate)
   assert.match(head(), / main$/)
+})
+
+const HANG_LIMIT_MS = 1000
+
+test('tool end does not wait for slow git status', { timeout: HANG_LIMIT_MS }, async t => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.pi.setPorcelain(UNTRACKED)
+  const release = s.pi.holdNextExec()
+  t.after(async () => {
+    release()
+    await s.emit('session_shutdown', { reason: 'quit' })
+  })
+
+  await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+  assert.match(s.footerLines()![0]!, / main$/)
+
+  release()
+  await new Promise(setImmediate)
+  assert.match(s.footerLines()![0]!, /\[\?⟨1⟩\]$/)
 })
 
 test('slow older git status does not overwrite newer one', async () => {

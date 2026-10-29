@@ -322,7 +322,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     pi.on('tool_execution_end', async event => {
       if (!isNestedCall(event)) {
         record({ kind: 'toolEnd', id: event.toolCallId, at: now() })
-        await refreshGitStatus()
+        void refreshGitStatus()
       }
     })
 

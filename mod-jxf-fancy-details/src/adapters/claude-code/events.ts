@@ -263,7 +263,7 @@ export function trackEvents(on: On, config: Config): void {
       return await next(e)
     } finally {
       await record($, config, { kind: 'toolEnd', id, at: await $.clock.now() })
-      await refreshGit($, gitRuns)
+      void refreshGit($, gitRuns).catch(() => undefined)
     }
   })
 
