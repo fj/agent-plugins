@@ -50,7 +50,7 @@ const INSTALLERS: Record<Harness, (ctx: LocalContext, deployed: Deployed[]) => P
     for (const { plugin } of deployed) {
       const { name } = plugin.manifest
       const path = deployDir(dataDir, 'pi', name)
-      for (const { source } of packages) if (gitRepoOf(source) === piGitRepo(owner, name)) removePi(run, source)
+      for (const installed of packages) if (gitRepoOf(installed.source) === piGitRepo(owner, name)) removePi(run, installed)
       if (!packages.some((installed) => installed.path === path)) installPi(run, path)
     }
   },
