@@ -80,14 +80,20 @@ export function fakePi() {
   const execs: Exec[] = []
   let thinkingLevel = 'off'
   let porcelain: string | null = ''
+  let nextGate: Promise<void> | undefined
   const api = {
     getThinkingLevel: () => thinkingLevel,
     exec: async (command: string, args: string[], options?: { cwd?: string; timeout?: number }) => {
       execs.push({ command, args, cwd: options?.cwd, timeout: options?.timeout })
+      const result =
+        porcelain === null
+          ? { stdout: '', stderr: 'fatal: not a git repository', code: NOT_A_REPO, killed: false }
+          : { stdout: porcelain, stderr: '', code: 0, killed: false }
+      const gate = nextGate
+      nextGate = undefined
+      await gate
 
-      return porcelain === null
-        ? { stdout: '', stderr: 'fatal: not a git repository', code: NOT_A_REPO, killed: false }
-        : { stdout: porcelain, stderr: '', code: 0, killed: false }
+      return result
     },
     on(name: string, handler: Handler) {
       handlers.set(name, [...(handlers.get(name) ?? []), handler])
@@ -109,6 +115,12 @@ export function fakePi() {
     },
     setPorcelain: (text: string | null) => {
       porcelain = text
+    },
+    holdNextExec: () => {
+      let release = () => {}
+      nextGate = new Promise(resolve => (release = resolve))
+
+      return release
     },
     handlerNames: () => [...handlers.keys()],
     emit: async (name: string, event: object, ctx: ExtensionContext) => {

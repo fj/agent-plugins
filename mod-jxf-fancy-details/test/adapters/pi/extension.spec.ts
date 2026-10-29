@@ -284,6 +284,21 @@ test('footer git status follows tool end, settled agent and refresh tick', async
   assert.match(head(), / main$/)
 })
 
+test('slow older git status does not overwrite newer one', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.pi.setPorcelain(UNTRACKED)
+  const release = s.pi.holdNextExec()
+  s.advance(POLL_MS)
+
+  s.pi.setPorcelain(MODIFIED_AHEAD)
+  await s.emit('agent_settled')
+  release()
+  await new Promise(setImmediate)
+  assert.match(s.footerLines()![0]!, /\[!⟨1⟩⇡⟨2⟩\]$/)
+})
+
 test('footer git status skips git outside tui mode', async () => {
   const s = setup({ mode: 'print' })
 

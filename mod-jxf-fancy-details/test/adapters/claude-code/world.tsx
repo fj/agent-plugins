@@ -29,6 +29,7 @@ export type World = {
   isStatusFailing: boolean
   isStatusTruncated: boolean
   gitCwds: string[]
+  holdNextRun(): () => void
 }
 
 export const USAGE: TurnUsage = {
@@ -73,6 +74,7 @@ export function world(
     settings = {},
   }: WorldOptions = {},
 ): World {
+  let nextGate: Promise<void> | undefined
   const w: World = {
     clock: mock.clock(on, { now: T0 }),
     files: new Map(Object.entries(files)),
@@ -86,6 +88,12 @@ export function world(
     isStatusFailing: false,
     isStatusTruncated: false,
     gitCwds: [],
+    holdNextRun: () => {
+      let release = () => {}
+      nextGate = new Promise(resolve => (release = resolve))
+
+      return release
+    },
   }
   mock.env(on, { HOME, ...env })
 
@@ -137,7 +145,7 @@ export function world(
       })),
     }
   })
-  on('process.run', (_$, e) => {
+  on('process.run', async (_$, e) => {
     w.gitCwds.push(e.init?.cwd ?? '')
 
     if (e.argv[1] === 'status' && w.isStatusFailing) {
@@ -145,13 +153,15 @@ export function world(
     }
 
     const stdout = `# branch.head ${w.branch}\n${w.porcelain}`
+    const value =
+      w.branch === null
+        ? { exitCode: NOT_A_REPO, stdout: '', stderr: 'fatal: not a git repository', isStdoutTruncated: false, isStderrTruncated: false }
+        : { exitCode: 0, stdout, stderr: '', isStdoutTruncated: w.isStatusTruncated, isStderrTruncated: false }
+    const gate = nextGate
+    nextGate = undefined
+    await gate
 
-    return {
-      value:
-        w.branch === null
-          ? { exitCode: NOT_A_REPO, stdout: '', stderr: 'fatal: not a git repository', isStdoutTruncated: false, isStderrTruncated: false }
-          : { exitCode: 0, stdout, stderr: '', isStdoutTruncated: w.isStatusTruncated, isStderrTruncated: false },
-    }
+    return { value }
   })
   on('turn.step', async function* (_$, e) {
     const script = w.scripts.shift() ?? { chunks: [], usage: null }

@@ -4,6 +4,7 @@ import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type Mo
 import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
 import { readGit, SHOW_STATUS } from '../../core/git-status.ts'
+import { latestRun } from '../../core/latest.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
@@ -85,6 +86,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let unpatchToolRows: (() => void) | undefined
     let openStepId: string | undefined
     let gitStatus: string | undefined
+    const gitRuns = latestRun()
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
@@ -134,13 +136,15 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       }
 
       const [command, ...args] = SHOW_STATUS
-      const status = await pi
+      const reading = pi
         .exec(command!, args, { cwd: ctx.cwd, timeout: GIT_TIMEOUT_MS })
         .then(({ code, stdout }) => readGit({ exitCode: code, stdout }).status)
         .catch(() => null)
 
-      gitStatus = status === null ? undefined : gitStatusText(status)
-      tui?.requestRender()
+      await gitRuns(reading, status => {
+        gitStatus = status === null ? undefined : gitStatusText(status)
+        tui?.requestRender()
+      })
     }
 
     async function refreshPolled() {

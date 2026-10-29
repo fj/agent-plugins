@@ -458,6 +458,22 @@ test('footer head keeps branch but drops status when git output is cut off', asy
   expect(text).not.toContain('[')
 })
 
+test('slow older git status does not overwrite newer one', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  w.porcelain = UNTRACKED
+  const release = w.holdNextRun()
+  await w.clock.advance(POLL_MS)
+
+  w.porcelain = MODIFIED_AHEAD
+  await runTool($, w)
+  await w.clock.settle()
+  release()
+  await w.clock.settle()
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [!⟨1⟩⇡⟨2⟩]`)
+})
+
 async function footerRows($: Engine): Promise<string[]> {
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const rows = await liveRows(ui)
