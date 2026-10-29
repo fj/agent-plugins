@@ -377,7 +377,7 @@ test('the footer head shows the git branch of the session directory after the pa
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   expect(shownRows(await ui.drawn())[0]).toBe(`${MODEL_LABEL} · ~/src/projects/fancy · ${BRANCH_GLYPH} main`)
-  expect(w.gitCwds).toEqual([CWD, CWD])
+  expect(w.gitCwds).toEqual([CWD])
 })
 
 test('the footer head leaves out the branch outside a git repository', async ($, on) => {
@@ -400,20 +400,11 @@ test('the footer branch follows a checkout by a tool call and one made outside t
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} topic/y`)
 })
 
-const STARSHIP_TOML = [
-  '[git_status]',
-  'format = "([$all_status]($style))([$ahead_behind]($style blue)) "',
-  'ahead = "⇡⟨${count}⟩"',
-  'modified = "!⟨${count}⟩"',
-  'untracked = "?⟨${count}⟩"',
-  'up_to_date = "✓"',
-].join('\n')
-const STARSHIP_FILES = { [`${HOME}/.config/starship.toml`]: STARSHIP_TOML }
 const MODIFIED_AHEAD = '# branch.ab +2 -0\n1 .M N... 100644 100644 100644 0000 0000 a.ts\n'
 const UNTRACKED = '? b.ts\n'
 
-test('footer head shows git status with Starship symbols in brackets after branch', async ($, on) => {
-  world(on, { branch: 'main', porcelain: MODIFIED_AHEAD, files: STARSHIP_FILES })
+test('footer head shows git status symbols in brackets after branch', async ($, on) => {
+  world(on, { branch: 'main', porcelain: MODIFIED_AHEAD })
   await start($)
 
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
@@ -424,14 +415,14 @@ test('footer head shows git status with Starship symbols in brackets after branc
 })
 
 test('footer head leaves out brackets for clean tree without upstream', async ($, on) => {
-  world(on, { branch: 'main', files: STARSHIP_FILES })
+  world(on, { branch: 'main' })
   await start($)
 
   expect(await footerText($)).not.toContain('[')
 })
 
 test('footer head drops stale git status once git status fails', async ($, on) => {
-  const w = world(on, { branch: 'main', porcelain: UNTRACKED, files: STARSHIP_FILES })
+  const w = world(on, { branch: 'main', porcelain: UNTRACKED })
   await start($)
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [?⟨1⟩]`)
 
@@ -442,22 +433,8 @@ test('footer head drops stale git status once git status fails', async ($, on) =
   expect(text).not.toContain('[')
 })
 
-test('footer git status reads config from STARSHIP_CONFIG', async ($, on) => {
-  world(on, { branch: 'main', porcelain: UNTRACKED, env: { STARSHIP_CONFIG: '/etc/starship.toml' }, files: { '/etc/starship.toml': STARSHIP_TOML } })
-  await start($)
-
-  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [?⟨1⟩]`)
-})
-
-test('footer git status falls back to Starship defaults without config file', async ($, on) => {
-  world(on, { branch: 'main', porcelain: MODIFIED_AHEAD })
-  await start($)
-
-  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [!⇡]`)
-})
-
 test('footer git status follows tool call and outside change', async ($, on) => {
-  const w = world(on, { branch: 'main', files: STARSHIP_FILES })
+  const w = world(on, { branch: 'main' })
   await start($)
 
   w.porcelain = UNTRACKED
@@ -466,6 +443,48 @@ test('footer git status follows tool call and outside change', async ($, on) => 
 
   w.porcelain = MODIFIED_AHEAD
   await w.clock.advance(POLL_MS)
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [!⟨1⟩⇡⟨2⟩]`)
+})
+
+test('footer head keeps branch but drops status when git output is cut off', async ($, on) => {
+  const w = world(on, { branch: 'main', porcelain: UNTRACKED })
+  await start($)
+
+  w.isStatusTruncated = true
+  await runTool($, w)
+  await w.clock.settle()
+  const text = await footerText($)
+  expect(text).toContain(`${BRANCH_GLYPH} main`)
+  expect(text).not.toContain('[')
+})
+
+test('tool call does not wait for slow git status', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  w.porcelain = UNTRACKED
+  const release = w.holdNextRun()
+  await runTool($, w)
+  expect(await footerText($)).not.toContain('[')
+
+  release()
+  await w.clock.settle()
+  expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [?⟨1⟩]`)
+})
+
+test('slow older git status does not overwrite newer one', async ($, on) => {
+  const w = world(on, { branch: 'main' })
+  await start($)
+
+  w.porcelain = UNTRACKED
+  const release = w.holdNextRun()
+  await w.clock.advance(POLL_MS)
+
+  w.porcelain = MODIFIED_AHEAD
+  await runTool($, w)
+  await w.clock.settle()
+  release()
+  await w.clock.settle()
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [!⟨1⟩⇡⟨2⟩]`)
 })
 

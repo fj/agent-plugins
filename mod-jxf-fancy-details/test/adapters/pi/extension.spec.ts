@@ -6,7 +6,6 @@ import { paintTimer } from '../../../src/adapters/pi/paint.ts'
 import type { ToolRow } from '../../../src/adapters/pi/tool-rows.ts'
 import type { FancyConfig } from '../../../src/config/config.ts'
 import { ZERO_TOTALS } from '../../../src/core/totals.ts'
-import { STARSHIP_TOML } from '../../starship-fixture.ts'
 import { fakeCtx, fakePi, fakeTui, footerData, measure, memoryStore, plain, type CtxOptions, type FakeEntry } from './fakes.ts'
 
 const T0 = new Date(2026, 9, 3, 4, 20, 37).getTime()
@@ -36,7 +35,6 @@ type SetupOptions = CtxOptions & {
   others?: number
   config?: FancyConfig
   env?: Record<string, string>
-  starship?: Record<string, string>
 }
 
 function setup(options: SetupOptions = {}) {
@@ -56,7 +54,6 @@ function setup(options: SetupOptions = {}) {
     configPath: '/nowhere/mod-jxf-fancy-details.json',
     toolRows: FakeToolRow.prototype,
     readConfig: () => options.config ?? {},
-    readStarshipConfig: path => options.starship?.[path],
     now: () => clock,
     env: options.env ?? {},
     newId: () => `id${(ids += 1)}`,
@@ -231,12 +228,11 @@ test('the footer head leaves out the branch outside a git repository', async () 
   assert.match(head!, /^ +anthropic\/claude-opus-5-5 · ~\/src\/projects\/demo$/)
 })
 
-const STARSHIP = { '/home/j/.config/starship.toml': STARSHIP_TOML }
 const MODIFIED_AHEAD = '# branch.ab +2 -0\n1 .M N... 100644 100644 100644 0000 0000 a.ts\n'
 const UNTRACKED = '? b.ts\n'
 
-test('footer head shows git status with Starship symbols in brackets after branch', async () => {
-  const s = setup({ starship: STARSHIP })
+test('footer head shows git status symbols in brackets after branch', async () => {
+  const s = setup()
 
   s.pi.setPorcelain(MODIFIED_AHEAD)
   await s.emit('session_start', { reason: 'startup' })
@@ -250,7 +246,7 @@ test('footer head shows git status with Starship symbols in brackets after branc
 })
 
 test('footer head drops stale git status once git fails', async () => {
-  const s = setup({ starship: STARSHIP })
+  const s = setup()
 
   s.pi.setPorcelain(UNTRACKED)
   await s.emit('session_start', { reason: 'startup' })
@@ -262,29 +258,21 @@ test('footer head drops stale git status once git fails', async () => {
 })
 
 test('footer head leaves out brackets for clean tree', async () => {
-  const s = setup({ starship: STARSHIP })
+  const s = setup()
 
   await s.emit('session_start', { reason: 'startup' })
   assert.match(s.footerLines()![0]!, / · \ue0a0 main$/)
 })
 
-test('footer git status reads config from STARSHIP_CONFIG', async () => {
-  const s = setup({ env: { STARSHIP_CONFIG: '/etc/starship.toml' }, starship: { '/etc/starship.toml': STARSHIP_TOML } })
-
-  s.pi.setPorcelain(UNTRACKED)
-  await s.emit('session_start', { reason: 'startup' })
-
-  assert.match(s.footerLines()![0]!, /\ue0a0 main \[\?⟨1⟩\]$/)
-})
-
 test('footer git status follows tool end, settled agent and refresh tick', async () => {
-  const s = setup({ starship: STARSHIP })
+  const s = setup()
   const head = () => s.footerLines()![0]!
 
   await s.emit('session_start', { reason: 'startup' })
 
   s.pi.setPorcelain(UNTRACKED)
   await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+  await new Promise(setImmediate)
   assert.match(head(), /\[\?⟨1⟩\]$/)
 
   s.pi.setPorcelain(MODIFIED_AHEAD)
@@ -295,6 +283,42 @@ test('footer git status follows tool end, settled agent and refresh tick', async
   s.advance(POLL_MS)
   await new Promise(setImmediate)
   assert.match(head(), / main$/)
+})
+
+const HANG_LIMIT_MS = 1000
+
+test('tool end does not wait for slow git status', { timeout: HANG_LIMIT_MS }, async t => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.pi.setPorcelain(UNTRACKED)
+  const release = s.pi.holdNextExec()
+  t.after(async () => {
+    release()
+    await s.emit('session_shutdown', { reason: 'quit' })
+  })
+
+  await s.emit('tool_execution_end', { toolCallId: 'tool-1' })
+  assert.match(s.footerLines()![0]!, / main$/)
+
+  release()
+  await new Promise(setImmediate)
+  assert.match(s.footerLines()![0]!, /\[\?⟨1⟩\]$/)
+})
+
+test('slow older git status does not overwrite newer one', async () => {
+  const s = setup()
+
+  await s.emit('session_start', { reason: 'startup' })
+  s.pi.setPorcelain(UNTRACKED)
+  const release = s.pi.holdNextExec()
+  s.advance(POLL_MS)
+
+  s.pi.setPorcelain(MODIFIED_AHEAD)
+  await s.emit('agent_settled')
+  release()
+  await new Promise(setImmediate)
+  assert.match(s.footerLines()![0]!, /\[!⟨1⟩⇡⟨2⟩\]$/)
 })
 
 test('footer git status skips git outside tui mode', async () => {

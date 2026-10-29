@@ -1,10 +1,10 @@
 import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 
 import { footerLayout, subscriptionName, tokenDisplay, type FancyConfig, type ModelInfo } from '../../config/config.ts'
-import { gitStatusConfig, starshipConfigPath } from '../../config/starship.ts'
 import { cacheRemainingMs } from '../../core/cache.ts'
 import type { DailyStore } from '../../core/daily.ts'
-import { gitStatusFrom, SHOW_STATUS } from '../../core/git-status.ts'
+import { readGit, SHOW_STATUS } from '../../core/git-status.ts'
+import { latestRun } from '../../core/latest.ts'
 import { isJournalRecord, type JournalRecord } from '../../core/journal.ts'
 import type { QuotaReading } from '../../core/quota.ts'
 import { sessionTracker, type SessionTracker } from '../../core/tracker.ts'
@@ -16,7 +16,7 @@ import { pulseClock } from '../../render/pulse.ts'
 import { subscriptionStrategy, type SubscriptionStrategy } from '../../strategies/subscription/index.ts'
 import { usageStrategy, type UsageStrategy } from '../../strategies/usage/index.ts'
 import { cacheTtlMs, type Env } from './cache.ts'
-import { readConfig, readOptionalText } from './config.ts'
+import { readConfig } from './config.ts'
 import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
 import { ticker } from './ticker.ts'
@@ -40,7 +40,6 @@ export type FancyDeps = {
   configPath: string
   toolRows?: ToolRowPrototype
   readConfig?: (path: string) => FancyConfig
-  readStarshipConfig?: (path: string) => string | undefined
   now?: () => number
   newId?: () => string
   env?: Env
@@ -72,7 +71,6 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
   const now = deps.now ?? Date.now
   const newId = deps.newId ?? (() => crypto.randomUUID())
   const loadConfig = deps.readConfig ?? readConfig
-  const loadStarshipConfig = deps.readStarshipConfig ?? readOptionalText
   const env = deps.env ?? process.env
 
   return pi => {
@@ -88,6 +86,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let unpatchToolRows: (() => void) | undefined
     let openStepId: string | undefined
     let gitStatus: string | undefined
+    const gitRuns = latestRun()
     let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
@@ -137,14 +136,15 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       }
 
       const [command, ...args] = SHOW_STATUS
-      const status = await pi
+      const reading = pi
         .exec(command!, args, { cwd: ctx.cwd, timeout: GIT_TIMEOUT_MS })
-        .then(({ code, stdout }) => gitStatusFrom({ exitCode: code, stdout }))
+        .then(({ code, stdout }) => readGit({ exitCode: code, stdout }).status)
         .catch(() => null)
-      const starship = gitStatusConfig(loadStarshipConfig(starshipConfigPath(env, deps.home)))
 
-      gitStatus = status === null ? undefined : gitStatusText(status, starship)
-      tui?.requestRender()
+      await gitRuns(reading, status => {
+        gitStatus = status === null ? undefined : gitStatusText(status)
+        tui?.requestRender()
+      })
     }
 
     async function refreshPolled() {
@@ -322,7 +322,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     pi.on('tool_execution_end', async event => {
       if (!isNestedCall(event)) {
         record({ kind: 'toolEnd', id: event.toolCallId, at: now() })
-        await refreshGitStatus()
+        void refreshGitStatus()
       }
     })
 

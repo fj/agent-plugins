@@ -6,14 +6,17 @@ export type GitStatus = {
   deleted: number
   renamed: number
   modified: number
-  typechanged: number
   staged: number
   untracked: number
   ahead?: number
   behind?: number
 }
 
-type GitOutput = { exitCode: number; stdout: string }
+type GitOutput = { exitCode: number; stdout: string; isStdoutTruncated?: boolean }
+
+export type GitReading = { branch: string | null; status: GitStatus | null }
+
+const NO_GIT: GitReading = { branch: null, status: null }
 
 const EMPTY_STATUS: GitStatus = {
   conflicted: 0,
@@ -21,16 +24,18 @@ const EMPTY_STATUS: GitStatus = {
   deleted: 0,
   renamed: 0,
   modified: 0,
-  typechanged: 0,
   staged: 0,
   untracked: 0,
 }
 
+const BRANCH_HEAD = /^# branch\.head (.+)$/m
+const DETACHED = '(detached)'
 const AHEAD_BEHIND = /^# branch\.ab \+(\d+) -(\d+)$/
 const STASH = /^# stash (\d+)$/
 const CHANGED = /^[12] (\S\S) /
 const CONFLICTED = 'u '
 const UNTRACKED = '? '
+const STAGED_CODES = 'MADRCT'
 
 const count = (isCounted: boolean) => (isCounted ? 1 : 0)
 
@@ -42,8 +47,7 @@ function addChange(status: GitStatus, [index, worktree]: string): GitStatus {
     deleted: status.deleted + count(xy.includes('D')),
     renamed: status.renamed + count(xy.includes('R')),
     modified: status.modified + count(worktree === 'M' || worktree === 'A'),
-    typechanged: status.typechanged + count(worktree === 'T'),
-    staged: status.staged + count(index === 'M' || index === 'A' || index === 'T'),
+    staged: status.staged + count(STAGED_CODES.includes(index)),
   }
 }
 
@@ -75,6 +79,16 @@ function parseGitStatus(stdout: string): GitStatus {
   return stdout.split('\n').reduce(addLine, EMPTY_STATUS)
 }
 
-export function gitStatusFrom({ exitCode, stdout }: GitOutput): GitStatus | null {
-  return exitCode === 0 ? parseGitStatus(stdout) : null
+function branchOf(stdout: string): string | null {
+  const head = BRANCH_HEAD.exec(stdout)?.[1]
+
+  return head === undefined || head === DETACHED ? null : head
+}
+
+export function readGit({ exitCode, stdout, isStdoutTruncated = false }: GitOutput): GitReading {
+  if (exitCode !== 0) {
+    return NO_GIT
+  }
+
+  return { branch: branchOf(stdout), status: isStdoutTruncated ? null : parseGitStatus(stdout) }
 }
