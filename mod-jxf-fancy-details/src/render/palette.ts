@@ -20,4 +20,8 @@ export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   warning: '#ff6b6b',
 }
 
+export const BACKGROUND: Readonly<Partial<Record<Role, string>>> = {
+  warning: '#8b1a1a',
+}
+
 export const DONE_TIMER_COLOR = '#8a8a8a'

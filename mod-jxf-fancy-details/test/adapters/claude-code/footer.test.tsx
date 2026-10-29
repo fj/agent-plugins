@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { Engine, Mounted } from 'claude-code/testing'
 
-import { PALETTE } from '../../../src/render/palette.ts'
+import { BACKGROUND, PALETTE } from '../../../src/render/palette.ts'
 import {
   CWD,
   dayDirOf,
@@ -313,15 +313,61 @@ test(
 )
 
 const BRANCH_GLYPH = ''
+const WARNING_MARK = /^⚠$/
+const PULSE_FRAMES_MS = 300
+const WARNING_PULSE_MS = 3600
+const ROOT_DIR = '/'
 
-test('the footer head warns in the warning color when the session directory is home', async ($, on) => {
+test('footer head warns in warning colors when session directory is home', async ($, on) => {
   world(on, { cwd: HOME })
   await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
 
-  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'vscode', component: 'SessionMode', props: { modes: [] } })
   const drawn = await ui.drawn()
   expect(shownRows(drawn)[0]).toBe(`${MODEL_LABEL} · ⚠ ~`)
   expect(shownColors(shownColumn(drawn)?.children?.[0])).toContain(PALETTE.warning)
+  expect((await ui.find({ text: WARNING_MARK }))?.props.backgroundColor).toBe(BACKGROUND.warning)
+  await ui.unmount()
+})
+
+test('footer head pulses warning background for few seconds, then holds it bright', async ($, on) => {
+  world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const key = (await ui.find({ type: 'Client' }))?.key
+    expect(key).toBeDefined()
+    expect((await liveRows(ui))[0]).toBe(`${MODEL_LABEL} · ⚠ ~`)
+
+    const mark = async () => (await ui.find({ in: key, text: WARNING_MARK }))?.props
+    expect(await mark()).toMatchObject({ color: PALETTE.warning, backgroundColor: BACKGROUND.warning })
+
+    await ui.advance(PULSE_FRAMES_MS)
+    expect((await mark())?.backgroundColor).not.toBe(BACKGROUND.warning)
+
+    await ui.advance(WARNING_PULSE_MS)
+    expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
+    await ui.advance(PULSE_FRAMES_MS)
+    expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
+    await ui.unmount()
+  }
+})
+
+test('footer head pulses warning background again after directory change', async ($, on) => {
+  const w = world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
+  const key = (await ui.find({ type: 'Client' }))?.key
+  const background = async () => (await ui.find({ in: key, text: WARNING_MARK }))?.props.backgroundColor
+  await ui.advance(WARNING_PULSE_MS)
+  expect(await background()).toBe(BACKGROUND.warning)
+
+  w.cwd = ROOT_DIR
+  await ui.redraw()
+  await ui.advance(PULSE_FRAMES_MS)
+  expect(await background()).not.toBe(BACKGROUND.warning)
   await ui.unmount()
 })
 

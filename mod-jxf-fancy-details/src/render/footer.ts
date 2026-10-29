@@ -80,7 +80,7 @@ function effortSegments(effort: string | undefined): Line {
 }
 
 function warningSegments(cwd: string, home: string): Line {
-  return isHomeOrAncestor(cwd, home) ? [seg(`${WARNING_SYMBOL} `, 'warning')] : []
+  return isHomeOrAncestor(cwd, home) ? [seg(WARNING_SYMBOL, 'warning'), seg(' ')] : []
 }
 
 export function footerHead(input: FooterInput): Line {

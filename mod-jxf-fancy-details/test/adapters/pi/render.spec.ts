@@ -12,6 +12,11 @@ test('painting uses truecolor and leaves plain text alone', () => {
   assert.equal(plain(paintLine([seg('a', 'cost'), seg('b')])), 'ab')
 })
 
+test('warning part gets truecolor foreground and background in one escape; other parts get no background', () => {
+  assert.equal(paintLine([seg('!', 'warning')]), '\x1b[38;2;255;107;107;48;2;139;26;26m!\x1b[39;49m')
+  assert.doesNotMatch(paintLine([seg('a', 'cost')]), /\x1b\[48;/)
+})
+
 test('a live timer shimmers per character; a stopped one is a single gray run', () => {
   const live = paintTimer({ text: 'abc', isLive: true }, 0)
   const done = paintTimer({ text: 'abc', isLive: false }, 0)
