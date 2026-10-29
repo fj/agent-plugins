@@ -64,3 +64,7 @@ test('nothing is known when git fails', () => {
   assert.deepEqual(readGit({ exitCode: NOT_A_REPO, stdout: '' }), { branch: null, status: null })
   assert.equal(readGit({ exitCode: 0, stdout: '# branch.ab +0 -0\n' }).status?.ahead, 0)
 })
+
+test('cut-off output keeps branch but drops status', () => {
+  assert.deepEqual(readGit({ exitCode: 0, stdout: PORCELAIN, isStdoutTruncated: true }), { branch: 'main', status: null })
+})

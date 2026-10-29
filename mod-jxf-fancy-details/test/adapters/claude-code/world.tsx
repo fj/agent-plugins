@@ -27,6 +27,7 @@ export type World = {
   cwd: string
   porcelain: string
   isStatusFailing: boolean
+  isStatusTruncated: boolean
   gitCwds: string[]
 }
 
@@ -83,6 +84,7 @@ export function world(
     cwd,
     porcelain,
     isStatusFailing: false,
+    isStatusTruncated: false,
     gitCwds: [],
   }
   mock.env(on, { HOME, ...env })
@@ -148,7 +150,7 @@ export function world(
       value:
         w.branch === null
           ? { exitCode: NOT_A_REPO, stdout: '', stderr: 'fatal: not a git repository', isStdoutTruncated: false, isStderrTruncated: false }
-          : { exitCode: 0, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+          : { exitCode: 0, stdout, stderr: '', isStdoutTruncated: w.isStatusTruncated, isStderrTruncated: false },
     }
   })
   on('turn.step', async function* (_$, e) {

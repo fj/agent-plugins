@@ -12,7 +12,7 @@ export type GitStatus = {
   behind?: number
 }
 
-type GitOutput = { exitCode: number; stdout: string }
+type GitOutput = { exitCode: number; stdout: string; isStdoutTruncated?: boolean }
 
 export type GitReading = { branch: string | null; status: GitStatus | null }
 
@@ -85,10 +85,10 @@ function branchOf(stdout: string): string | null {
   return head === undefined || head === DETACHED ? null : head
 }
 
-export function readGit({ exitCode, stdout }: GitOutput): GitReading {
+export function readGit({ exitCode, stdout, isStdoutTruncated = false }: GitOutput): GitReading {
   if (exitCode !== 0) {
     return NO_GIT
   }
 
-  return { branch: branchOf(stdout), status: parseGitStatus(stdout) }
+  return { branch: branchOf(stdout), status: isStdoutTruncated ? null : parseGitStatus(stdout) }
 }

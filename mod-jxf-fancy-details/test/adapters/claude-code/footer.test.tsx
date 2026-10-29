@@ -446,6 +446,18 @@ test('footer git status follows tool call and outside change', async ($, on) => 
   expect(await footerText($)).toContain(`${BRANCH_GLYPH} main [!⟨1⟩⇡⟨2⟩]`)
 })
 
+test('footer head keeps branch but drops status when git output is cut off', async ($, on) => {
+  const w = world(on, { branch: 'main', porcelain: UNTRACKED })
+  await start($)
+
+  w.isStatusTruncated = true
+  await runTool($, w)
+  await w.clock.settle()
+  const text = await footerText($)
+  expect(text).toContain(`${BRANCH_GLYPH} main`)
+  expect(text).not.toContain('[')
+})
+
 async function footerRows($: Engine): Promise<string[]> {
   const ui = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'SessionMode', props: { modes: [] } })
   const rows = await liveRows(ui)
