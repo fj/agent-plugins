@@ -66,6 +66,19 @@ test('extra usage mark pulses for as long as it shows', () => {
   assert.equal(hasPulse([seg(' (!)', 'overage')], later), true)
 })
 
+test('warned path flashes warning background while warning pulses', () => {
+  assert.equal(roleBackground('warnedPath', 0), BACKGROUND.warning)
+  assert.equal(roleBackground('warnedPath', PERIOD_MS / 2), roleBackground('warning', PERIOD_MS / 2))
+})
+
+test('warned path drops its background once warning settles', () => {
+  const settled = PERIOD_MS * 10
+
+  assert.equal(roleBackground('warnedPath', settled), undefined)
+  assert.equal(roleBackground('warnedPath'), undefined)
+  assert.equal(roleColor('warnedPath', 0), PALETTE.path)
+})
+
 test('warning foreground stays at palette color at every moment', () => {
   assert.equal(roleColor('warning', 0), PALETTE.warning)
   assert.equal(roleColor('warning', PERIOD_MS / 2), PALETTE.warning)

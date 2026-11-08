@@ -314,6 +314,7 @@ test(
 
 const BRANCH_GLYPH = ''
 const WARNING_MARK = /^⚠$/
+const HOME_PATH = /^~$/
 const PULSE_FRAMES_MS = 300
 const WARNING_PULSE_MS = 3600
 const ROOT_DIR = '/'
@@ -350,6 +351,23 @@ test('footer head pulses warning background for few seconds, then holds it brigh
     expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
     await ui.advance(PULSE_FRAMES_MS)
     expect((await mark())?.backgroundColor).toBe(BACKGROUND.warning)
+    await ui.unmount()
+  }
+})
+
+test('footer head flashes home path with warning background, then drops it', async ($, on) => {
+  world(on, { cwd: HOME })
+  await $.session.start({ cwd: HOME, surface: 'terminal', isInteractive: true })
+
+  for (const surface of LIVE_SURFACES) {
+    const ui = await $.ui.mount({ plugin: PLUGIN, surface, component: 'SessionMode', props: { modes: [] } })
+    const key = (await ui.find({ type: 'Client' }))?.key
+    const path = async () => (await ui.find({ in: key, text: HOME_PATH }))?.props
+    expect(await path()).toMatchObject({ color: PALETTE.path, backgroundColor: BACKGROUND.warning })
+
+    await ui.advance(WARNING_PULSE_MS + PULSE_FRAMES_MS)
+    expect(await path()).toMatchObject({ color: PALETTE.path })
+    expect((await path())?.backgroundColor).toBeUndefined()
     await ui.unmount()
   }
 })

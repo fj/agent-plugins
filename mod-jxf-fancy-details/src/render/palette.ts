@@ -1,6 +1,7 @@
 import type { Role } from './segment.ts'
 
 const CACHE_COLOR = '#7fd7c4'
+const PATH_COLOR = '#8fc7ff'
 
 export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   plain: undefined,
@@ -13,7 +14,8 @@ export const PALETTE: Readonly<Record<Role, string | undefined>> = {
   output: '#ffb86b',
   cost: '#9be27f',
   model: '#d7a8ff',
-  path: '#8fc7ff',
+  path: PATH_COLOR,
+  warnedPath: PATH_COLOR,
   branch: '#f5a3c7',
   gitStatus: '#ff8a80',
   meter: '#f0c674',

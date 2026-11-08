@@ -10,6 +10,7 @@ export type Role =
   | 'cost'
   | 'model'
   | 'path'
+  | 'warnedPath'
   | 'branch'
   | 'gitStatus'
   | 'meter'
