@@ -758,10 +758,12 @@ test('the pulse stops when the session shuts down', async () => {
 })
 
 const WARNING_BACKGROUND = /\x1b\[38;2;\d+;\d+;\d+;48;2;(\d+;\d+;\d+)m⚠/
+const PATH_BACKGROUND = /\x1b\[38;2;\d+;\d+;\d+;48;2;(\d+;\d+;\d+)m~/
 const BRIGHT_WARNING_BACKGROUND = '139;26;26'
 const WARNING_PULSE_MS = 3600
 
 const warningBackground = (s: ReturnType<typeof setup>) => WARNING_BACKGROUND.exec(s.paintedFooter()![0]!)?.[1]
+const pathBackground = (s: ReturnType<typeof setup>) => PATH_BACKGROUND.exec(s.paintedFooter()![0]!)?.[1]
 
 async function startAtHome() {
   const s = setup({ cwd: '/home/j' })
@@ -786,6 +788,15 @@ test('home warning background stops pulsing after few seconds and stays bright',
   s.advance(WARNING_PULSE_MS)
   assert.equal(warningBackground(s), BRIGHT_WARNING_BACKGROUND)
   assert.equal(ticks(s), 0)
+})
+
+test('home path flashes with warning background, then drops it', async () => {
+  const s = await startAtHome()
+
+  assert.equal(pathBackground(s), BRIGHT_WARNING_BACKGROUND)
+  s.advance(WARNING_PULSE_MS)
+  assert.equal(pathBackground(s), undefined)
+  assert.match(s.paintedFooter()![0]!, /~/)
 })
 
 test('home warning background pulses again on new session', async () => {

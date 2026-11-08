@@ -10,14 +10,17 @@ const CHANNEL_WIDTH = 2
 const CHANNELS = [1, 3, 5]
 const FULL_TURN = 2 * Math.PI
 
-type Pulse = { dim: string; lastsMs: number }
+type Pulse = { dim: string; bright?: string; lastsMs: number }
+
+const WARNING_PULSE: Pulse = { dim: DIM_BACKGROUND, lastsMs: WARNING_PULSES * PULSE_PERIOD_MS }
 
 const FOREGROUND_PULSES: Readonly<Partial<Record<Role, Pulse>>> = {
   overage: { dim: DIM_COLOR, lastsMs: Infinity },
 }
 
 const BACKGROUND_PULSES: Readonly<Partial<Record<Role, Pulse>>> = {
-  warning: { dim: DIM_BACKGROUND, lastsMs: WARNING_PULSES * PULSE_PERIOD_MS },
+  warning: WARNING_PULSE,
+  warnedPath: { ...WARNING_PULSE, bright: BACKGROUND.warning },
 }
 
 const isLive = (pulse: Pulse | undefined, elapsedMs: number): pulse is Pulse => pulse !== undefined && elapsedMs < pulse.lastsMs
@@ -37,9 +40,11 @@ function mix(from: string, to: string, amount: number): string {
     .join('')}`
 }
 
-function shade(bright: string | undefined, pulse: Pulse | undefined, elapsedMs: number | undefined): string | undefined {
+function shade(steady: string | undefined, pulse: Pulse | undefined, elapsedMs: number | undefined): string | undefined {
+  const bright = pulse?.bright ?? steady
+
   if (bright === undefined || elapsedMs === undefined || !isLive(pulse, elapsedMs)) {
-    return bright
+    return steady
   }
 
   const phase = (elapsedMs % PULSE_PERIOD_MS) / PULSE_PERIOD_MS

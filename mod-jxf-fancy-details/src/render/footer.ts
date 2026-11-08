@@ -86,8 +86,12 @@ function effortSegments(effort: string | undefined): Line {
   return effort === undefined ? [] : [seg(` (${effort})`, 'muted')]
 }
 
-function warningSegments(cwd: string, home: string): Line {
-  return isHomeOrAncestor(cwd, home) ? [seg(WARNING_SYMBOL, 'warning'), seg(' ')] : []
+function pathSegments({ cwd, home, maxPathWidth }: FooterInput): Line {
+  const path = shortenPath(cwd, home, maxPathWidth)
+
+  return isHomeOrAncestor(cwd, home)
+    ? [seg(WARNING_SYMBOL, 'warning'), seg(' ', 'warnedPath'), seg(path, 'warnedPath')]
+    : [seg(path, 'path')]
 }
 
 export function footerHead(input: FooterInput): Line {
@@ -95,8 +99,7 @@ export function footerHead(input: FooterInput): Line {
     seg(input.model, 'model'),
     ...effortSegments(input.effort),
     seg(' · ', 'muted'),
-    ...warningSegments(input.cwd, input.home),
-    seg(shortenPath(input.cwd, input.home, input.maxPathWidth), 'path'),
+    ...pathSegments(input),
     ...branchSegments(input.branch, input.gitStatus),
   ]
 }

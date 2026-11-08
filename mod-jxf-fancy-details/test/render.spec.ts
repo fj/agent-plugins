@@ -208,7 +208,7 @@ test('the footer head warns before the path when the path is home or one of its 
     const [head] = footer({ ...FOOTER_INPUT, cwd })
 
     assert.equal(lineText(head!), text, cwd)
-    assert.equal(head![2]?.role, 'warning', cwd)
+    assert.deepEqual(head!.slice(2, 5).map(part => part.role), ['warning', 'warnedPath', 'warnedPath'], cwd)
   }
 })
 
@@ -216,6 +216,7 @@ test('the footer head does not warn below home', () => {
   const [head] = footer({ ...FOOTER_INPUT, cwd: '/home/j/src' })
 
   assert.equal(head!.some(part => part.role === 'warning'), false)
+  assert.equal(head!.some(part => part.role === 'warnedPath'), false)
 })
 
 test('the footer splits total input into new and cached input when asked', () => {
