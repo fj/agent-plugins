@@ -1,4 +1,4 @@
-export type Catalog = "anthropic" | "azure-openai-responses";
+export type Catalog = "anthropic" | "azure-openai-responses" | "google-vertex";
 
 export interface CatalogModel {
   id: string;
