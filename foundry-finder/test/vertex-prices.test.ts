@@ -36,13 +36,14 @@ describe("toPriceTable", () => {
     });
   });
 
-  it("drops batch, CodeMender, non-text, and non-token SKUs", () => {
+  it("drops batch, CodeMender, non-text, non-token, and unpriced SKUs", () => {
     const table = toPriceTable([
       sku("Gemini 3.5 Flash Global Text Output - Batch Predictions", 1),
       sku("CodeMender Gemini 4 Argon Global Text Output", 1),
       sku("Gemini 3.1 Flash Image Regional Image Output - Online Predictions", 1),
       sku("Gemini 4 Argon Global Text Output - Online Predictions", 1, "h"),
       { description: "Gemini 4 Argon Regional Text Output - Online Predictions" },
+      sku("Gemini 4 Argon Regional Text Input - Online Predictions", 1, "count", "not a number"),
     ]);
     assert.deepEqual(table, {});
   });
@@ -150,6 +151,8 @@ describe("filePriceStore", () => {
     await writeFile(path, "{ not json");
     assert.equal(filePriceStore(path).load(), undefined);
     await writeFile(path, JSON.stringify({ prices: {} }));
+    assert.equal(filePriceStore(path).load(), undefined);
+    await writeFile(path, JSON.stringify({ fetchedAt: 1, prices: null }));
     assert.equal(filePriceStore(path).load(), undefined);
   });
 });

@@ -97,7 +97,20 @@ describe("registerVertexResources", () => {
     assert.equal(registration.name, "Acme");
     assert.equal(registration.api, "google-vertex");
     assert.equal(registration.apiKey, "gcp-vertex-credentials");
+    assert.equal(registration.baseUrl, "https://{location}-aiplatform.googleapis.com");
     assert.equal(registration.streamSimple({}, {}).env.GOOGLE_CLOUD_PROJECT, "acme-project");
+  });
+
+  it("prices a regional resource with the Regional SKUs", async () => {
+    const regional = { ...RESOURCE, location: "us-central1" };
+    const prices = {
+      "Gemini 4 Argon Global Text Output - Online Predictions": 20,
+      "Gemini 4 Argon Regional Text Output - Online Predictions": 22,
+    };
+    const { dependencies, registered } = harness({ fetchedAt: NOW, prices });
+    await registerVertexResources([regional], dependencies);
+    assert.equal(outputPrice(registered[0][1], "gemini-4-argon"), 22);
+    assert.equal(registered[0][1].streamSimple({}, {}).env.GOOGLE_CLOUD_LOCATION, "us-central1");
   });
 
   it("discovers with the resolved token and the resource project", async () => {
