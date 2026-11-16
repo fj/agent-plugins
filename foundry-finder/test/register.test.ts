@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { Catalog, CatalogModel } from "../src/catalog.ts";
 import type { FoundryResourceConfig } from "../src/config.ts";
 import type { Deployment } from "../src/discovery.ts";
-import type { Catalog, CatalogModel } from "../src/models.ts";
 import { registerResource, type ProviderRegistration, type RegisterDependencies } from "../src/register.ts";
 
 const RESOURCE: FoundryResourceConfig = {

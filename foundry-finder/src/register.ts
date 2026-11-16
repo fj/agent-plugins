@@ -1,7 +1,8 @@
+import type { CatalogLookup } from "./catalog.ts";
 import { resolveSecret, type FoundryResourceConfig } from "./config.ts";
 import { fetchDeployments, type Deployment } from "./discovery.ts";
 import { LOG_PREFIX } from "./log.ts";
-import { toModelConfig, type CatalogLookup } from "./models.ts";
+import { toModelConfig } from "./models.ts";
 
 export interface ProviderRegistration {
   name: string;

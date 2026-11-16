@@ -1,8 +1,6 @@
 import { family, pickTemplate, type Catalog, type CatalogLookup } from "./catalog.ts";
 import type { Deployment } from "./discovery.ts";
 
-export type { Catalog, CatalogLookup, CatalogModel } from "./catalog.ts";
-
 interface Route {
   api: "anthropic-messages" | "openai-responses";
   path: string;
