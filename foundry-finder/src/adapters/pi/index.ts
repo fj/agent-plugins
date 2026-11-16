@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { parseConfig, type ResourceConfig } from "../../config.ts";
+import { parseConfig, type FoundryResourceConfig, type ResourceConfig } from "../../config.ts";
 import type { CatalogLookup } from "../../models.ts";
 import { LOG_PREFIX, registerResource } from "../../register.ts";
 
@@ -23,5 +23,6 @@ export default async function (pi: ExtensionAPI) {
   }
 
   const registerProvider = pi.registerProvider.bind(pi);
-  await Promise.all(resources.map((resource) => registerResource(resource, { registerProvider, lookup })));
+  const foundry = resources.filter((resource): resource is FoundryResourceConfig => resource.type !== "vertex");
+  await Promise.all(foundry.map((resource) => registerResource(resource, { registerProvider, lookup })));
 }

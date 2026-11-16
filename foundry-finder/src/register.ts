@@ -1,4 +1,4 @@
-import { resolveSecret, type ResourceConfig } from "./config.ts";
+import { resolveSecret, type FoundryResourceConfig } from "./config.ts";
 import { fetchDeployments, type Deployment } from "./discovery.ts";
 import { toModelConfig, type CatalogLookup } from "./models.ts";
 
@@ -21,7 +21,7 @@ export interface RegisterDependencies {
 
 /** Discovers one resource's deployments and registers them as a provider; logs and skips the resource on failure. */
 export async function registerResource(
-  resource: ResourceConfig,
+  resource: FoundryResourceConfig,
   {
     registerProvider,
     lookup,

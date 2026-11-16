@@ -39,6 +39,57 @@ describe("parseConfig", () => {
     const bad = { resources: [{ ...resource, apiKey: "" }] };
     assert.throws(() => parseConfig(JSON.stringify(bad)), /resources\[0\]\.apiKey/);
   });
+
+  it("accepts an explicit foundry type", () => {
+    const [parsed] = parseConfig(JSON.stringify({ resources: [{ ...resource, type: "foundry" }] }));
+    assert.equal(parsed.type, "foundry");
+  });
+
+  it("rejects an unknown type", () => {
+    const bad = { resources: [{ ...resource, type: "bedrock" }] };
+    assert.throws(() => parseConfig(JSON.stringify(bad)), /resources\[0\]\.type/);
+  });
+});
+
+describe("parseConfig for Vertex resources", () => {
+  const vertex = { type: "vertex", provider: "acme-vertex", project: "acme-project" };
+
+  function parseOne(raw: Record<string, unknown>) {
+    return parseConfig(JSON.stringify({ resources: [raw] }))[0];
+  }
+
+  it("defaults the name, location, and access token without Foundry fields", () => {
+    assert.deepEqual(parseOne(vertex), {
+      type: "vertex",
+      provider: "acme-vertex",
+      name: "acme-vertex",
+      project: "acme-project",
+      location: "global",
+      accessToken: "!gcloud auth application-default print-access-token",
+    });
+  });
+
+  it("keeps a configured name, location, and access token", () => {
+    const configured = { ...vertex, name: "Acme", location: "us-central1", accessToken: "$TOKEN" };
+    assert.deepEqual(parseOne(configured), configured);
+  });
+
+  it("rejects a missing project", () => {
+    const { project, ...bad } = vertex;
+    assert.throws(() => parseOne(bad), /resources\[0\]\.project/);
+  });
+
+  it("rejects an invalid location", () => {
+    assert.throws(() => parseOne({ ...vertex, location: "https://us-central1" }), /resources\[0\]\.location/);
+  });
+
+  it("rejects an empty access token", () => {
+    assert.throws(() => parseOne({ ...vertex, accessToken: "" }), /resources\[0\]\.accessToken/);
+  });
+
+  it("rejects an invalid provider id", () => {
+    assert.throws(() => parseOne({ ...vertex, provider: "Acme Vertex" }), /resources\[0\]\.provider/);
+  });
 });
 
 describe("resolveSecret", () => {
