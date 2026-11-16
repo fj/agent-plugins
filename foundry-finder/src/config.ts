@@ -32,6 +32,16 @@ export function parseConfig(text: string): ResourceConfig[] {
   return resources.map(parseResource);
 }
 
+/** Splits resources by kind; an entry without a `type` is a Foundry resource. */
+export function splitResources(resources: ResourceConfig[]): {
+  foundry: FoundryResourceConfig[];
+  vertex: VertexResourceConfig[];
+} {
+  const vertex = resources.filter((resource): resource is VertexResourceConfig => resource.type === "vertex");
+  const foundry = resources.filter((resource): resource is FoundryResourceConfig => resource.type !== "vertex");
+  return { foundry, vertex };
+}
+
 function parseResource(raw: any, index: number): ResourceConfig {
   const where = `resources[${index}]`;
   if (typeof raw?.provider !== "string" || !PROVIDER_ID_PATTERN.test(raw.provider)) {

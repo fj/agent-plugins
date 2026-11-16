@@ -4,7 +4,7 @@ import { googleVertexApi } from "@earendil-works/pi-ai/compat";
 import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { CatalogLookup } from "../../catalog.ts";
-import { parseConfig, type FoundryResourceConfig, type ResourceConfig, type VertexResourceConfig } from "../../config.ts";
+import { parseConfig, splitResources, type ResourceConfig } from "../../config.ts";
 import { LOG_PREFIX } from "../../log.ts";
 import { registerResource } from "../../register.ts";
 import { filePriceStore } from "../../vertex/price-store.ts";
@@ -28,8 +28,7 @@ export default async function (pi: ExtensionAPI) {
   }
 
   const registerProvider = pi.registerProvider.bind(pi) as (id: string, registration: any) => void;
-  const foundry = resources.filter((resource): resource is FoundryResourceConfig => resource.type !== "vertex");
-  const vertex = resources.filter((resource): resource is VertexResourceConfig => resource.type === "vertex");
+  const { foundry, vertex } = splitResources(resources);
   await Promise.all([
     ...foundry.map((resource) => registerResource(resource, { registerProvider, lookup })),
     registerVertexResources(vertex, {

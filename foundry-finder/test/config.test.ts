@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseConfig, resolveSecret } from "../src/config.ts";
+import { parseConfig, resolveSecret, splitResources } from "../src/config.ts";
 
 const resource = {
   provider: "acme-foundry",
@@ -89,6 +89,24 @@ describe("parseConfig for Vertex resources", () => {
 
   it("rejects an invalid provider id", () => {
     assert.throws(() => parseOne({ ...vertex, provider: "Acme Vertex" }), /resources\[0\]\.provider/);
+  });
+});
+
+describe("splitResources", () => {
+  it("sends untyped entries to Foundry and vertex entries to Vertex, keeping order", () => {
+    const resources = parseConfig(
+      JSON.stringify({
+        resources: [
+          { provider: "foundry-a", endpoint: "https://a.services.ai.azure.com", apiKey: "$A" },
+          { type: "vertex", provider: "vertex-a", project: "project-a" },
+          { provider: "foundry-b", endpoint: "https://b.services.ai.azure.com", apiKey: "$B" },
+          { type: "vertex", provider: "vertex-b", project: "project-b" },
+        ],
+      }),
+    );
+    const { foundry, vertex } = splitResources(resources);
+    assert.deepEqual(foundry.map((resource) => resource.provider), ["foundry-a", "foundry-b"]);
+    assert.deepEqual(vertex.map((resource) => resource.provider), ["vertex-a", "vertex-b"]);
   });
 });
 
