@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
-import type { FetchOptions } from "../discovery.ts";
+import type { FetchOptions } from "../http.ts";
 import { fetchAllPages, type GoogleCredentials } from "./google-api.ts";
 
 const VERTEX_SKUS_URL = "https://cloudbilling.googleapis.com/v1/services/C7E2-9256-1C43/skus?pageSize=5000&currencyCode=USD";

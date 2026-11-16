@@ -1,4 +1,4 @@
-import type { FetchOptions } from "../discovery.ts";
+import type { FetchOptions } from "../http.ts";
 import { fetchAllPages, type GoogleCredentials } from "./google-api.ts";
 
 const GARDEN_URL =

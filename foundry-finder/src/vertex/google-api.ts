@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEOUT_MS, type FetchOptions } from "../discovery.ts";
+import { DEFAULT_TIMEOUT_MS, type FetchOptions } from "../http.ts";
 
 export interface GoogleCredentials {
   accessToken: string;
