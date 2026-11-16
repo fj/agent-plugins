@@ -5,7 +5,7 @@ export interface Deployment {
 }
 
 const DEPLOYMENTS_API_VERSION = "2022-12-01";
-const DEFAULT_TIMEOUT_MS = 10_000;
+export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export interface FetchOptions {
   fetch?: typeof globalThis.fetch;
