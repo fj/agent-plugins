@@ -7,7 +7,6 @@ import { PRICE_REFRESH_AGE_MS, type PriceCache } from "../src/vertex/price-store
 import type { PriceTable } from "../src/vertex/prices.ts";
 import {
   registerVertexResources,
-  withVertexTarget,
   type VertexDependencies,
   type VertexProviderRegistration,
 } from "../src/vertex/register.ts";
@@ -73,22 +72,18 @@ function outputPrice(registration: VertexProviderRegistration, id: string) {
   return registration.models.find((model) => model.id === id)?.cost.output;
 }
 
-describe("withVertexTarget", () => {
-  it("adds the project and location to the provider env and keeps other options", () => {
-    const stream = withVertexTarget((_model, _context, options) => options, RESOURCE);
-    assert.deepEqual(stream({}, {}, { apiKey: "key", env: { OTHER: "1", GOOGLE_CLOUD_PROJECT: "wrong" } }), {
+describe("registerVertexResources", () => {
+  it("streams with the resource project and location in the provider env and keeps other options", async () => {
+    const { dependencies, registered } = harness({ fetchedAt: NOW, prices: CACHED_PRICES });
+    await registerVertexResources([RESOURCE], dependencies);
+    const { streamSimple } = registered[0][1];
+    assert.deepEqual(streamSimple({}, {}, { apiKey: "key", env: { OTHER: "1", GOOGLE_CLOUD_PROJECT: "wrong" } }), {
       apiKey: "key",
       env: { OTHER: "1", GOOGLE_CLOUD_PROJECT: "acme-project", GOOGLE_CLOUD_LOCATION: "global" },
     });
+    assert.deepEqual(streamSimple({}, {}).env, { GOOGLE_CLOUD_PROJECT: "acme-project", GOOGLE_CLOUD_LOCATION: "global" });
   });
 
-  it("works without options", () => {
-    const stream = withVertexTarget((_model, _context, options) => options, RESOURCE);
-    assert.deepEqual(stream({}, {}).env, { GOOGLE_CLOUD_PROJECT: "acme-project", GOOGLE_CLOUD_LOCATION: "global" });
-  });
-});
-
-describe("registerVertexResources", () => {
   it("registers a google-vertex provider that uses ADC and targets the resource", async () => {
     const { dependencies, registered } = harness({ fetchedAt: NOW, prices: CACHED_PRICES });
     await registerVertexResources([RESOURCE], dependencies);

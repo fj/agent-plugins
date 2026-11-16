@@ -46,7 +46,7 @@ interface DiscoveredResource {
 }
 
 /** Routes requests to the resource's project and location through provider-scoped env, not process env. */
-export function withVertexTarget(
+function withVertexTarget(
   stream: StreamSimple,
   { project, location }: Pick<VertexResourceConfig, "project" | "location">,
 ): StreamSimple {

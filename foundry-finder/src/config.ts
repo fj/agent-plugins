@@ -19,8 +19,8 @@ export interface VertexResourceConfig {
 
 export type ResourceConfig = FoundryResourceConfig | VertexResourceConfig;
 
-export const DEFAULT_VERTEX_LOCATION = "global";
-export const DEFAULT_VERTEX_ACCESS_TOKEN = "!gcloud auth application-default print-access-token";
+const DEFAULT_VERTEX_LOCATION = "global";
+const DEFAULT_VERTEX_ACCESS_TOKEN = "!gcloud auth application-default print-access-token";
 
 const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 const LOCATION_PATTERN = /^[a-z0-9-]+$/;
