@@ -1,8 +1,7 @@
 import { resolveSecret, type FoundryResourceConfig } from "./config.ts";
 import { fetchDeployments, type Deployment } from "./discovery.ts";
+import { LOG_PREFIX } from "./log.ts";
 import { toModelConfig, type CatalogLookup } from "./models.ts";
-
-export const LOG_PREFIX = "foundry-finder";
 
 export interface ProviderRegistration {
   name: string;

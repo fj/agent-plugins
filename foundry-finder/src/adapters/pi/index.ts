@@ -4,7 +4,8 @@ import { getBuiltinModels } from "@earendil-works/pi-ai/providers/all";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { parseConfig, type FoundryResourceConfig, type ResourceConfig } from "../../config.ts";
 import type { CatalogLookup } from "../../models.ts";
-import { LOG_PREFIX, registerResource } from "../../register.ts";
+import { LOG_PREFIX } from "../../log.ts";
+import { registerResource } from "../../register.ts";
 
 const CONFIG_FILE = "foundry-finder.json";
 
