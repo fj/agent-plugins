@@ -113,8 +113,8 @@ export async function registerVertexResources(
 
   const refreshed = (async () => {
     const prices = await fetchPrices(discovered[0].credentials);
-    await priceStore.save({ fetchedAt: now(), prices });
     for (const entry of discovered) register(entry, prices);
+    await priceStore.save({ fetchedAt: now(), prices });
   })().catch((error) => log(`${LOG_PREFIX}: Vertex price refresh failed: ${error}`));
   return { refreshed };
 }

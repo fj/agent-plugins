@@ -138,12 +138,17 @@ describe("registerVertexResources", () => {
     assert.equal(priceRequests.length, 0);
   });
 
-  it("registers with stale prices first, then saves and re-registers with fresh prices", async () => {
-    const { dependencies, registered, saved } = harness({ fetchedAt: NOW - PRICE_REFRESH_AGE_MS, prices: CACHED_PRICES });
+  it("registers with stale prices first, then re-registers with fresh prices and saves them", async () => {
+    let finishFetch!: (prices: PriceTable) => void;
+    const { dependencies, registered, saved } = harness(
+      { fetchedAt: NOW - PRICE_REFRESH_AGE_MS, prices: CACHED_PRICES },
+      { fetchPrices: () => new Promise((resolve) => (finishFetch = resolve)) },
+    );
     const { refreshed } = await registerVertexResources([RESOURCE], dependencies);
     assert.equal(registered.length, 1);
     assert.equal(outputPrice(registered[0][1], "gemini-4-argon"), 20);
 
+    finishFetch(FRESH_PRICES);
     await refreshed;
     assert.deepEqual(saved, [{ fetchedAt: NOW, prices: FRESH_PRICES }]);
     assert.equal(registered.length, 2);
@@ -191,6 +196,22 @@ describe("registerVertexResources", () => {
     assert.deepEqual(priceRequests, [{ accessToken: "token", project: "acme-project" }]);
     assert.deepEqual(registered.map(([id]) => id), ["acme-vertex", "other-vertex", "acme-vertex", "other-vertex"]);
     assert.equal(registered[3][1].streamSimple({}, {}).env.GOOGLE_CLOUD_PROJECT, "other-project");
+  });
+
+  it("registers fresh prices even when the price cache cannot be saved", async () => {
+    const { dependencies, registered, logs } = harness(undefined, {
+      priceStore: {
+        load: () => undefined,
+        save: async () => {
+          throw new Error("EROFS read-only file system");
+        },
+      },
+    });
+    const { refreshed } = await registerVertexResources([RESOURCE], dependencies);
+    await assert.doesNotReject(refreshed);
+    assert.equal(registered.length, 2);
+    assert.equal(outputPrice(registered[1][1], "gemini-4-argon"), 21);
+    assert.match(logs.at(-1)!, /Vertex price refresh failed: .*EROFS/);
   });
 
   it("logs a failed refresh and keeps the startup registration", async () => {
