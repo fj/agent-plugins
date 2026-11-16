@@ -4,7 +4,8 @@ import { LOG_PREFIX } from "../log.ts";
 import { fetchGeminiModels } from "./discovery.ts";
 import type { GoogleCredentials } from "./google-api.ts";
 import { toVertexModelConfig, VERTEX_API, type VertexModelConfig } from "./models.ts";
-import { fetchPriceTable, isFresh, type PriceStore, type PriceTable } from "./prices.ts";
+import { isFresh, type PriceStore } from "./price-store.ts";
+import { fetchPriceTable, type PriceTable } from "./prices.ts";
 
 // pi's google-vertex API reads this key as "use Application Default Credentials".
 const ADC_API_KEY = "gcp-vertex-credentials";

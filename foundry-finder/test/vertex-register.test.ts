@@ -3,7 +3,8 @@ import { describe, it } from "node:test";
 import type { CatalogModel } from "../src/catalog.ts";
 import type { VertexResourceConfig } from "../src/config.ts";
 import type { GoogleCredentials } from "../src/vertex/google-api.ts";
-import { PRICE_REFRESH_AGE_MS, type PriceCache, type PriceTable } from "../src/vertex/prices.ts";
+import { PRICE_REFRESH_AGE_MS, type PriceCache } from "../src/vertex/price-store.ts";
+import type { PriceTable } from "../src/vertex/prices.ts";
 import {
   registerVertexResources,
   withVertexTarget,

@@ -7,7 +7,7 @@ import { parseConfig, type FoundryResourceConfig, type ResourceConfig, type Vert
 import { LOG_PREFIX } from "../../log.ts";
 import type { CatalogLookup } from "../../models.ts";
 import { registerResource } from "../../register.ts";
-import { filePriceStore } from "../../vertex/prices.ts";
+import { filePriceStore } from "../../vertex/price-store.ts";
 import { registerVertexResources } from "../../vertex/register.ts";
 
 const CONFIG_FILE = "foundry-finder.json";
