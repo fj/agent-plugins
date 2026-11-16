@@ -1,3 +1,5 @@
+import { DEFAULT_TIMEOUT_MS, type FetchOptions } from "./http.ts";
+
 export interface Deployment {
   id: string;
   model: string;
@@ -5,12 +7,6 @@ export interface Deployment {
 }
 
 const DEPLOYMENTS_API_VERSION = "2022-12-01";
-const DEFAULT_TIMEOUT_MS = 10_000;
-
-export interface FetchOptions {
-  fetch?: typeof globalThis.fetch;
-  timeoutMs?: number;
-}
 
 /** Lists the resource's ready deployments, authenticating with the resource API key. */
 export async function fetchDeployments(

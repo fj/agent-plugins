@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { toModelConfig, type Catalog, type CatalogModel } from "../src/models.ts";
+import type { Catalog, CatalogModel } from "../src/catalog.ts";
+import { toModelConfig } from "../src/models.ts";
 
 const ENDPOINT = "https://acme.services.ai.azure.com";
 

@@ -1,6 +1,6 @@
 {
   "name": "foundry-finder",
-  "description": "Discovers Azure AI Foundry deployments at startup and registers them as pi models.",
+  "description": "Discovers Azure AI Foundry deployments and Vertex AI Gemini models at startup and registers them as pi models.",
   "version": "0.1",
   "author": { "name": "John Feminella" },
   "harnesses": ["pi"],

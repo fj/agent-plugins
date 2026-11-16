@@ -1,8 +1,8 @@
-import { resolveSecret, type ResourceConfig } from "./config.ts";
+import type { CatalogLookup } from "./catalog.ts";
+import { resolveSecret, type FoundryResourceConfig } from "./config.ts";
 import { fetchDeployments, type Deployment } from "./discovery.ts";
-import { toModelConfig, type CatalogLookup } from "./models.ts";
-
-export const LOG_PREFIX = "foundry-finder";
+import { LOG_PREFIX } from "./log.ts";
+import { toModelConfig } from "./models.ts";
 
 export interface ProviderRegistration {
   name: string;
@@ -21,7 +21,7 @@ export interface RegisterDependencies {
 
 /** Discovers one resource's deployments and registers them as a provider; logs and skips the resource on failure. */
 export async function registerResource(
-  resource: ResourceConfig,
+  resource: FoundryResourceConfig,
   {
     registerProvider,
     lookup,
