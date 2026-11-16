@@ -172,6 +172,17 @@ describe("registerVertexResources", () => {
     assert.deepEqual(modelIds(registered[1][1]), ["gemini-4-argon", "gemini-4-carbon"]);
   });
 
+  it("routes each of two resources to its own project and location", async () => {
+    const regional = { ...RESOURCE, provider: "beta-vertex", project: "beta-project", location: "us-central1" };
+    const { dependencies, registered } = harness({ fetchedAt: NOW, prices: CACHED_PRICES });
+    await registerVertexResources([RESOURCE, regional], dependencies);
+    const envs = Object.fromEntries(registered.map(([id, registration]) => [id, registration.streamSimple({}, {}).env]));
+    assert.deepEqual(envs, {
+      "acme-vertex": { GOOGLE_CLOUD_PROJECT: "acme-project", GOOGLE_CLOUD_LOCATION: "global" },
+      "beta-vertex": { GOOGLE_CLOUD_PROJECT: "beta-project", GOOGLE_CLOUD_LOCATION: "us-central1" },
+    });
+  });
+
   it("refreshes once for several resources and re-registers each of them", async () => {
     const other = { ...RESOURCE, provider: "other-vertex", project: "other-project" };
     const { dependencies, registered, priceRequests } = harness(undefined);
