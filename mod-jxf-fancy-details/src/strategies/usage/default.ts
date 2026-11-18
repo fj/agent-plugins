@@ -3,26 +3,13 @@ import { newInput, totalInput, type TokenUsage } from '../../core/usage.ts'
 import { formatTokens, formatUsd } from '../../render/format.ts'
 import { seg, type Line } from '../../render/segment.ts'
 import type { TokenDisplay } from '../../render/usage-lines.ts'
-import { CACHE_WRITE_MULTIPLIER, ratesFor } from './pricing.ts'
+import { priceWithRates, ratesFor } from './pricing.ts'
 import type { UsageStrategy } from './strategy.ts'
-
-const TOKENS_PER_MTOK = 1_000_000
 
 function price(model: string, usage: TokenUsage): Cost {
   const rates = ratesFor(model)
 
-  if (rates === undefined) {
-    return { usd: 0, isLowerBound: true }
-  }
-
-  const usd =
-    (usage.input * rates.input +
-      usage.cacheWrite * rates.input * CACHE_WRITE_MULTIPLIER +
-      usage.cacheRead * rates.cacheRead +
-      usage.output * rates.output) /
-    TOKENS_PER_MTOK
-
-  return { usd, isLowerBound: false }
+  return rates === undefined ? { usd: 0, isLowerBound: true } : priceWithRates(rates, usage)
 }
 
 function stepInput(step: TokenUsage, display: TokenDisplay): Line {

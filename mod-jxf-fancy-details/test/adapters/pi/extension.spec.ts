@@ -834,3 +834,65 @@ test('the claude-bridge cache drops to five minutes while extra usage is on, and
   await s.emit('after_provider_response', { status: 200, headers: RATE_LIMIT_HEADERS })
   assert.match(sessionLine(s), /⌛60m 00s$/)
 })
+
+const CARBON_MODEL = {
+  provider: 'tsdev-jxf-vertex',
+  id: 'gemini-4-carbon',
+  cost: { input: 4, output: 20, cacheRead: 0.2, cacheWrite: 0 },
+}
+
+test('Vertex model turns record host cost and show exact session and today totals', async () => {
+  const s = setup({
+    provider: CARBON_MODEL.provider,
+    modelId: CARBON_MODEL.id,
+    modelCost: CARBON_MODEL.cost,
+    catalog: [CARBON_MODEL],
+  })
+
+  await s.emit('session_start', { reason: 'startup' })
+  await submit(s)
+  await s.emit('message_start', {
+    message: { role: 'assistant', provider: CARBON_MODEL.provider, model: CARBON_MODEL.id },
+  })
+  await s.emit('message_end', {
+    message: {
+      role: 'assistant',
+      provider: CARBON_MODEL.provider,
+      model: CARBON_MODEL.id,
+      usage: { input: 100_000, cacheRead: 500_000, cacheWrite: 0, output: 10_000, cost: { total: 0.7, totalFromProvider: false } },
+    },
+  })
+  await s.emit('agent_settled')
+
+  const lines = s.footerLines(footerData({}, null))!
+
+  assert.match(lines[1]!, /session \$0\.70 /)
+  assert.doesNotMatch(lines[1]!, /\$0\.70\+/)
+  assert.match(lines[2]!, /today \$0\.70 /)
+  assert.deepEqual(s.writes.at(-1)?.totals.cost, { usd: 0.7, isLowerBound: false })
+})
+
+test('replaying legacy Vertex records without stored cost prices them from model registry', async () => {
+  const records = [
+    { kind: 'prompt', id: 'p', at: T0 },
+    { kind: 'step', id: 's', at: T0 + 1000, model: 'gemini-4-carbon' },
+    { kind: 'message', id: 's', at: T0 + 1000 },
+    { kind: 'stepEnd', id: 's', at: T0 + 4000, usage: { input: 100_000, cacheRead: 500_000, cacheWrite: 0, output: 10_000 } },
+    { kind: 'turnEnd', at: T0 + 5000 },
+  ]
+  const branch: FakeEntry[] = records.map(data => ({ type: 'custom', customType: CUSTOM_TYPE, data }))
+  const s = setup({
+    branch,
+    provider: CARBON_MODEL.provider,
+    modelId: CARBON_MODEL.id,
+    modelCost: CARBON_MODEL.cost,
+    catalog: [CARBON_MODEL],
+  })
+
+  await s.emit('session_start', { reason: 'reload' })
+
+  const lines = s.footerLines(footerData({}, null))!
+
+  assert.match(lines[1]!, /session 5\.0s · \$0\.70 /)
+  assert.match(lines[2]!, /today 5\.0s · \$0\.70 /)
+})

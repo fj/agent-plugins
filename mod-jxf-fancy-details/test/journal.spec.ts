@@ -143,8 +143,29 @@ test('applying records one at a time matches folding them', () => {
   assert.deepEqual(stepwise, foldJournal(RUN, price))
 })
 
+test('recorded step and subagent costs override unknown model lower bounds', () => {
+  const stepCost = { usd: 0.42, isLowerBound: false }
+  const agentCost = { usd: 0.18, isLowerBound: false }
+  const journal = foldJournal(
+    [
+      { kind: 'prompt', id: 'p', at: T0 },
+      { kind: 'step', id: 's', at: T0, model: 'tsdev-jxf-vertex/gemini-4-carbon' },
+      { kind: 'stepEnd', id: 's', at: T0 + 100, usage: USAGE, cost: stepCost },
+      { kind: 'agentStep', at: T0 + 200, model: 'tsdev-jxf-vertex/gemini-4-carbon', usage: USAGE, cost: agentCost },
+    ],
+    price,
+  )
+
+  assert.deepEqual(journal.ledger.steps.s?.cost, stepCost)
+  assert.deepEqual(journal.ledger.totals.cost, { usd: 0.6, isLowerBound: false })
+  assert.deepEqual(journal.days[localDayKey(T0)]?.cost, { usd: 0.6, isLowerBound: false })
+})
+
 test('only well-formed records are recognized', () => {
   assert.ok(isJournalRecord({ kind: 'turnEnd', at: 1 }))
+  assert.ok(isJournalRecord({ kind: 'stepEnd', id: 's', at: 1, cost: { usd: 0.5, isLowerBound: false } }))
+  assert.equal(isJournalRecord({ kind: 'stepEnd', id: 's', at: 1, cost: { usd: -1, isLowerBound: false } }), false)
+  assert.equal(isJournalRecord({ kind: 'stepEnd', id: 's', at: 1, cost: 'bad' }), false)
   assert.equal(isJournalRecord({ kind: 'nope', at: 1 }), false)
   assert.equal(isJournalRecord({ kind: 'prompt' }), false)
   assert.equal(isJournalRecord(undefined), false)

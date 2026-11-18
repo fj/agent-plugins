@@ -11,18 +11,18 @@ import {
   type LedgerState,
   type Pricer,
 } from './ledger.ts'
-import { ZERO_COST } from './cost.ts'
+import { isCost, ZERO_COST, type Cost } from './cost.ts'
 import type { TokenUsage } from './usage.ts'
 
 export type JournalRecord =
   | { kind: 'prompt'; id: string; at: number }
   | { kind: 'step'; id: string; at: number; model: string }
   | { kind: 'message'; id: string; at: number }
-  | { kind: 'stepEnd'; id: string; at: number; usage?: TokenUsage }
+  | { kind: 'stepEnd'; id: string; at: number; usage?: TokenUsage; cost?: Cost }
   | { kind: 'tool'; id: string; at: number }
   | { kind: 'toolEnd'; id: string; at: number }
   | { kind: 'turnEnd'; at: number }
-  | { kind: 'agentStep'; at: number; model: string; usage: TokenUsage }
+  | { kind: 'agentStep'; at: number; model: string; usage: TokenUsage; cost?: Cost }
 
 export type Journal = { ledger: LedgerState; days: SessionDays }
 
@@ -31,9 +31,10 @@ export const EMPTY_JOURNAL: Journal = { ledger: EMPTY_LEDGER, days: {} }
 const RECORD_KINDS = new Set(['prompt', 'step', 'message', 'stepEnd', 'tool', 'toolEnd', 'turnEnd', 'agentStep'])
 
 export function isJournalRecord(value: unknown): value is JournalRecord {
-  const record = value as JournalRecord | undefined
+  const record = value as (JournalRecord & { cost?: unknown }) | undefined
+  const validCost = record?.cost === undefined || isCost(record.cost)
 
-  return typeof record?.at === 'number' && RECORD_KINDS.has(record.kind)
+  return typeof record?.at === 'number' && RECORD_KINDS.has(record.kind) && validCost
 }
 
 export function applyRecord({ ledger, days }: Journal, record: JournalRecord, price: Pricer): Journal {
@@ -45,7 +46,7 @@ export function applyRecord({ ledger, days }: Journal, record: JournalRecord, pr
     case 'message':
       return { ledger: addMark(ledger, record.id, 'message', record.at), days }
     case 'stepEnd': {
-      const next = finishStep(ledger, record.id, record.usage, record.at, price)
+      const next = finishStep(ledger, record.id, record.usage, record.at, price, record.cost)
 
       if (record.usage === undefined) {
         return { ledger: next, days }
@@ -65,7 +66,7 @@ export function applyRecord({ ledger, days }: Journal, record: JournalRecord, pr
       return { ledger: state, days: addToDay(days, localDayKey(record.at), delta) }
     }
     case 'agentStep': {
-      const { state, delta } = addAgentStep(ledger, record.model, record.usage, price)
+      const { state, delta } = addAgentStep(ledger, record.model, record.usage, price, record.cost)
 
       return { ledger: state, days: addToDay(days, localDayKey(record.at), delta) }
     }

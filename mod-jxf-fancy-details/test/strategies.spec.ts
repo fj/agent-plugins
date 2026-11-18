@@ -7,7 +7,7 @@ import { subscriptionStrategy } from '../src/strategies/subscription/index.ts'
 import { nullSubscriptionStrategy } from '../src/strategies/subscription/null.ts'
 import { defaultUsageStrategy } from '../src/strategies/usage/default.ts'
 import { usageStrategy } from '../src/strategies/usage/index.ts'
-import { canonicalModel } from '../src/strategies/usage/pricing.ts'
+import { canonicalModel, hasKnownRates, priceWithRates } from '../src/strategies/usage/pricing.ts'
 
 const MTOK = 1_000_000
 
@@ -195,4 +195,38 @@ test('a non-Anthropic model behind a provider prefix is still a lower bound', ()
 
   assert.equal(canonicalModel('openrouter/gpt-5'), 'gpt-5')
   assert.equal(cost.isLowerBound, true)
+})
+
+test('priceWithRates honors explicit cacheWrite rate and highest matching input tier', () => {
+  const rates = {
+    input: 2,
+    output: 10,
+    cacheRead: 0.2,
+    cacheWrite: 0,
+    tiers: [
+      { inputTokensAbove: 100_000, input: 3, output: 15, cacheRead: 0.3, cacheWrite: 0 },
+      { inputTokensAbove: 200_000, input: 4, output: 20, cacheRead: 0.4, cacheWrite: 0 },
+    ],
+  }
+  const base = priceWithRates(rates, { input: 50_000, cacheWrite: 50_000, cacheRead: 0, output: 100_000 })
+  const high = priceWithRates(rates, { input: 100_000, cacheWrite: 0, cacheRead: 150_000, output: 100_000 })
+
+  assert.deepEqual(base, { usd: 1.1, isLowerBound: false })
+  assert.ok(Math.abs(high.usd - (0.4 + 0.06 + 2)) < 1e-9)
+  assert.equal(high.isLowerBound, false)
+})
+
+test('hasKnownRates distinguishes priced rates from zero placeholders', () => {
+  assert.equal(hasKnownRates(undefined), false)
+  assert.equal(hasKnownRates({ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }), false)
+  assert.equal(hasKnownRates({ input: 4, output: 20, cacheRead: 0.2, cacheWrite: 0 }), true)
+  assert.equal(
+    hasKnownRates({
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      tiers: [{ inputTokensAbove: 0, input: 1, output: 5, cacheRead: 0.1 }],
+    }),
+    true,
+  )
 })

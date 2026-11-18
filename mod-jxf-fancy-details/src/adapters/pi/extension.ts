@@ -19,6 +19,7 @@ import { cacheTtlMs, type Env } from './cache.ts'
 import { readConfig } from './config.ts'
 import { footerLines, type FooterData, type FooterScene } from './footer.ts'
 import type { TextWidth } from './paint.ts'
+import { piPricer, reportedCost, type CatalogModel, type PiMessageUsage } from './pricing.ts'
 import { ticker } from './ticker.ts'
 import { patchToolRows, type ToolRowPrototype } from './tool-rows.ts'
 import { promptLines, stepLines, toolTimerLine, view } from './views.ts'
@@ -47,7 +48,7 @@ export type FancyDeps = {
 
 type Entry = { type: string; customType?: string; data?: unknown; message?: unknown }
 type Renderable = { requestRender(): void }
-type Message = { role: string; timestamp?: number; model?: string; usage?: TokenUsage }
+type Message = { role: string; timestamp?: number; provider?: string; model?: string; usage?: PiMessageUsage }
 
 const NESTED_CALL_SEPARATOR = '/'
 
@@ -60,12 +61,19 @@ const journalRecords = (entries: readonly Entry[]): JournalRecord[] =>
 const contextFill = (usage: ContextUsage | undefined): ContextFill | undefined =>
   usage === undefined ? undefined : { tokens: usage.tokens ?? undefined, window: usage.contextWindow }
 
-const tokenUsage = (usage: TokenUsage | undefined): TokenUsage => ({
+const tokenUsage = (usage: PiMessageUsage | undefined): TokenUsage => ({
   input: usage?.input ?? 0,
   cacheRead: usage?.cacheRead ?? 0,
   cacheWrite: usage?.cacheWrite ?? 0,
   output: usage?.output ?? 0,
 })
+
+function stepEndRecord(id: string, at: number, raw: PiMessageUsage | undefined): JournalRecord {
+  const usage = tokenUsage(raw)
+  const cost = reportedCost(raw)
+
+  return cost === undefined ? { kind: 'stepEnd', id, at, usage } : { kind: 'stepEnd', id, at, usage, cost }
+}
 
 export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void {
   const now = deps.now ?? Date.now
@@ -87,7 +95,12 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
     let openStepId: string | undefined
     let gitStatus: string | undefined
     const gitRuns = latestRun()
-    let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price: usage.price })
+    const price = piPricer(
+      (name, tokens) => usage.price(name, tokens),
+      () => ctx?.modelRegistry,
+      () => model as CatalogModel | undefined,
+    )
+    let tracker: SessionTracker = sessionTracker({ store: deps.store, sessionKey: SESSION_KEY_PREFIX, price })
 
     const isUsingOverage = () => reading?.isUsingOverage ?? false
     const pulse = ticker(FRAME_MS, () => tui?.requestRender())
@@ -251,7 +264,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       tracker = sessionTracker({
         store: deps.store,
         sessionKey: `${SESSION_KEY_PREFIX}${context.sessionManager.getSessionId()}`,
-        price: usage.price,
+        price,
       })
       replay(context)
 
@@ -290,7 +303,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
         openStepId = newId()
         const at = now()
 
-        record({ kind: 'step', id: openStepId, at, model: message.model ?? '' })
+        record({ kind: 'step', id: openStepId, at, model: modelLabel(message.provider ?? '', message.model ?? '') })
         record({ kind: 'message', id: openStepId, at })
       }
     })
@@ -308,7 +321,7 @@ export function modJxfFancyDetails(deps: FancyDeps): (pi: ExtensionAPI) => void 
       }
 
       if (message.role === 'assistant' && openStepId !== undefined) {
-        record({ kind: 'stepEnd', id: openStepId, at: now(), usage: tokenUsage(message.usage) })
+        record(stepEndRecord(openStepId, now(), message.usage))
         openStepId = undefined
       }
     })

@@ -3,6 +3,7 @@ import type { ContextUsage, ExtensionAPI, ExtensionContext } from '@earendil-wor
 import type { DailyStore } from '../../../src/core/daily.ts'
 import type { Totals } from '../../../src/core/totals.ts'
 import type { TextWidth } from '../../../src/adapters/pi/paint.ts'
+import type { CatalogModel } from '../../../src/adapters/pi/pricing.ts'
 
 type Handler = (event: unknown, ctx: ExtensionContext) => unknown
 type Component = { render(width: number): string[] }
@@ -136,7 +137,10 @@ export function fakePi() {
 export type CtxOptions = {
   mode?: string
   cwd?: string
+  modelId?: string
   provider?: string
+  modelCost?: CatalogModel['cost']
+  catalog?: readonly CatalogModel[]
   reasoning?: boolean
   oauth?: boolean
   context?: ContextUsage
@@ -147,6 +151,7 @@ export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const widgets = new Map<string, Factory | undefined>()
   let footer: Factory | undefined
   let context = options.context
+  const catalog = options.catalog ?? []
   const ui = {
     setFooter: (factory: Factory | undefined) => {
       footer = factory
@@ -158,8 +163,18 @@ export function fakeCtx(branch: FakeEntry[], options: CtxOptions = {}) {
   const ctx = {
     mode: options.mode ?? 'tui',
     cwd: options.cwd ?? '/home/j/src/projects/demo',
-    model: { id: 'claude-opus-5-5', provider: options.provider ?? 'anthropic', reasoning: options.reasoning, promptCache: options.promptCache },
-    modelRegistry: { isUsingOAuth: () => options.oauth ?? true },
+    model: {
+      id: options.modelId ?? 'claude-opus-5-5',
+      provider: options.provider ?? 'anthropic',
+      cost: options.modelCost,
+      reasoning: options.reasoning,
+      promptCache: options.promptCache,
+    },
+    modelRegistry: {
+      isUsingOAuth: () => options.oauth ?? true,
+      find: (provider: string, id: string) => catalog.find(m => m.provider === provider && m.id === id),
+      getAll: () => catalog,
+    },
     getContextUsage: () => context,
     sessionManager: { getSessionId: () => 'sess-1', getBranch: () => branch, getEntries: () => branch },
     ui,

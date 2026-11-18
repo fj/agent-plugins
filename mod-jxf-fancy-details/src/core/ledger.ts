@@ -100,6 +100,7 @@ export function completeStep(
   usage: TokenUsage,
   at: number,
   price: Pricer,
+  reportedCost?: Cost,
 ): LedgerState {
   const step = state.steps[id]
 
@@ -107,7 +108,7 @@ export function completeStep(
     return state
   }
 
-  const cost = price(step.model, usage)
+  const cost = reportedCost ?? price(step.model, usage)
   const totals = addTotals(state.totals, { usage, cost, activeMs: 0 })
   const done: Step = { ...step, endedAt: at, usage, cost, totals }
   const next = { ...state, totals, steps: { ...state.steps, [id]: done } }
@@ -127,10 +128,12 @@ export function finishStep(
   usage: TokenUsage | undefined,
   at: number,
   price: Pricer,
+  reportedCost?: Cost,
 ): LedgerState {
   const isOpenMessage = (mark: Mark) => mark.stepId === id && mark.kind === 'message' && mark.endedAt === undefined
   const open = Object.values(state.marks).filter(isOpenMessage)
-  const closed = usage === undefined ? closeStep(state, id, at) : completeStep(state, id, usage, at, price)
+  const closed =
+    usage === undefined ? closeStep(state, id, at) : completeStep(state, id, usage, at, price, reportedCost)
   const done = open.reduce((next, mark) => endMark(next, mark.id, at), closed)
 
   return markReply(done, at)
@@ -141,8 +144,9 @@ export function addAgentStep(
   model: string,
   usage: TokenUsage,
   price: Pricer,
+  reportedCost?: Cost,
 ): { state: LedgerState; delta: Totals } {
-  const delta: Totals = { usage, cost: price(model, usage), activeMs: 0 }
+  const delta: Totals = { usage, cost: reportedCost ?? price(model, usage), activeMs: 0 }
 
   return { state: { ...state, totals: addTotals(state.totals, delta) }, delta }
 }
